@@ -1,6 +1,6 @@
-# packages/aoa-langgraph/src/aoa/langgraph/wrapper_langgraph_controller.py
+# packages/aoa-langgraph/src/aoa/langgraph/langgraph_controller_wrapper.py
 """
-WrapperLangGraphController — thin proxy for child actions.
+LangGraphControllerWrapper — thin proxy for child actions.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -22,10 +22,10 @@ ARCHITECTURE / DATA FLOW
 
     LangGraphController (owner action)
         │
-        └── WrapperLangGraphController
+        └── LangGraphControllerWrapper
                 ainvoke(data, box)       → delegates to inner  [added PR06]
                 check_rollup_support()   → delegates to inner
-                get_wrapper_class()      → WrapperLangGraphController
+                get_wrapper_class()      → LangGraphControllerWrapper
 
 """
 
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 
 @exclude_graph_model
-class WrapperLangGraphController(BaseController):
+class LangGraphControllerWrapper(BaseController):
     """
     AI-CORE-BEGIN
         ROLE: Proxy of LangGraphController for child actions; exposes ainvoke() only.
@@ -64,6 +64,7 @@ class WrapperLangGraphController(BaseController):
         """Delegate to the wrapped controller."""
         return await self._inner.check_rollup_support()
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """Return this wrapper class so deeper nesting levels are also wrapped."""
-        return WrapperLangGraphController
+        return LangGraphControllerWrapper

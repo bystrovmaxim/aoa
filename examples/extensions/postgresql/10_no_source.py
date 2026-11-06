@@ -7,7 +7,8 @@ Run: uv run python examples/extensions/postgresql/10_no_source.py
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.exceptions import DataSourceDeclarationError
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
 class RecordingConnection:
@@ -59,7 +60,6 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-from aoa.action_machine.exceptions import DataSourceDeclarationError
 
 
 class ExampleDataSource(PostgresDataSource):
@@ -69,7 +69,7 @@ class ExampleDataSource(PostgresDataSource):
 async def main():
     """Run this case and verify its observable result."""
     try:
-        PostgresResource(data_source=ExampleDataSource(pool=RecordingPool()))
+        PostgresStorage(data_source=ExampleDataSource(pool=RecordingPool()))
     except DataSourceDeclarationError:
         print("DataSourceDeclarationError")
     else:

@@ -5,12 +5,12 @@ from aoa.action_machine.intents.connection.connection_intent_resolver import Con
 
 from ....support.domain_model.full_action import FullAction
 from ....support.domain_model.ping_action import PingAction
-from ....support.domain_model.test_db_manager import OrdersDbManager
+from ....support.domain_model.test_db_manager import OrdersStorage
 
 
 def test_resolve_connection_types_returns_declared_resource_types() -> None:
     assert ConnectionIntentResolver.resolve_connection_types(FullAction) == [
-        OrdersDbManager,
+        OrdersStorage,
     ]
 
 
@@ -20,7 +20,7 @@ def test_resolve_connection_types_returns_empty_list_without_declarations() -> N
 
 def test_resolve_connection_types_and_keys_pairs_type_with_key() -> None:
     assert ConnectionIntentResolver.resolve_connection_types_and_keys(FullAction) == [
-        (OrdersDbManager, "db"),
+        (OrdersStorage, "db"),
     ]
 
 

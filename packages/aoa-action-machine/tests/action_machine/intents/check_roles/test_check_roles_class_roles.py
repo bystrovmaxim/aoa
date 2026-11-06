@@ -87,35 +87,35 @@ class TestCheckRolesNormalization:
             check_roles(["manager", "editor"])
 
     def test_single_role_type_stored(self) -> None:
-        class _P(BaseParams):
+        class _TestParams(BaseParams):
             pass
 
-        class _R(BaseResult):
+        class _TestResult(BaseResult):
             pass
 
         @meta(description="norm type", domain=TestDomain)
         @check_roles(_EditorRole)
-        class _NormTypeAction(BaseAction[_P, _R]):
+        class _NormTypeAction(BaseAction[_TestParams, _TestResult]):
             @summary_aspect("s")
             async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
-                return _R()
+                return _TestResult()
 
         assert _NormTypeAction._role_info["spec"] is _EditorRole
         assert issubclass(_NormTypeAction, CheckRolesIntent)
 
     def test_list_of_role_types_becomes_tuple(self) -> None:
-        class _P(BaseParams):
+        class _TestParams(BaseParams):
             pass
 
-        class _R(BaseResult):
+        class _TestResult(BaseResult):
             pass
 
         @meta(description="multi role", domain=TestDomain)
         @check_roles([_EditorRole, _ViewerRole])
-        class _MultiRolesAction(BaseAction[_P, _R]):
+        class _MultiRolesAction(BaseAction[_TestParams, _TestResult]):
             @summary_aspect("s")
             async def build_summary(self, params: BaseParams, state: BaseState, box: ToolsBox, connections: Connections) -> BaseResult:
-                return _R()
+                return _TestResult()
 
         spec = _MultiRolesAction._role_info["spec"]
         assert isinstance(spec, tuple)

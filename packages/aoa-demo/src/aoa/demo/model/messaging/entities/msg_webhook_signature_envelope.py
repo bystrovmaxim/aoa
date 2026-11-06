@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgWebhookLifecycle
 from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Signature verification envelope chained from webhook receipt", resource=OutboxPrimaryDatabase)
+@entity(description="Signature verification envelope chained from webhook receipt", resource=OutboxPrimaryDatabaseStorage)
 class WebhookSignatureEnvelopeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Envelope id")
     lifecycle: MsgWebhookLifecycle = Field(description="Envelope lifecycle")

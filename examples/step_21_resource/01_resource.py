@@ -18,7 +18,7 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -32,14 +32,15 @@ class WarehouseDomain(BaseDomain):
 
 # ── Resource: transport only — read and write stock, no decisions ────────────
 @meta(description="In-memory inventory store (transport only)", domain=WarehouseDomain)
-class InventoryResource(BaseResource):
+class InventoryStorage(BaseStorage):
 
     """Read and update the supplied inventory."""
     def __init__(self, stock: dict[str, int] | None = None) -> None:
         """Initialize this example object."""
         self._stock: dict[str, int] = dict(stock or {})
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """Choose the view supplied to child actions."""
         return None  # in-memory: direct pass-through; a SQL resource would return a wrapper
 
@@ -66,7 +67,7 @@ class ReserveResult(BaseResult):
 
 @meta(description="Reserve stock for a SKU", domain=WarehouseDomain)
 @check_roles(GuestRole)
-@connection(InventoryResource, key="inventory")
+@connection(InventoryStorage, key="inventory")
 class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
 
     """Decide whether the requested stock is available."""
@@ -85,7 +86,7 @@ class ReserveStockAction(BaseAction[ReserveParams, ReserveResult]):
 
 async def main():
     """Run this case and verify its observable result."""
-    inventory = InventoryResource(stock={"sku-1": 10})
+    inventory = InventoryStorage(stock={"sku-1": 10})
     result = await ActionProductMachine(loggers=[]).run(
         Context(), ReserveStockAction(), ReserveParams(sku="sku-1", qty=3),
         connections={"inventory": inventory},

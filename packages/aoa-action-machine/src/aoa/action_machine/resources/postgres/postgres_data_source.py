@@ -6,7 +6,7 @@ PostgresDataSource — one PostgreSQL database shared by several resources, with
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-The kind of data source a ``PostgresResource`` works through. It keeps what the
+The kind of data source a ``PostgresStorage`` works through. It keeps what the
 resources of one database share: the connection parameters and the pool. A resource
 that names it takes one connection from it in ``open()`` and gives it back in
 ``close()``; the transaction stays the resource's own.
@@ -39,7 +39,7 @@ ARCHITECTURE / DATA FLOW
 
     application lifespan ── open() ──► pool (created, or given)
                                          ▲            │
-                    release(conn) ───────┘            └── acquire() ──► PostgresResource.open()
+                    release(conn) ───────┘            └── acquire() ──► PostgresStorage.open()
 """
 
 from __future__ import annotations

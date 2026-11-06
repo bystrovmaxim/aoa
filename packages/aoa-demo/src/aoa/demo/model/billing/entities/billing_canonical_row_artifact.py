@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Canonical row emitted from parser", resource=BillingWarehouse)
+@entity(description="Canonical row emitted from parser", resource=BillingWarehouseStorage)
 class BillingCanonicalRowArtifactCoreEntity(BaseCoreEntity):
     id: str = Field(description="Artifact id")
     lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")

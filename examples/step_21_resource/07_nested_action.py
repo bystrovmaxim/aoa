@@ -9,13 +9,26 @@ Run: uv run python examples/step_21_resource/07_nested_action.py
 
 import asyncio
 
+from pydantic import Field
+
+from aoa.action_machine.auth import GuestRole
+from aoa.action_machine.context import Context
+from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.exceptions import TransactionProhibitedError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.intents.aspects import summary_aspect
+from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.depends import UseCase, depends
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
-from aoa.action_machine.resources.sql import WrapperSqlResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.sql import SqlStorageWrapper
+from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -48,8 +61,8 @@ class RecordingPool:
         """Create the fixed capacity used by this example."""
         self.connections = [RecordingConnection(i + 1) for i in range(size)]
         self.free = asyncio.Queue()
-        for connection in self.connections:
-            self.free.put_nowait(connection)
+        for pooled_connection in self.connections:
+            self.free.put_nowait(pooled_connection)
         self.held = set()
         self.closed = False
     async def acquire(self, *, timeout=None):
@@ -64,21 +77,11 @@ class RecordingPool:
     async def close(self):
         """Close the pool only after all borrowers have returned."""
         assert not self.held
-        for connection in self.connections:
-            await connection.close()
+        for pooled_connection in self.connections:
+            await pooled_connection.close()
         self.closed = True
 
-from pydantic import Field
 
-from aoa.action_machine.auth import GuestRole
-from aoa.action_machine.context import Context
-from aoa.action_machine.domain.base_domain import BaseDomain
-from aoa.action_machine.intents.aspects import summary_aspect
-from aoa.action_machine.intents.check_roles import check_roles
-from aoa.action_machine.intents.connection import connection
-from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
 class NotesDomain(BaseDomain):
@@ -95,22 +98,24 @@ class ExampleDataSource(PostgresDataSource):
 
 
 @meta(description="SQL statements for the notes example", domain=NotesDomain)
-class NotesResource(PostgresResource[ExampleDataSource]):
+class NotesStorage(PostgresStorage[ExampleDataSource]):
     """Use the standard PostgreSQL lifecycle."""
 
     async def add_note(self, text: str) -> str:
         """Write one note through the driver's statement helper."""
         return await self._execute("INSERT INTO notes(text) VALUES ($1)", (text,))
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Give a nested action the domain's own proxy rather than the default one."""
-        return NotesWrapper
+        return NotesStorageWrapper
 
 @exclude_graph_model
-class NotesWrapper(WrapperSqlResource):
+class NotesStorageWrapper(SqlStorageWrapper):
     """The domain's proxy: it delegates its own method and keeps every refusal."""
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Keep handing the domain's proxy to a deeper nested action."""
-        return NotesWrapper
+        return NotesStorageWrapper
     async def add_note(self, text: str) -> str:
         """Write a note on the connection its owner holds."""
         return await self._connection_manager.add_note(text)
@@ -121,7 +126,7 @@ class StatusResult(BaseResult):
 
 @meta(description="Run one statement", domain=NotesDomain)
 @check_roles(GuestRole)
-@connection(NotesResource, key="db")
+@connection(NotesStorage, key="db")
 class QueryAction(BaseAction[EmptyParams, StatusResult]):
     """Use the supplied resource without managing its lifetime."""
     @summary_aspect("Execute a statement")
@@ -129,15 +134,11 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
         """Return the driver's command status."""
         return StatusResult(status=await connections["db"].add_note("one note"))
 
-from aoa.action_machine.exceptions import TransactionProhibitedError
-from aoa.action_machine.intents.depends import UseCase, depends
-from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 @meta(description="Try closing a parent connection", domain=NotesDomain)
 @check_roles(GuestRole)
-@connection(NotesResource, key="db")
+@connection(NotesStorage, key="db")
 class ChildAction(BaseAction[EmptyParams, StatusResult]):
     """Observe the wrapper supplied by the runtime."""
     @summary_aspect("Write through the proxy, then attempt closing")
@@ -152,7 +153,7 @@ class ChildAction(BaseAction[EmptyParams, StatusResult]):
 
 @meta(description="Call the child with the parent's connection", domain=NotesDomain)
 @check_roles(GuestRole)
-@connection(NotesResource, key="db")
+@connection(NotesStorage, key="db")
 @depends(ChildAction, mode=UseCase.include)
 class ParentAction(BaseAction[EmptyParams, StatusResult]):
     """Keep ownership while delegating part of the work."""
@@ -165,7 +166,7 @@ class ParentAction(BaseAction[EmptyParams, StatusResult]):
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
         assert result.status == "OK; close refused"
         assert len(pool.held) == 1

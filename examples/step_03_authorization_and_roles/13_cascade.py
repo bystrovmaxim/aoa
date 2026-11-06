@@ -21,8 +21,8 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on import on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import BeforeAccessDecideAspectEvent, BeforeSummaryAspectEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -56,7 +56,7 @@ class OrderResult(BaseResult):
     order_id: str = Field(description="Cancelled order identifier")
 
 
-class AccessTrace(Plugin):
+class AccessTracePlugin(BasePlugin):
     """Record reached steps without action globals."""
 
     plugin_name = "access_trace"
@@ -109,7 +109,7 @@ class CancelOrderAction(BaseAction[OrderParams, OrderResult]):
 
 async def main() -> None:
     """A refusal stops the remaining checks."""
-    trace = AccessTrace()
+    trace = AccessTracePlugin()
     machine = ActionProductMachine(cache_coordinator=None, plugins=[trace])
     manager = Context(user=UserInfo(user_id="m-1", roles=(ManagerRole,)))
     stranger = Context(user=UserInfo(user_id="x-1", roles=()))

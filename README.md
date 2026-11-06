@@ -644,11 +644,11 @@ A resource is any object with long-lived state or an external connection: Postgr
 
 Business rules live in `Action`. Transport lives in `Resource`.
 
-A resource can be a thin adapter over a standard protocol, or a domain-oriented resource that hides transport behind project-level methods. `PostgresResource` ships in the box and manages the connection and the transaction; a domain resource subclasses it and runs its statements through the driver's protected helpers:
+A resource can be a thin adapter over a standard protocol, or a domain-oriented resource that hides transport behind project-level methods. `PostgresStorage` ships in the box and manages the connection and the transaction; a domain resource subclasses it and runs its statements through the driver's protected helpers:
 
 ```python
 # Fragment: its imports are left out.
-class OrderResource(PostgresResource):
+class OrderStorage(PostgresStorage):
     async def load_customer(self, customer_id: str) -> CustomerCoreEntity:
         row = await self._fetchrow(
             "SELECT * FROM customers WHERE id = $1", (customer_id,)
@@ -666,7 +666,7 @@ class OrderResource(PostgresResource):
 
 ```python
 # Fragment: its imports are left out.
-class SupportAgentResource(BaseResource):
+class SupportAgentGateway(BaseGateway):
     def __init__(self, client: AgentClient) -> None:
         self._client = client
 

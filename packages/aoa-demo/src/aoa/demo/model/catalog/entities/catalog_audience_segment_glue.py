@@ -10,12 +10,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
 from aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub import ConversionAttributionStubCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
 @entity(
     description="Diamond bridge: merges acquisition funnel with assortment island (still no SKU star)",
-    resource=CatalogObjectStore,
+    resource=CatalogObjectStoreStorage,
 )
 class AudienceSegmentGlueCoreEntity(BaseCoreEntity):
     id: str = Field(description="Glue id")

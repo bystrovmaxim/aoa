@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 This package exports the base model contracts used by actions:
-``BaseAction``, ``BaseParams``, ``BaseResult``, ``ParamsStub``, ``ResultStub``,
+``BaseAction``, ``BaseParams``, ``BaseResult``, ``StubParams``, ``StubResult``,
 ``BaseSchema``, ``BaseState``, ``JsonSchemaValue``, ``JsonValue``,
 ``get_json_schema_value_metadata``, ``is_json_schema_value_type``.
 Aspect ``box`` typing lives at :class:`aoa.action_machine.runtime.tools_box.ToolsBox` (import from that module).
@@ -64,8 +64,8 @@ from aoa.action_machine.model.json_schema_value import (
     get_json_schema_value_metadata,
     is_json_schema_value_type,
 )
-from aoa.action_machine.model.params_stub import ParamsStub
-from aoa.action_machine.model.result_stub import ResultStub
+from aoa.action_machine.model.stub_params import StubParams
+from aoa.action_machine.model.stub_result import StubResult
 
 __all__ = [
     "BaseAction",
@@ -75,8 +75,8 @@ __all__ = [
     "BaseState",
     "JsonSchemaValue",
     "JsonValue",
-    "ParamsStub",
-    "ResultStub",
+    "StubParams",
+    "StubResult",
     "get_json_schema_value_metadata",
     "is_json_schema_value_type",
 ]

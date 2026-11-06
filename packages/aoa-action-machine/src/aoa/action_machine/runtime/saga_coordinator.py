@@ -8,7 +8,7 @@ PURPOSE
 
 Provide a dedicated component for saga compensation orchestration during error
 paths. This Step 7 implementation owns reverse rollback order, compensator
-invocation, and saga lifecycle events. Plugin event payloads are built through
+invocation, and saga lifecycle events. BasePlugin event payloads are built through
 ``PluginCoordinator`` so this class does not call private methods on the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════

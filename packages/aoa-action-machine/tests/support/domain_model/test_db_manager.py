@@ -8,18 +8,19 @@ PURPOSE
 
 Concrete ``BaseResource`` used as the **type** in decorators, e.g.::
 
-    @depends(OrdersDbManager, description="…")
-    @connection(OrdersDbManager, key="db", description="…")
+    @depends(OrdersStorage, description="…")
+    @connection(OrdersStorage, key="db", description="…")
 
 That mirrors ``@depends(SomeAction)``: the graph resolves to the canonical
 ``resource_manager`` graph node for this class (one node shared by depends + connection).
 
-Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve(OrdersDbManager)``.
+Tests inject instances via ``connections={\"db\": mock}`` and mock ``box.resolve(OrdersStorage)``.
 """
 
 from __future__ import annotations
 
 from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.base_resource import BaseResource
 
 from .domains import OrdersDomain
@@ -29,8 +30,9 @@ from .domains import OrdersDomain
     description="Test database resource manager for order-scenario actions",
     domain=OrdersDomain,
 )
-class OrdersDbManager(BaseResource):
-    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersDbManager)``."""
+class OrdersStorage(BaseStorage):
+    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersStorage)``."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None

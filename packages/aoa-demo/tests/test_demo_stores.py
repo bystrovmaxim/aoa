@@ -34,6 +34,8 @@ def test_a_chargeback_relates_to_an_order_of_another_database() -> None:
         if edge["type"] == "entity_relation" and _short(edge["source_id"]) == "ChargebackTicketCoreEntity" and edge["properties"].get("field_name") == "order"
     )
     assert _short(relation["target_id"]) == "SalesOrderCoreEntity"
+    assert stored_in["ChargebackTicketCoreEntity"] == "BillingWarehouseStorage"
+    assert stored_in["SalesOrderCoreEntity"] == "StorefrontDatabaseStorage"
     assert source_of[stored_in["ChargebackTicketCoreEntity"]] == "BillingWarehouseDataSource"
     assert source_of[stored_in["SalesOrderCoreEntity"]] == "ShopDataSource"
 

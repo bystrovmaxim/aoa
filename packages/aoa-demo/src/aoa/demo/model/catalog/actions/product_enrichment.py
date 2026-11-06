@@ -22,7 +22,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.catalog.resources import CatalogObjectStore, CatalogSearchSidecar
+from aoa.demo.model.catalog.resources import CatalogObjectStoreStorage, CatalogSearchSidecarStorage
 from aoa.demo.model.catalog.resources.index_sync import IndexSyncClient, IndexSyncGateway
 from aoa.demo.model.catalog.resources.pricing_feed import PricingFeedClient, PricingFeedGateway
 from aoa.demo.model.roles import EditorRole
@@ -40,8 +40,8 @@ from aoa.demo.model.roles import EditorRole
     factory=lambda: PricingFeedGateway(PricingFeedClient()),
     description="Pricing feed",
 )
-@connection(CatalogSearchSidecar, key="search", description="Search sidecar")
-@connection(CatalogObjectStore, key="objects", description="Object store")
+@connection(CatalogSearchSidecarStorage, key="search", description="Search sidecar")
+@connection(CatalogObjectStoreStorage, key="objects", description="Object store")
 class ProductEnrichmentAction(
     BaseAction["ProductEnrichmentAction.Params", "ProductEnrichmentAction.Result"],
 ):

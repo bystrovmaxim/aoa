@@ -36,8 +36,8 @@ from aoa.action_machine.logging.base_logger import BaseLogger
 from aoa.action_machine.logging.channel import Channel
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseState
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
 from aoa.action_machine.runtime.cache_entry import CacheEntry
@@ -281,7 +281,7 @@ class _CachedAction(BaseAction[_Params, _Result]):
         return _Result(outcome="summary")
 
 
-class _WritingPlugin(Plugin):
+class _WritingPlugin(BasePlugin):
     """A plugin writing a line with no event at the end of every run."""
 
     async def get_initial_state(self) -> dict[str, Any]:

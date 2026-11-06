@@ -11,9 +11,9 @@ from aoa.action_machine.intents.meta.meta_decorator import (
     meta,
 )
 from aoa.action_machine.model.base_action import BaseAction
-from aoa.action_machine.model.params_stub import ParamsStub
-from aoa.action_machine.model.result_stub import ResultStub
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.model.stub_params import StubParams
+from aoa.action_machine.model.stub_result import StubResult
+from aoa.action_machine.resources import BaseController
 
 
 class _OrdersDomain(BaseDomain):
@@ -55,7 +55,7 @@ def test_validate_meta_target_rejects_non_class() -> None:
 
 
 def test_validate_meta_target_accepts_base_action_subclass() -> None:
-    class SomeAction(BaseAction[ParamsStub, ResultStub]):
+    class SomeAction(BaseAction[StubParams, StubResult]):
         pass
 
     _validate_meta_target(SomeAction)
@@ -70,11 +70,12 @@ def test_validate_meta_target_accepts_plain_class() -> None:
 
 def test_meta_decorator_attaches_meta_info_on_resource_manager() -> None:
     @meta(description="resource meta", domain=_OrdersDomain)
-    class _MetaResourceManager(BaseResource):
-        def get_wrapper_class(self):
+    class _MetaResourceController(BaseController):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
-    assert _MetaResourceManager._meta_info == {
+    assert _MetaResourceController._meta_info == {
         "description": "resource meta",
         "domain": _OrdersDomain,
     }

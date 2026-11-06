@@ -24,7 +24,7 @@ from typing import Annotated, Any, Union, get_args, get_origin
 from aoa.action_machine.domain.entity import BaseEntity
 from aoa.action_machine.domain.relation_containers import BaseRelationMany, BaseRelationOne
 from aoa.action_machine.intents.on import GlobalFinishEvent, on
-from aoa.action_machine.plugin.core import Plugin
+from aoa.action_machine.plugin.core import BasePlugin
 from aoa.ocel.contracts.ocel_frame import OcelFrame
 from aoa.ocel.dto.ocel_attribute import OcelAttribute
 from aoa.ocel.dto.ocel_event import OcelEvent
@@ -38,7 +38,7 @@ OCEL_FRAMES_KEY = "ocel_frames"
 _OCEL_TYPE_SUFFIXES = ("Action", "Entity", "Lifecycle")
 
 
-class OcelPlugin(Plugin):
+class OcelPlugin(BasePlugin):
     """
     AI-CORE-BEGIN
     ROLE: On ``GlobalFinishEvent``, scan ``all_aspect_states`` for ``OcelFrame`` rows and write one ``OcelEvent``.

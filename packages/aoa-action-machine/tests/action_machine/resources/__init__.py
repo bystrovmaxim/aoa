@@ -14,16 +14,16 @@ queries, transaction handling, and proxy wrappers for nested actions.
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-SqlResource
+SqlStorage
     Base class for SQL connection managers with transactions.
     Contract: open(), begin(), commit(), rollback(), close().
 
-PostgresResource
-    SqlResource implementation for PostgreSQL using asyncpg.
+PostgresStorage
+    SqlStorage implementation for PostgreSQL using asyncpg.
     Supports rollup mode: with rollup=True, commit() runs ROLLBACK instead of COMMIT
     for safe testing against production-like databases.
 
-WrapperSqlResource
+SqlStorageWrapper
     Proxy that forbids transaction control at nested levels and offers nothing to
     run a statement with.
     Created automatically when connections are passed to child actions via ToolsBox.run().
@@ -35,7 +35,7 @@ TEST LAYOUT
 
     tests/resources/
     ├── __init__.py                             — this file
-    ├── test_sql_resource.py          — SqlResource, rollup, abstract API
+    ├── test_sql_resource.py          — SqlStorage, rollup, abstract API
     ├── test_wrapper_sql_resource.py  — transaction prohibition, no query member
     ├── test_gateway_defaults.py                — a gateway: no rollup, no wrapper class
     └── test_connections_dict.py                — connections dict typing

@@ -22,7 +22,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.domain import BillingDomain
-from aoa.demo.model.billing.resources import BillingReadReplica, BillingWarehouse
+from aoa.demo.model.billing.resources import BillingReadReplicaStorage, BillingWarehouseStorage
 from aoa.demo.model.billing.resources.ledger_archive import LedgerArchiveClient, LedgerArchiveGateway
 from aoa.demo.model.billing.resources.payment_gateway import PaymentClient, PaymentGateway
 from aoa.demo.model.billing.resources.tax_quote import TaxQuoteClient, TaxQuoteGateway
@@ -46,8 +46,8 @@ from aoa.demo.model.roles import EditorRole
     factory=lambda: TaxQuoteGateway(TaxQuoteClient()),
     description="Tax rate lookup",
 )
-@connection(BillingWarehouse, key="warehouse", description="Billing warehouse")
-@connection(BillingReadReplica, key="replica", description="Read replica")
+@connection(BillingWarehouseStorage, key="warehouse", description="Billing warehouse")
+@connection(BillingReadReplicaStorage, key="replica", description="Read replica")
 class InvoiceSettleAction(BaseAction["InvoiceSettleAction.Params", "InvoiceSettleAction.Result"]):
     class Params(BaseParams):
         invoice_id: str = Field(description="Invoice id")

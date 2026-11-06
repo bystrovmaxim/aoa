@@ -9,11 +9,11 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dead_letter_lifecycle import MsgDeadLetterLifecycle
 from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
 @entity(
-    description="Short-circuit between courier delivery spine and replay coordination queue", resource=OutboxPrimaryDatabase
+    description="Short-circuit between courier delivery spine and replay coordination queue", resource=OutboxPrimaryDatabaseStorage
 )
 class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")

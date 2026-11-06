@@ -10,7 +10,7 @@ in two modes, and both are checked here:
 * **with one** the route declares a per-call resource over the application's pool,
   and the pool is created at startup and closed at shutdown.
 
-The pool is faked: ``IdentityStore`` only ever calls ``acquire``, ``release`` and
+The pool is faked: ``IdentityPostgresStorage`` only ever calls ``acquire``, ``release`` and
 the connection's own ``execute``, ``fetchrow``, ``fetch`` and ``fetchval``, so
 nothing here needs a server. The connection enforces the driver's
 one-operation-at-a-time rule, which is what makes "concurrent calls do not fail"
@@ -23,8 +23,8 @@ ARCHITECTURE / DATA FLOW
 ::
 
     identity_connection()
-        │  no DSN  -> PerCallConnection(IdentityStoreStub)
-        └── DSN     -> PerCallConnection(IdentityStore(data_source=holder.require()))
+        │  no DSN  -> PerCallConnection(IdentityStubStorage)
+        └── DSN     -> PerCallConnection(IdentityPostgresStorage(data_source=holder.require()))
                               │
                               v
                         _FakePool -> _FakeConnection   (one call, one connection)
@@ -50,7 +50,7 @@ from aoa.demo.fastapi_mcp_services.infrastructure import (
     identity_connection,
     pool_lifespan,
 )
-from aoa.demo.model.identity.resources.identity_store_stub import IdentityStoreStub
+from aoa.demo.model.identity.resources.identity_stub_storage import IdentityStubStorage
 
 PERSON = {"id": "person-1", "email": "person-1@example.test", "display_name": "Person One"}
 AT = "2026-10-16T12:00:00Z"
@@ -196,9 +196,9 @@ async def _unit_of_work(pool: _FakePool) -> None:
 def _postgres_store(pool: _FakePool) -> Any:
     """Build the PostgreSQL store over a data source given the fake pool; the driver import is the caller's gate."""
     from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
-    from aoa.demo.model.identity.resources.identity_store import IdentityStore
+    from aoa.demo.model.identity.resources.identity_postgres_storage import IdentityPostgresStorage
 
-    return IdentityStore(data_source=IdentityDataSource(pool=pool))
+    return IdentityPostgresStorage(data_source=IdentityDataSource(pool=pool))
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -218,7 +218,7 @@ async def test_without_a_dsn_the_route_declares_the_in_memory_store(monkeypatch:
 
     async with connection_scope({"identity": identity_connection()}) as connections:
         store = connections["identity"]
-        assert isinstance(store, IdentityStoreStub)
+        assert isinstance(store, IdentityStubStorage)
         person = await store.read_person("person-1")
         await store.record_login("person-1", AT)
 

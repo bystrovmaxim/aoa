@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/resources/sql/sql_resource.py
+# packages/aoa-action-machine/src/aoa/action_machine/resources/sql/sql_storage.py
 """
 Transactional SQL manager interface.
 
@@ -6,7 +6,7 @@ Transactional SQL manager interface.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``SqlResource`` is an abstract base class for transactional SQL connection
+``SqlStorage`` is an abstract base class for transactional SQL connection
 managers. It defines the contract:
 ``open()``, ``begin()``, ``commit()``, ``rollback()``, ``close()``.
 
@@ -27,7 +27,7 @@ rollup capability checks aligned with the resource subsystem.
 ROLLUP SUPPORT
 ═══════════════════════════════════════════════════════════════════════════════
 
-``SqlResource`` supports rollup mode natively. Constructor stores ``rollup``
+``SqlStorage`` supports rollup mode natively. Constructor stores ``rollup``
 flag in ``self._rollup``.
 
 When ``rollup=True``, ``commit()`` calls ``rollback()`` instead of a real
@@ -50,7 +50,7 @@ ROLLUP LIFECYCLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Caller creates manager with rollup=True:
-    db = PostgresResource(params, rollup=True)
+    db = PostgresStorage(params, rollup=True)
 
     # The domain's own method runs its statements through the driver's helpers:
     await db.open()
@@ -65,7 +65,7 @@ ROLLUP LIFECYCLE
 ROLLUP PROPAGATION TO CHILD ACTIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-``WrapperSqlResource`` exposes ``rollup`` by delegating to the wrapped manager.
+``SqlStorageWrapper`` exposes ``rollup`` by delegating to the wrapped manager.
 Child actions receive consistent rollup visibility without storing a separate
 flag on the proxy.
 
@@ -75,16 +75,16 @@ ARCHITECTURE / DATA FLOW
 
     BaseResource (ABC)
         │
-        └── SqlResource (ABC)
+        └── SqlStorage (ABC)
                 │   _rollup: bool
                 │   check_rollup_support() → True
                 │   commit() → rollback() when _rollup=True
                 │
-                ├── PostgresResource
+                ├── PostgresStorage
                 │       __init__(params, rollup=False)
                 │       begin() → transaction start (root action)
                 │
-                └── WrapperSqlResource (proxy)
+                └── SqlStorageWrapper (proxy)
                         __init__(connection_manager)
                         rollup read from inner (delegation)
                         begin/open/commit/rollback/close prohibited
@@ -98,11 +98,11 @@ from aoa.action_machine.resources.base_data_source import TDataSource_co
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
-from aoa.action_machine.resources.sql.wrapper_sql_resource import WrapperSqlResource
+from aoa.action_machine.resources.sql.sql_storage_wrapper import SqlStorageWrapper
 
 
 @exclude_graph_model
-class SqlResource(BaseStorage[TDataSource_co], ProtocolSqlResource, ABC):
+class SqlStorage(BaseStorage[TDataSource_co], ProtocolSqlResource, ABC):
     """
     Abstract base class for transaction-capable SQL connection managers.
     """
@@ -120,9 +120,10 @@ class SqlResource(BaseStorage[TDataSource_co], ProtocolSqlResource, ABC):
         """Confirm rollup support for this manager type."""
         return True
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """Return proxy class that blocks nested transaction control."""
-        return WrapperSqlResource
+        return SqlStorageWrapper
 
     @abstractmethod
     async def open(self) -> None:

@@ -19,21 +19,21 @@ ARCHITECTURE / DATA FLOW
     aspect → list[OcelFrame] (partial entity controls loaded relations)
               │
               ▼
-    OcelPlugin → OcelEvent (E2O + OcelObject attributes) → OcelStoreResource
+    OcelPlugin → OcelEvent (E2O + OcelObject attributes) → OcelStorage
 """
 
 from __future__ import annotations
 
 from aoa.ocel.contracts import OcelFrame
 from aoa.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
-from aoa.ocel.resource import InMemoryOcelStoreResource, OcelStoreResource
+from aoa.ocel.resource import InMemoryOcelStorage, OcelStorage
 from aoa.ocel.type_id import make_oid
 
 __all__ = [
     "OCEL_FRAMES_KEY",
-    "InMemoryOcelStoreResource",
+    "InMemoryOcelStorage",
     "OcelFrame",
     "OcelPlugin",
-    "OcelStoreResource",
+    "OcelStorage",
     "make_oid",
 ]

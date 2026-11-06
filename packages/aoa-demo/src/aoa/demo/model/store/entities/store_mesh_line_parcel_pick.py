@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Warehouse pick linkage between order lines and heterogeneous parcel batches", resource=StorefrontDatabase)
+@entity(description="Warehouse pick linkage between order lines and heterogeneous parcel batches", resource=StorefrontDatabaseStorage)
 class StoreLineParcelPickCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pick id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Pick lifecycle")

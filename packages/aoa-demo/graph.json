@@ -12555,7 +12555,7 @@
       "type": "@compensate"
     },
     {
-      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@connection|aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@connection|aoa.demo.model.billing.resources.billing_read_replica_storage.BillingReadReplicaStorage",
       "is_dag": true,
       "properties": {
         "description": "Read replica",
@@ -12563,11 +12563,11 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
-      "target_id": "aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
+      "target_id": "aoa.demo.model.billing.resources.billing_read_replica_storage.BillingReadReplicaStorage",
       "type": "@connection"
     },
     {
-      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@connection|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction|@connection|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {
         "description": "Billing warehouse",
@@ -12575,7 +12575,7 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "@connection"
     },
     {
@@ -12950,12 +12950,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.arbitration_brief_stub.ArbitrationBriefStubCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.arbitration_brief_stub.ArbitrationBriefStubCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.arbitration_brief_stub.ArbitrationBriefStubCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -13155,12 +13155,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_canonical_row_artifact.BillingCanonicalRowArtifactCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_canonical_row_artifact.BillingCanonicalRowArtifactCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_canonical_row_artifact.BillingCanonicalRowArtifactCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -13361,12 +13361,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_file_ingest_manifest.BillingFileIngestManifestCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_file_ingest_manifest.BillingFileIngestManifestCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_file_ingest_manifest.BillingFileIngestManifestCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -13583,12 +13583,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_mesh_chargeback_ingest.BillingChargebackIngestCorrelateCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_mesh_chargeback_ingest.BillingChargebackIngestCorrelateCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_mesh_chargeback_ingest.BillingChargebackIngestCorrelateCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -13805,12 +13805,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_mesh_parse_interchange.BillingParseInterchangeBridgeCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_mesh_parse_interchange.BillingParseInterchangeBridgeCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_mesh_parse_interchange.BillingParseInterchangeBridgeCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -14085,12 +14085,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.IssuerDisputeWorkbenchCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.IssuerDisputeWorkbenchCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.IssuerDisputeWorkbenchCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -14469,12 +14469,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.MultiRingSettlementAuditCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.MultiRingSettlementAuditCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.MultiRingSettlementAuditCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -14841,12 +14841,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.TreasuryCutoverBundleCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.TreasuryCutoverBundleCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities.TreasuryCutoverBundleCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -15145,12 +15145,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_parse_pass.BillingParsePassCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_parse_pass.BillingParsePassCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_parse_pass.BillingParsePassCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -15333,12 +15333,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_payout_plan.BillingPayoutPlanCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_payout_plan.BillingPayoutPlanCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_payout_plan.BillingPayoutPlanCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -15538,12 +15538,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_acquirer_integrity.AcquirerIntegrityCheckCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_acquirer_integrity.AcquirerIntegrityCheckCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_acquirer_integrity.AcquirerIntegrityCheckCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -15760,12 +15760,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_cash_apply_hint.CashApplicationHintCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_cash_apply_hint.CashApplicationHintCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_cash_apply_hint.CashApplicationHintCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -15965,12 +15965,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_duplicate_ledger.DuplicateSuppressionLedgerCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_duplicate_ledger.DuplicateSuppressionLedgerCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_duplicate_ledger.DuplicateSuppressionLedgerCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -16170,12 +16170,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_fee_schedule_ptr.MerchantFeeSchedulePointerCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_fee_schedule_ptr.MerchantFeeSchedulePointerCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_fee_schedule_ptr.MerchantFeeSchedulePointerCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -16392,12 +16392,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_fx_residual.FxResidualTagCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_fx_residual.FxResidualTagCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_fx_residual.FxResidualTagCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -16597,12 +16597,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_interchange_slice.InterchangeAssessmentSliceCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_interchange_slice.InterchangeAssessmentSliceCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_interchange_slice.InterchangeAssessmentSliceCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -16802,12 +16802,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_ledger_mirror_offset.LedgerMirrorOffsetCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_ledger_mirror_offset.LedgerMirrorOffsetCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_ledger_mirror_offset.LedgerMirrorOffsetCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -17007,12 +17007,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_narrative_correction.NarrativeCorrectionCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_narrative_correction.NarrativeCorrectionCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_narrative_correction.NarrativeCorrectionCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -17212,12 +17212,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_profit_center_slice.ProfitCenterContributionCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_profit_center_slice.ProfitCenterContributionCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_profit_center_slice.ProfitCenterContributionCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -17417,12 +17417,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_regulatory_ptr.RegulatorySubmissionPointerCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_regulatory_ptr.RegulatorySubmissionPointerCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_regulatory_ptr.RegulatorySubmissionPointerCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -17622,12 +17622,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_ripple_correction.SettlementRippleCorrectionCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_ripple_correction.SettlementRippleCorrectionCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_ripple_correction.SettlementRippleCorrectionCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -17827,12 +17827,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sat_tax_remit_stub.TaxRemittanceAdviceCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sat_tax_remit_stub.TaxRemittanceAdviceCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sat_tax_remit_stub.TaxRemittanceAdviceCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -18032,12 +18032,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.billing_sweep_instruction.BillingSweepInstructionCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.billing_sweep_instruction.BillingSweepInstructionCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.billing_sweep_instruction.BillingSweepInstructionCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -18290,12 +18290,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.chargeback_ticket.ChargebackTicketCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.chargeback_ticket.ChargebackTicketCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.chargeback_ticket.ChargebackTicketCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -18367,12 +18367,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.billing.entities.currency_enum.CurrencyEnumEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.currency_enum.CurrencyEnumEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.currency_enum.CurrencyEnumEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -18561,12 +18561,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.funding_window_hint.FundingWindowHintCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.funding_window_hint.FundingWindowHintCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.funding_window_hint.FundingWindowHintCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -18960,12 +18960,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.billing.entities.retrieval_evidence_bundle.RetrievalEvidenceBundleCoreEntity|entity_resource|aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "id": "aoa.demo.model.billing.entities.retrieval_evidence_bundle.RetrievalEvidenceBundleCoreEntity|entity_resource|aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.billing.entities.retrieval_evidence_bundle.RetrievalEvidenceBundleCoreEntity",
-      "target_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
       "type": "entity_resource"
     },
     {
@@ -18978,6 +18978,33 @@
       "source_id": "aoa.demo.model.billing.entities.retrieval_evidence_bundle.RetrievalEvidenceBundleCoreEntity",
       "target_id": "aoa.demo.model.billing.entities.retrieval_evidence_bundle.RetrievalEvidenceBundleCoreEntity:lifecycle:lifecycle",
       "type": "lifecycle"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.billing_read_replica_storage.BillingReadReplicaStorage|domain|aoa.demo.model.billing.domain.BillingDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.billing.resources.billing_read_replica_storage.BillingReadReplicaStorage",
+      "target_id": "aoa.demo.model.billing.domain.BillingDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage|domain|aoa.demo.model.billing.domain.BillingDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
+      "target_id": "aoa.demo.model.billing.domain.BillingDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage|resource_data_source|aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
+      "target_id": "aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.billing.resources.card_network_gateway.CardNetworkGateway|domain|aoa.demo.model.billing.domain.BillingDomain",
@@ -19016,15 +19043,6 @@
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.billing.resources.read_replica.BillingReadReplica|domain|aoa.demo.model.billing.domain.BillingDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
-      "target_id": "aoa.demo.model.billing.domain.BillingDomain",
-      "type": "domain"
-    },
-    {
       "id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway|domain|aoa.demo.model.billing.domain.BillingDomain",
       "is_dag": true,
       "properties": {},
@@ -19032,24 +19050,6 @@
       "source_id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway",
       "target_id": "aoa.demo.model.billing.domain.BillingDomain",
       "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse|domain|aoa.demo.model.billing.domain.BillingDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
-      "target_id": "aoa.demo.model.billing.domain.BillingDomain",
-      "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse|resource_data_source|aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
-      "target_id": "aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
-      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.catalog.actions.browse.BrowseCatalogAction.Params|field|aoa.demo.model.catalog.actions.browse.BrowseCatalogAction.Params:query",
@@ -19432,7 +19432,7 @@
       "type": "@compensate"
     },
     {
-      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@connection|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@connection|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {
         "description": "Object store",
@@ -19440,11 +19440,11 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "@connection"
     },
     {
-      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@connection|aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
+      "id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction|@connection|aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
       "is_dag": true,
       "properties": {
         "description": "Search sidecar",
@@ -19452,7 +19452,7 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.catalog.actions.product_enrichment.ProductEnrichmentAction",
-      "target_id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
       "type": "@connection"
     },
     {
@@ -19826,12 +19826,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger.AcquisitionChannelLedgerCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger.AcquisitionChannelLedgerCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger.AcquisitionChannelLedgerCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -20066,12 +20066,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_audience_segment_glue.AudienceSegmentGlueCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_audience_segment_glue.AudienceSegmentGlueCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_audience_segment_glue.AudienceSegmentGlueCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -20512,12 +20512,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_bridge_price_acquisition.CatalogPriceAcquisitionLinkCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_bridge_price_acquisition.CatalogPriceAcquisitionLinkCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_bridge_price_acquisition.CatalogPriceAcquisitionLinkCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -20752,12 +20752,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_bridge_shelf_bundle.CatalogShelfBundleLinkCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_bridge_shelf_bundle.CatalogShelfBundleLinkCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_bridge_shelf_bundle.CatalogShelfBundleLinkCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -20958,12 +20958,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule.BundleCardinalityRuleCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule.BundleCardinalityRuleCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule.BundleCardinalityRuleCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -21181,12 +21181,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub.ConversionAttributionStubCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub.ConversionAttributionStubCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_conversion_attribution_stub.ConversionAttributionStubCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -21407,12 +21407,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleACoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleACoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleACoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -21633,12 +21633,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleBCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleBCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleBCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -21842,12 +21842,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleCCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleCCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_er_cycle_triangle_stub.CatalogDirectedCycleTriangleCCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -22065,12 +22065,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_merch_copy_variant.MerchCopyVariantCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_merch_copy_variant.MerchCopyVariantCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_merch_copy_variant.MerchCopyVariantCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -22271,12 +22271,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot.PriceRibbonSnapshotCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot.PriceRibbonSnapshotCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot.PriceRibbonSnapshotCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -22353,12 +22353,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_product_review.ProductReviewCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -22565,12 +22565,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_regulatory_label_pack.RegulatoryLabelPackCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_regulatory_label_pack.RegulatoryLabelPackCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_regulatory_label_pack.RegulatoryLabelPackCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -22771,12 +22771,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_search_boost_weight.SearchBoostWeightCoreEntity|entity_resource|aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
+      "id": "aoa.demo.model.catalog.entities.catalog_search_boost_weight.SearchBoostWeightCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_search_boost_weight.SearchBoostWeightCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
       "type": "entity_resource"
     },
     {
@@ -22977,12 +22977,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_shelf_placement_hint.ShelfPlacementHintCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_shelf_placement_hint.ShelfPlacementHintCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_shelf_placement_hint.ShelfPlacementHintCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -23200,12 +23200,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.catalog_touch_moment.TouchMomentCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.catalog_touch_moment.TouchMomentCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.catalog_touch_moment.TouchMomentCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -23406,12 +23406,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity|entity_resource|aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity|entity_resource|aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity",
-      "target_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
       "type": "entity_resource"
     },
     {
@@ -23426,6 +23426,42 @@
       "type": "lifecycle"
     },
     {
+      "id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
+      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage|resource_data_source|aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
+      "target_id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "type": "resource_data_source"
+    },
+    {
+      "id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage|domain|aoa.demo.model.catalog.domain.CatalogDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
+      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage|resource_data_source|aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
+      "target_id": "aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway|domain|aoa.demo.model.catalog.domain.CatalogDomain",
       "is_dag": true,
       "properties": {},
@@ -23435,24 +23471,6 @@
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore|domain|aoa.demo.model.catalog.domain.CatalogDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
-      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
-      "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore|resource_data_source|aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
-      "target_id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
-      "type": "resource_data_source"
-    },
-    {
       "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway|domain|aoa.demo.model.catalog.domain.CatalogDomain",
       "is_dag": true,
       "properties": {},
@@ -23460,24 +23478,6 @@
       "source_id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway",
       "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
       "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar|domain|aoa.demo.model.catalog.domain.CatalogDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
-      "target_id": "aoa.demo.model.catalog.domain.CatalogDomain",
-      "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar|resource_data_source|aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
-      "target_id": "aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
-      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole|application|aoa.action_machine.application.application.Application",
@@ -28373,12 +28373,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_credential_merge.IdentityCredentialMergeCorrelateCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_credential_merge.IdentityCredentialMergeCorrelateCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_credential_merge.IdentityCredentialMergeCorrelateCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -28613,12 +28613,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_credential_rotation_stub.IdentityCredentialRotationStubCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_credential_rotation_stub.IdentityCredentialRotationStubCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_credential_rotation_stub.IdentityCredentialRotationStubCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -28836,12 +28836,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_email_factor.IdentityEmailFactorCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_email_factor.IdentityEmailFactorCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_email_factor.IdentityEmailFactorCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -29076,12 +29076,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_federated_linkage.IdentityFederatedLinkageCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_federated_linkage.IdentityFederatedLinkageCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_federated_linkage.IdentityFederatedLinkageCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -29316,12 +29316,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_org_binding_stub.IdentityOrgBindingStubCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_org_binding_stub.IdentityOrgBindingStubCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_org_binding_stub.IdentityOrgBindingStubCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -29522,12 +29522,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -29745,12 +29745,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.identity.entities.identity_phone_factor.IdentityPhoneFactorCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "id": "aoa.demo.model.identity.entities.identity_phone_factor.IdentityPhoneFactorCoreEntity|entity_resource|aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.identity.entities.identity_phone_factor.IdentityPhoneFactorCoreEntity",
-      "target_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "type": "entity_resource"
     },
     {
@@ -29774,20 +29774,20 @@
       "type": "application"
     },
     {
-      "id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase|domain|aoa.demo.model.identity.domain.IdentityDomain",
+      "id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage|domain|aoa.demo.model.identity.domain.IdentityDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "source_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "target_id": "aoa.demo.model.identity.domain.IdentityDomain",
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase|resource_data_source|aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
+      "id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage|resource_data_source|aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "source_id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
       "target_id": "aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
       "type": "resource_data_source"
     },
@@ -33382,7 +33382,7 @@
       "type": "@compensate"
     },
     {
-      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@connection|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@connection|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {
         "description": "Outbox primary",
@@ -33390,7 +33390,7 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "@connection"
     },
     {
@@ -33846,12 +33846,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_batching_fence.BatchingFenceCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_batching_fence.BatchingFenceCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_batching_fence.BatchingFenceCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -34069,12 +34069,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_courier_attempt_ledger.CourierAttemptLedgerCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_courier_attempt_ledger.CourierAttemptLedgerCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_courier_attempt_ledger.CourierAttemptLedgerCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -34292,12 +34292,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_dedupe_correlation.DedupeCorrelationCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_dedupe_correlation.DedupeCorrelationCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_dedupe_correlation.DedupeCorrelationCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -34515,12 +34515,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_dispatcher_cursor_shard.DispatcherCursorShardCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_dispatcher_cursor_shard.DispatcherCursorShardCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_dispatcher_cursor_shard.DispatcherCursorShardCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -34738,12 +34738,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_downstream_watermark.DownstreamWatermarkCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_downstream_watermark.DownstreamWatermarkCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_downstream_watermark.DownstreamWatermarkCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -34947,12 +34947,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleACoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleACoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleACoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -35156,12 +35156,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleBCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleBCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleBCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -35365,12 +35365,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleCCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleCCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_er_cycle_triangle_stub.MsgDirectedCycleTriangleCCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -35588,12 +35588,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_fanout_replay_cursor.FanoutReplayCursorCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_fanout_replay_cursor.FanoutReplayCursorCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_fanout_replay_cursor.FanoutReplayCursorCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -35811,12 +35811,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_hop_latency_sample.HopLatencySampleCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_hop_latency_sample.HopLatencySampleCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_hop_latency_sample.HopLatencySampleCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -36034,12 +36034,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_mesh_courier_replay.MsgCourierReplayCorrelateCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_mesh_courier_replay.MsgCourierReplayCorrelateCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_mesh_courier_replay.MsgCourierReplayCorrelateCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -36274,12 +36274,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_mesh_outbox_webhook.MsgOutboxWebhookCorrelateCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_mesh_outbox_webhook.MsgOutboxWebhookCorrelateCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_mesh_outbox_webhook.MsgOutboxWebhookCorrelateCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -36703,12 +36703,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -36909,12 +36909,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_throttle_lease.ThrottleLeaseCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_throttle_lease.ThrottleLeaseCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_throttle_lease.ThrottleLeaseCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -37080,12 +37080,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt.WebhookIngressReceiptCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt.WebhookIngressReceiptCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt.WebhookIngressReceiptCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -37268,12 +37268,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_webhook_signature_envelope.WebhookSignatureEnvelopeCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.msg_webhook_signature_envelope.WebhookSignatureEnvelopeCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_webhook_signature_envelope.WebhookSignatureEnvelopeCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -37474,12 +37474,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.outbox_message.OutboxMessageCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.entities.outbox_message.OutboxMessageCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.outbox_message.OutboxMessageCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -37512,20 +37512,20 @@
       "type": "resource_data_source"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase|domain|aoa.demo.model.messaging.domain.MessagingDomain",
+      "id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage|domain|aoa.demo.model.messaging.domain.MessagingDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "source_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase|resource_data_source|aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage|resource_data_source|aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "source_id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
       "target_id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
       "type": "resource_data_source"
     },
@@ -38191,19 +38191,7 @@
       "type": "@compensate"
     },
     {
-      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@connection|aoa.demo.model.store.resources.cache.StorefrontSessionCache",
-      "is_dag": true,
-      "properties": {
-        "description": "Cache connection",
-        "key": "cache"
-      },
-      "relationship": "Association",
-      "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
-      "target_id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
-      "type": "@connection"
-    },
-    {
-      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@connection|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@connection|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {
         "description": "DB connection",
@@ -38211,7 +38199,19 @@
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
+      "type": "@connection"
+    },
+    {
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@connection|aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
+      "is_dag": true,
+      "properties": {
+        "description": "Cache connection",
+        "key": "cache"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
+      "target_id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
       "type": "@connection"
     },
     {
@@ -39135,12 +39135,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.audit_log_entry.AuditLogEntryDetailEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -39605,12 +39605,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.discount_application.DiscountApplicationCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.discount_application.DiscountApplicationCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.discount_application.DiscountApplicationCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -39828,12 +39828,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.fulfillment_task.FulfillmentTaskCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.fulfillment_task.FulfillmentTaskCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.fulfillment_task.FulfillmentTaskCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -40309,12 +40309,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.invoice_record.InvoiceRecordCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.invoice_record.InvoiceRecordCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.invoice_record.InvoiceRecordCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -40790,12 +40790,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.payment_authorization.PaymentAuthorizationCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.payment_authorization.PaymentAuthorizationCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.payment_authorization.PaymentAuthorizationCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -41271,12 +41271,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.payment_capture.PaymentCaptureCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.payment_capture.PaymentCaptureCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.payment_capture.PaymentCaptureCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -41752,12 +41752,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.refund_request.RefundRequestCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.refund_request.RefundRequestCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.refund_request.RefundRequestCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -42069,12 +42069,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.return_request.ReturnRequestCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -42294,12 +42294,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -42784,12 +42784,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -43009,12 +43009,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.sales_core.SalesOrderLineDetailEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.sales_core.SalesOrderLineDetailEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.sales_core.SalesOrderLineDetailEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -43490,12 +43490,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.shipment_parcel.ShipmentParcelCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.shipment_parcel.ShipmentParcelCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.shipment_parcel.ShipmentParcelCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -43971,12 +43971,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.shipment_tracking_event.ShipmentTrackingEventCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.shipment_tracking_event.ShipmentTrackingEventCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.shipment_tracking_event.ShipmentTrackingEventCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -44435,12 +44435,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_cart_merge_trace.CartMergeTraceCoreEntity|entity_resource|aoa.demo.model.store.resources.cache.StorefrontSessionCache",
+      "id": "aoa.demo.model.store.entities.store_cart_merge_trace.CartMergeTraceCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_cart_merge_trace.CartMergeTraceCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
+      "target_id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
       "type": "entity_resource"
     },
     {
@@ -44642,12 +44642,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_er_cycle_ping_pong.StoreDirectedCyclePingCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_er_cycle_ping_pong.StoreDirectedCyclePingCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_er_cycle_ping_pong.StoreDirectedCyclePingCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -44849,12 +44849,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_er_cycle_ping_pong.StoreDirectedCyclePongCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_er_cycle_ping_pong.StoreDirectedCyclePongCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_er_cycle_ping_pong.StoreDirectedCyclePongCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -45072,12 +45072,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_backorder_eta.BackorderEtaFacetCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_backorder_eta.BackorderEtaFacetCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_backorder_eta.BackorderEtaFacetCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -45295,12 +45295,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_kit_explosion.KitExplosionLineDetailEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_kit_explosion.KitExplosionLineDetailEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_kit_explosion.KitExplosionLineDetailEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -45518,12 +45518,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_pick_variance.PickVarianceRecordCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_pick_variance.PickVarianceRecordCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_pick_variance.PickVarianceRecordCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -45741,12 +45741,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_serial_trace.LineSerialLotTraceCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_serial_trace.LineSerialLotTraceCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_serial_trace.LineSerialLotTraceCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -45981,12 +45981,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_shipment_piece.LineShipmentPieceDetailEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_shipment_piece.LineShipmentPieceDetailEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_shipment_piece.LineShipmentPieceDetailEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -46204,12 +46204,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_substitution_hist.SubstitutionHistoryCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_substitution_hist.SubstitutionHistoryCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_substitution_hist.SubstitutionHistoryCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -46427,12 +46427,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_line_warranty_offer.WarrantyOfferFacetCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_line_warranty_offer.WarrantyOfferFacetCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_line_warranty_offer.WarrantyOfferFacetCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -46908,12 +46908,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_loyalty_earn_projection.LoyaltyEarnProjectionCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_loyalty_earn_projection.LoyaltyEarnProjectionCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_loyalty_earn_projection.LoyaltyEarnProjectionCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -47406,12 +47406,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_mesh_customer_order_affinity.StoreCustomerOrderAffinityCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_mesh_customer_order_affinity.StoreCustomerOrderAffinityCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_mesh_customer_order_affinity.StoreCustomerOrderAffinityCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -47904,12 +47904,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_mesh_invoice_line_tie.StoreInvoiceLineTieCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_mesh_invoice_line_tie.StoreInvoiceLineTieCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_mesh_invoice_line_tie.StoreInvoiceLineTieCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -48144,12 +48144,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_mesh_line_parcel_pick.StoreLineParcelPickCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_mesh_line_parcel_pick.StoreLineParcelPickCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_mesh_line_parcel_pick.StoreLineParcelPickCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -48642,12 +48642,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_mesh_order_invoice_bridge.StoreOrderInvoiceBridgeCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_mesh_order_invoice_bridge.StoreOrderInvoiceBridgeCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_mesh_order_invoice_bridge.StoreOrderInvoiceBridgeCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -49140,12 +49140,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_mesh_order_parcel_handoff.StoreOrderParcelHandoffCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_mesh_order_parcel_handoff.StoreOrderParcelHandoffCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_mesh_order_parcel_handoff.StoreOrderParcelHandoffCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -49621,12 +49621,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_address_verification.AddressVerificationTrailCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_address_verification.AddressVerificationTrailCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_address_verification.AddressVerificationTrailCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -50102,12 +50102,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_channel_attribution.OrderChannelAttributionCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_channel_attribution.OrderChannelAttributionCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_channel_attribution.OrderChannelAttributionCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -50583,12 +50583,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_compliance_review.ComplianceReviewQueueCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_compliance_review.ComplianceReviewQueueCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_compliance_review.ComplianceReviewQueueCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -51064,12 +51064,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_deposit_allocation.DepositAllocationCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_deposit_allocation.DepositAllocationCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_deposit_allocation.DepositAllocationCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -51322,12 +51322,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_dual_entry_origin.OrderDualEntryOriginTraceCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_dual_entry_origin.OrderDualEntryOriginTraceCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_dual_entry_origin.OrderDualEntryOriginTraceCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -51803,12 +51803,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_fraud_challenge.FraudChallengeTicketCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_fraud_challenge.FraudChallengeTicketCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_fraud_challenge.FraudChallengeTicketCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -52284,12 +52284,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_geo_fence.OrderGeoFenceCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_geo_fence.OrderGeoFenceCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_geo_fence.OrderGeoFenceCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -52777,12 +52777,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_gift_wrap.GiftWrapAddonCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -53258,12 +53258,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_packing_slip.PackingSlipCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_packing_slip.PackingSlipCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_packing_slip.PackingSlipCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -53739,12 +53739,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_revenue_schedule.RevenueDeferralScheduleCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_revenue_schedule.RevenueDeferralScheduleCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_revenue_schedule.RevenueDeferralScheduleCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -54203,12 +54203,12 @@
       "type": "entity_field"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_risk_score.OrderRiskScoreCoreEntity|entity_resource|aoa.demo.model.store.resources.cache.StorefrontSessionCache",
+      "id": "aoa.demo.model.store.entities.store_order_risk_score.OrderRiskScoreCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_risk_score.OrderRiskScoreCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
+      "target_id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
       "type": "entity_resource"
     },
     {
@@ -54684,12 +54684,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_shipment_estimate.ShipmentEstimateCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_shipment_estimate.ShipmentEstimateCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_shipment_estimate.ShipmentEstimateCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -55165,12 +55165,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_split_bill.SplitBillAllocationCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_split_bill.SplitBillAllocationCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_split_bill.SplitBillAllocationCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -55646,12 +55646,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.store_order_tax_jurisdiction.OrderTaxJurisdictionSnapshotCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.store_order_tax_jurisdiction.OrderTaxJurisdictionSnapshotCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.store_order_tax_jurisdiction.OrderTaxJurisdictionSnapshotCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -55939,12 +55939,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.subscription.SubscriptionCoreEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -56420,12 +56420,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.store.entities.tax_line.TaxLineDetailEntity|entity_resource|aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "id": "aoa.demo.model.store.entities.tax_line.TaxLineDetailEntity|entity_resource|aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.store.entities.tax_line.TaxLineDetailEntity",
-      "target_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "type": "entity_resource"
     },
     {
@@ -56449,24 +56449,6 @@
       "type": "application"
     },
     {
-      "id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache|domain|aoa.demo.model.store.store_domain.StoreDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
-      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
-      "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache|resource_data_source|aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
-      "target_id": "aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
-      "type": "resource_data_source"
-    },
-    {
       "id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway|domain|aoa.demo.model.store.store_domain.StoreDomain",
       "is_dag": true,
       "properties": {},
@@ -56485,21 +56467,39 @@
       "type": "resource_data_source"
     },
     {
-      "id": "aoa.demo.model.store.resources.db.StorefrontDatabase|domain|aoa.demo.model.store.store_domain.StoreDomain",
+      "id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage|domain|aoa.demo.model.store.store_domain.StoreDomain",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "source_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
       "type": "domain"
     },
     {
-      "id": "aoa.demo.model.store.resources.db.StorefrontDatabase|resource_data_source|aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage|resource_data_source|aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "source_id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
       "target_id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "type": "resource_data_source"
+    },
+    {
+      "id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage|domain|aoa.demo.model.store.store_domain.StoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
+      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage|resource_data_source|aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
+      "target_id": "aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
       "type": "resource_data_source"
     },
     {
@@ -58844,14 +58844,14 @@
       "type": "Role"
     },
     {
-      "id": "aoa.action_machine.model.params_stub.ParamsStub",
-      "label": "ParamsStub",
+      "id": "aoa.action_machine.model.stub_params.StubParams",
+      "label": "StubParams",
       "properties": {},
       "type": "Params"
     },
     {
-      "id": "aoa.action_machine.model.result_stub.ResultStub",
-      "label": "ResultStub",
+      "id": "aoa.action_machine.model.stub_result.StubResult",
+      "label": "StubResult",
       "properties": {},
       "type": "Result"
     },
@@ -71536,6 +71536,22 @@
       "type": "EntityField"
     },
     {
+      "id": "aoa.demo.model.billing.resources.billing_read_replica_storage.BillingReadReplicaStorage",
+      "label": "BillingReadReplicaStorage",
+      "properties": {
+        "description": "Billing read replica (stub)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.billing_warehouse_storage.BillingWarehouseStorage",
+      "label": "BillingWarehouseStorage",
+      "properties": {
+        "description": "Billing warehouse connection (stub)"
+      },
+      "type": "Resource"
+    },
+    {
       "id": "aoa.demo.model.billing.resources.card_network_gateway.CardNetworkGateway",
       "label": "CardNetworkGateway",
       "properties": {
@@ -71560,26 +71576,10 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.billing.resources.read_replica.BillingReadReplica",
-      "label": "BillingReadReplica",
-      "properties": {
-        "description": "Billing read replica (stub)"
-      },
-      "type": "Resource"
-    },
-    {
       "id": "aoa.demo.model.billing.resources.tax_quote.TaxQuoteGateway",
       "label": "TaxQuoteGateway",
       "properties": {
         "description": "Tax quote gateway (stub)"
-      },
-      "type": "Resource"
-    },
-    {
-      "id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
-      "label": "BillingWarehouse",
-      "properties": {
-        "description": "Billing warehouse connection (stub)"
       },
       "type": "Resource"
     },
@@ -74623,6 +74623,22 @@
       "type": "EntityField"
     },
     {
+      "id": "aoa.demo.model.catalog.resources.catalog_object_store_storage.CatalogObjectStoreStorage",
+      "label": "CatalogObjectStoreStorage",
+      "properties": {
+        "description": "Media/object store for catalog (stub)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.catalog.resources.catalog_search_sidecar_storage.CatalogSearchSidecarStorage",
+      "label": "CatalogSearchSidecarStorage",
+      "properties": {
+        "description": "Search sidecar index (stub)"
+      },
+      "type": "Resource"
+    },
+    {
       "id": "aoa.demo.model.catalog.resources.index_sync.IndexSyncGateway",
       "label": "IndexSyncGateway",
       "properties": {
@@ -74631,26 +74647,10 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
-      "label": "CatalogObjectStore",
-      "properties": {
-        "description": "Media/object store for catalog (stub)"
-      },
-      "type": "Resource"
-    },
-    {
       "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedGateway",
       "label": "PricingFeedGateway",
       "properties": {
         "description": "Pricing feed gateway (stub)"
-      },
-      "type": "Resource"
-    },
-    {
-      "id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
-      "label": "CatalogSearchSidecar",
-      "properties": {
-        "description": "Search sidecar index (stub)"
       },
       "type": "Resource"
     },
@@ -78785,8 +78785,8 @@
       "type": "DataSource"
     },
     {
-      "id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
-      "label": "IdentityStoreBase",
+      "id": "aoa.demo.model.identity.resources.identity_storage.IdentityStorage",
+      "label": "IdentityStorage",
       "properties": {
         "description": "Identity store: read a person, record a login"
       },
@@ -83959,8 +83959,8 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
-      "label": "OutboxPrimaryDatabase",
+      "id": "aoa.demo.model.messaging.resources.outbox_primary_database_storage.OutboxPrimaryDatabaseStorage",
+      "label": "OutboxPrimaryDatabaseStorage",
       "properties": {
         "description": "Transactional outbox primary DB (stub)"
       },
@@ -94105,14 +94105,6 @@
       "type": "Domain"
     },
     {
-      "id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
-      "label": "StorefrontSessionCache",
-      "properties": {
-        "description": "Session cache (stub)"
-      },
-      "type": "Resource"
-    },
-    {
       "id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway",
       "label": "StorefrontCardGateway",
       "properties": {
@@ -94121,10 +94113,18 @@
       "type": "Resource"
     },
     {
-      "id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
-      "label": "StorefrontDatabase",
+      "id": "aoa.demo.model.store.resources.storefront_database_storage.StorefrontDatabaseStorage",
+      "label": "StorefrontDatabaseStorage",
       "properties": {
         "description": "Primary relational store (stub)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.store.resources.storefront_session_cache_storage.StorefrontSessionCacheStorage",
+      "label": "StorefrontSessionCacheStorage",
+      "properties": {
+        "description": "Session cache (stub)"
       },
       "type": "Resource"
     },

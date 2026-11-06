@@ -125,10 +125,10 @@ from aoa.langgraph.exceptions import (
     UnreachableNodeError,
     UnregisteredNodeError,
 )
+from aoa.langgraph.langgraph_controller_wrapper import LangGraphControllerWrapper
 from aoa.langgraph.node_binding import _run_action_node
 from aoa.langgraph.sentinel import UNSET, UnsetType
 from aoa.langgraph.topology_validator import validate as _validate_topology_rules
-from aoa.langgraph.wrapper_langgraph_controller import WrapperLangGraphController
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
@@ -281,9 +281,10 @@ class LangGraphController(BaseController):
 
     # ── BaseResource abstract method overrides ────────────────────────────────
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
-        """Return WrapperLangGraphController so child actions receive a restricted proxy."""
-        return WrapperLangGraphController
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
+        """Return LangGraphControllerWrapper so child actions receive a restricted proxy."""
+        return LangGraphControllerWrapper
 
     async def check_rollup_support(self) -> bool:
         """Controllers do not participate in rollup transactions."""

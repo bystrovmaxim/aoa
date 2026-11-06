@@ -21,8 +21,8 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.model.params_stub import ParamsStub
-from aoa.action_machine.model.result_stub import ResultStub
+from aoa.action_machine.model.stub_params import StubParams
+from aoa.action_machine.model.stub_result import StubResult
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -56,39 +56,39 @@ CACHED_TYPES = (CachedItemCoreEntity, CachedReportCoreEntity, CachedInvoiceCoreE
 
 @meta(description="Drop every entry of the cache tests", domain=OrdersDomain)
 @check_roles(GuestRole)
-class ClearCachedModelAction(BaseAction[ParamsStub, ResultStub]):
+class ClearCachedModelAction(BaseAction[StubParams, StubResult]):
     """Invalidates every type the cache tests cache."""
 
     @cache_invalidate("Drop every cached item, report and invoice", tags=CACHED_TYPES)
     async def clear_cache_invalidate(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ResultStub
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: StubResult
     ) -> list[CacheTag] | None:
         return [CacheTag(type=entity_type) for entity_type in CACHED_TYPES]
 
     @summary_aspect("Clear")
     async def clear_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> ResultStub:
-        return ResultStub()
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> StubResult:
+        return StubResult()
 
 
 @meta(description="Cache every type of the cache tests", domain=OrdersDomain)
 @check_roles(GuestRole)
-class KeepCachedModelAction(BaseAction[ParamsStub, ResultStub]):
+class KeepCachedModelAction(BaseAction[StubParams, StubResult]):
     """Caches under every type the cache tests invalidate."""
 
     @cache_key("One key")
-    async def keep_cache_key(self, params: ParamsStub, box: ToolsBox, connections: Connections) -> str | None:
+    async def keep_cache_key(self, params: StubParams, box: ToolsBox, connections: Connections) -> str | None:
         return "all"
 
     @cache_write("Keep under every cached type", tags=CACHED_TYPES)
     async def keep_cache_write(
-        self, params: ParamsStub, box: ToolsBox, connections: Connections, result: ResultStub, duration_ms: float
+        self, params: StubParams, box: ToolsBox, connections: Connections, result: StubResult, duration_ms: float
     ) -> list[CacheTag] | None:
         return [CacheTag(type=entity_type, key="all") for entity_type in CACHED_TYPES]
 
     @summary_aspect("Keep")
     async def keep_summary(
-        self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections
-    ) -> ResultStub:
-        return ResultStub()
+        self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> StubResult:
+        return StubResult()

@@ -11,7 +11,7 @@ from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
 
 @dataclass(slots=True)
 class OcelEvent:
-    """Composite event record passed to ``OcelStoreResource.add_event()``.
+    """Composite event record passed to ``OcelStorage.add_event()``.
 
     DTO graph (maps to OCEL 2.0 ``events[]`` + embedded ``objects[]`` facts)::
 
@@ -44,7 +44,7 @@ class OcelEvent:
     ``packages/aoa-ocel/src/aoa/ocel/README.md`` — **Export policy (v1)**.
 
     AI-CORE-BEGIN
-    ROLE: Single composite payload for one ``OcelStoreResource.add_event()`` call.
+    ROLE: Single composite payload for one ``OcelStorage.add_event()`` call.
     CONTRACT: ``relationships`` are E2O rows; ``objects`` materialize root and one-hop loaded peers.
     INVARIANTS: ``time`` is UTC-aware before persist; attribute values are JSON-serializable primitives (plugin builds DTOs).
     AI-CORE-END

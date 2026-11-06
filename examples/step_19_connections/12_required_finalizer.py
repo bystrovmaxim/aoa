@@ -8,17 +8,18 @@ Run: uv run python examples/step_19_connections/12_required_finalizer.py
 import asyncio
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 
 
 @exclude_graph_model
-class TraceResource(BaseResource):
+class TraceController(BaseController):
     """Record lifecycle calls without opening an external connection."""
     def __init__(self, events):
         """Keep the event list supplied by the example."""
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use by nested actions."""
         return None
     async def open(self):
@@ -32,7 +33,7 @@ class TraceResource(BaseResource):
 async def main():
     """Run this case and verify its observable result."""
     try:
-        PerCallConnection(factory=lambda: TraceResource([]))
+        PerCallConnection(factory=lambda: TraceController([]))
     except TypeError as error:
         assert "finalize" in str(error)
         print("TypeError: finalize is required")

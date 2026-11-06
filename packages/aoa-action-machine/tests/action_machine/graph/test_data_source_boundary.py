@@ -62,23 +62,25 @@ def _model(support_base: str) -> str:
         {{billing}}
 
         @meta(description="Orders", domain=ShopDomain)
-        class OrdersResource(BaseStorage[ShopDataSource]):
-            def get_wrapper_class(self):
+        class OrdersStorage(BaseStorage[ShopDataSource]):
+            @classmethod
+            def get_wrapper_class(cls):
                 return None
 
 
         @meta(description="Support", domain=SupportDomain)
-        class SupportResource({support_base}):
-            def get_wrapper_class(self):
+        class SupportStorage({support_base}):
+            @classmethod
+            def get_wrapper_class(cls):
                 return None
 
 
-        @entity(description="Customer order", resource=OrdersResource)
+        @entity(description="Customer order", resource=OrdersStorage)
         class SalesOrderCoreEntity(BaseCoreEntity):
             id: str = Field(description="Order id")
 
 
-        @entity(description="Support ticket", resource=SupportResource)
+        @entity(description="Support ticket", resource=SupportStorage)
         class SupportTicketCoreEntity(BaseCoreEntity):
             id: str = Field(description="Ticket id")
             order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="The order it is about")
@@ -115,7 +117,7 @@ class _Axis:
     """Root type of the harness inspector."""
 
 
-class _Link(AssociationGraphEdge):
+class _LinkGraphEdge(AssociationGraphEdge):
     """A link edge of any name; an ``entity_relation`` carries the field name its id needs."""
 
     def __init__(self, edge_name: str, target_id: str) -> None:
@@ -134,7 +136,7 @@ class _Link(AssociationGraphEdge):
         }
 
 
-class _Node(BaseGraphNode[object]):
+class _TestGraphNode(BaseGraphNode[object]):
     """A node with a given type and edges."""
 
     def __init__(self, node_id: str, node_type: str, edges: list[BaseGraphEdge] | None = None) -> None:
@@ -161,18 +163,18 @@ class _Inspector(BaseGraphNodeInspector[_Axis]):
         return None
 
 
-_APP = _Node("app.Application", "Application")
+_APP = _TestGraphNode("app.Application", "Application")
 
 
-def _source(node_id: str, *applications: str) -> _Node:
+def _source(node_id: str, *applications: str) -> _TestGraphNode:
     """A data source with the given ``application`` edges (one, to the application, by default)."""
     targets = applications or ("app.Application",)
-    return _Node(node_id, "DataSource", [_Link("application", target) for target in targets])
+    return _TestGraphNode(node_id, "DataSource", [_LinkGraphEdge("application", target) for target in targets])
 
 
-def _resource(node_id: str, *sources: str) -> _Node:
+def _resource(node_id: str, *sources: str) -> _TestGraphNode:
     """A resource with the given ``resource_data_source`` edges."""
-    return _Node(node_id, "Resource", [_Link("resource_data_source", source) for source in sources])
+    return _TestGraphNode(node_id, "Resource", [_LinkGraphEdge("resource_data_source", source) for source in sources])
 
 
 def _build(*nodes: BaseGraphNode[Any]) -> None:
@@ -193,7 +195,7 @@ def test_a_data_source_edge_to_something_else_is_refused() -> None:
 
 def test_a_data_source_without_its_application_edge_is_refused() -> None:
     with pytest.raises(InvalidGraphError) as error:
-        _build(_Node("d.Shop", "DataSource"), _resource("r.Orders", "d.Shop"))
+        _build(_TestGraphNode("d.Shop", "DataSource"), _resource("r.Orders", "d.Shop"))
     assert str(error.value) == "Data source d.Shop has 0 application edges; a data source has exactly one, to the application."
 
 
@@ -205,21 +207,21 @@ def test_a_data_source_without_a_resource_is_refused() -> None:
 
 def test_the_graph_build_lets_a_link_across_data_sources_through() -> None:
     """A link between entities of two data sources is a fact of the logical model."""
-    ticket = _Node("e.Ticket", "Entity", [_Link("entity_resource", "r.Support"), _Link("entity_relation", "e.Order")])
-    order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
+    ticket = _TestGraphNode("e.Ticket", "Entity", [_LinkGraphEdge("entity_resource", "r.Support"), _LinkGraphEdge("entity_relation", "e.Order")])
+    order = _TestGraphNode("e.Order", "Entity", [_LinkGraphEdge("entity_resource", "r.Orders")])
     _build(_source("d.Shop"), _source("d.Billing"), _resource("r.Orders", "d.Shop"), _resource("r.Support", "d.Billing"), ticket, order)
 
 
 def test_the_graph_build_lets_a_link_inside_one_data_source_through() -> None:
-    ticket = _Node("e.Ticket", "Entity", [_Link("entity_resource", "r.Support"), _Link("entity_relation", "e.Order")])
-    order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
+    ticket = _TestGraphNode("e.Ticket", "Entity", [_LinkGraphEdge("entity_resource", "r.Support"), _LinkGraphEdge("entity_relation", "e.Order")])
+    order = _TestGraphNode("e.Order", "Entity", [_LinkGraphEdge("entity_resource", "r.Orders")])
     _build(_source("d.Shop"), _resource("r.Orders", "d.Shop"), _resource("r.Support", "d.Shop"), ticket, order)
 
 
 def test_the_graph_build_refuses_a_resource_that_stores_an_entity_without_a_data_source() -> None:
     """A resource with an ``entity_resource`` edge into it has exactly one ``resource_data_source`` edge."""
-    order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
-    line = _Node("e.Line", "Entity", [_Link("entity_resource", "r.Orders")])
+    order = _TestGraphNode("e.Order", "Entity", [_LinkGraphEdge("entity_resource", "r.Orders")])
+    line = _TestGraphNode("e.Line", "Entity", [_LinkGraphEdge("entity_resource", "r.Orders")])
     with pytest.raises(InvalidGraphError) as error:
         _build(_resource("r.Orders"), order, line)
     assert str(error.value) == (
@@ -228,15 +230,15 @@ def test_the_graph_build_refuses_a_resource_that_stores_an_entity_without_a_data
 
 
 def test_the_graph_build_lets_a_resource_that_stores_nothing_go_without_a_data_source() -> None:
-    order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
+    order = _TestGraphNode("e.Order", "Entity", [_LinkGraphEdge("entity_resource", "r.Orders")])
     _build(_source("d.Shop"), _resource("r.Orders", "d.Shop"), _resource("r.Mail"), order)
 
 
 def test_the_graph_build_refuses_two_resources_of_one_domain_on_one_data_source() -> None:
     """The graph build checks again that a domain reaches a data source through one resource."""
-    domain = _Node("dom.Sales", "Domain")
-    orders = _Node("r.Orders", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Sales")])
-    carts = _Node("r.Carts", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Sales")])
+    domain = _TestGraphNode("dom.Sales", "Domain")
+    orders = _TestGraphNode("r.Orders", "Resource", [_LinkGraphEdge("resource_data_source", "d.Shop"), _LinkGraphEdge("domain", "dom.Sales")])
+    carts = _TestGraphNode("r.Carts", "Resource", [_LinkGraphEdge("resource_data_source", "d.Shop"), _LinkGraphEdge("domain", "dom.Sales")])
     with pytest.raises(InvalidGraphError) as error:
         _build(domain, _source("d.Shop"), orders, carts)
     assert str(error.value) == (
@@ -246,7 +248,7 @@ def test_the_graph_build_refuses_two_resources_of_one_domain_on_one_data_source(
 
 
 def test_the_graph_build_lets_two_domains_share_a_data_source() -> None:
-    sales, billing = _Node("dom.Sales", "Domain"), _Node("dom.Billing", "Domain")
-    orders = _Node("r.Orders", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Sales")])
-    invoices = _Node("r.Invoices", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Billing")])
+    sales, billing = _TestGraphNode("dom.Sales", "Domain"), _TestGraphNode("dom.Billing", "Domain")
+    orders = _TestGraphNode("r.Orders", "Resource", [_LinkGraphEdge("resource_data_source", "d.Shop"), _LinkGraphEdge("domain", "dom.Sales")])
+    invoices = _TestGraphNode("r.Invoices", "Resource", [_LinkGraphEdge("resource_data_source", "d.Shop"), _LinkGraphEdge("domain", "dom.Billing")])
     _build(sales, billing, _source("d.Shop"), orders, invoices)

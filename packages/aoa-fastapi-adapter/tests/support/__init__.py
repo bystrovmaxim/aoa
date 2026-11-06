@@ -6,7 +6,7 @@ Re-exports every fixture symbol the FastAPI adapter tests import by name, so the
 tests can use a single flat ``from .support import ...`` line:
 
 - ``PingAction`` / ``SimpleAction`` — smoke-test actions (:mod:`.domain_model`).
-- ``DummyResourceManager`` — stub per-route connection (:mod:`.connections`).
+- ``DummyController`` — stub per-route connection (:mod:`.connections`).
 - ``EntityProjectionAdapterTestAction`` / ``AdapterTestAction`` — schema-backed
   adapter-fixture actions (:mod:`.adapter_fixtures`).
 
@@ -21,7 +21,7 @@ from .adapter_fixtures import (
     EntityProjectionParamsMcpTestAction,
     GraphJson,
 )
-from .connections import DummyResourceManager
+from .connections import DummyController
 from .domain_model import (
     OrdersDomain,
     PingAction,
@@ -33,7 +33,7 @@ from .domain_model import (
 
 __all__ = [
     "AdapterTestAction",
-    "DummyResourceManager",
+    "DummyController",
     "EntityProjectionAdapterTestAction",
     "EntityProjectionParamsMcpTestAction",
     "GraphJson",

@@ -16,7 +16,7 @@
 - [The aspect pipeline and the flow of state](#the-aspect-pipeline-and-the-flow-of-state)
 - [Checkers — the contract for return values](#checkers--the-contract-for-return-values)
 - [Connections — external resources inside aspects](#connections--external-resources-inside-aspects)
-- [ParamsStub — an operation with no parameters](#paramsstub--an-operation-with-no-parameters)
+- [StubParams — an operation with no parameters](#paramsstub--an-operation-with-no-parameters)
 - [Naming](#naming)
 - [Testing aspects directly](#testing-aspects-directly)
 - [What matters](#what-matters)
@@ -208,39 +208,39 @@ from aoa.action_machine.intents.connection import connection
 @meta(description="Query sidebar data from DuckDB.", domain=MyDomain)
 @check_roles(GuestRole)
 @connection(DuckDBResource, key="db", description="DuckDB graph connection")
-class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
+class GetSidebarAction(BaseAction[StubParams, GetSidebarResult]):
 
     @regular_aspect("Load nodes from DuckDB.")
-    async def load_nodes_aspect(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
+    async def load_nodes_aspect(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
         duck = cast(DuckDBResource, connections["db"])
         rows = duck.execute_fetch_dicts("SELECT id, label FROM nodes")
         return {"nodes": rows}
 
     @summary_aspect("Build result.")
-    async def build_result_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> GetSidebarResult:
+    async def build_result_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> GetSidebarResult:
         _ = (params, box, connections)
         return GetSidebarResult(nodes=cast(list, state["nodes"]))
 ```
 
 `@connection` is a declaration for the graph and for the runtime; the resource itself is supplied when calling `machine.run(..., connections={"db": resource})`.
 
-## ParamsStub — an operation with no parameters
+## StubParams — an operation with no parameters
 
-When an operation takes no user parameters (all data arrives through `connections`), use `ParamsStub`:
+When an operation takes no user parameters (all data arrives through `connections`), use `StubParams`:
 
 ```python
 # Fragment: its imports are left out.
-from aoa.action_machine.model import ParamsStub
+from aoa.action_machine.model import StubParams
 
 @meta(...)
 @check_roles(GuestRole)
 @connection(DuckDBResource, key="db", description="...")
-class GetSidebarAction(BaseAction[ParamsStub, GetSidebarResult]):
+class GetSidebarAction(BaseAction[StubParams, GetSidebarResult]):
 
     @summary_aspect("Build sidebar.")
     async def build_sidebar_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,

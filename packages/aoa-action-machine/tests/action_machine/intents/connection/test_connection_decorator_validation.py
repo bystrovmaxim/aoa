@@ -5,14 +5,15 @@ import pytest
 
 from aoa.action_machine.intents.connection.connection_decorator import _validate_connection_args, connection
 from aoa.action_machine.intents.meta.meta_decorator import meta
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 
 from ....support.domain_model.domains import TestDomain
 
 
 @meta(description="Connection decorator test resource", domain=TestDomain)
-class _Mgr(BaseResource):
-    def get_wrapper_class(self):
+class _MgrController(BaseController):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
 
@@ -32,21 +33,21 @@ def test_validate_connection_args_rejects_non_resource_manager() -> None:
 
 def test_validate_connection_args_rejects_non_str_key() -> None:
     with pytest.raises(TypeError, match="key"):
-        _validate_connection_args(_Mgr, 99, "d")  # type: ignore[arg-type]
+        _validate_connection_args(_MgrController, 99, "d")  # type: ignore[arg-type]
 
 
 def test_validate_connection_args_rejects_blank_key() -> None:
     with pytest.raises(ValueError, match="key"):
-        _validate_connection_args(_Mgr, "   ", "d")
+        _validate_connection_args(_MgrController, "   ", "d")
 
 
 def test_validate_connection_args_rejects_non_str_description() -> None:
     with pytest.raises(TypeError, match="description"):
-        _validate_connection_args(_Mgr, "db", 1)  # type: ignore[arg-type]
+        _validate_connection_args(_MgrController, "db", 1)  # type: ignore[arg-type]
 
 
 def test_connection_inner_rejects_non_class_target() -> None:
-    dec = connection(_Mgr, key="db", description="x")
+    dec = connection(_MgrController, key="db", description="x")
     with pytest.raises(TypeError, match="only be applied to classes"):
         dec(99)  # type: ignore[arg-type]
 
@@ -55,7 +56,7 @@ def test_connection_accepts_class_without_connection_intent() -> None:
     class Plain:
         pass
 
-    dec = connection(_Mgr, key="db", description="x")
+    dec = connection(_MgrController, key="db", description="x")
     dec(Plain)
     assert Plain._connection_info[0].key == "db"
 
@@ -65,7 +66,7 @@ def test_connection_rejects_duplicate_key() -> None:
 
     with pytest.raises(ValueError, match="already declared"):
 
-        @connection(_Mgr, key="db", description="a")
-        @connection(_Mgr, key="db", description="b")
+        @connection(_MgrController, key="db", description="a")
+        @connection(_MgrController, key="db", description="b")
         class _DupConn(ConnectionIntent):
             pass

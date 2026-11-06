@@ -64,7 +64,7 @@ def test_a_resource_without_a_domain_is_still_refused() -> None:
 
         @meta(description="Orders")
         @exclude_graph_model
-        class _OrdersResource(BaseStorage):
+        class _OrdersStorage(BaseStorage):
             pass
 
 
@@ -105,8 +105,9 @@ _MODEL = textwrap.dedent(
 
 
     @meta(description="Orders", domain=ShopDomain)
-    class OrdersResource(BaseStorage[ShopDataSource]):
-        def get_wrapper_class(self):
+    class OrdersStorage(BaseStorage[ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 

@@ -48,14 +48,14 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    @entity(description="Customer order", resource=ShopDatabase)
+    @entity(description="Customer order", resource=ShopStorage)
         │
         ▼  checks the resource, writes scratch on cls
-    _entity_info = {"description": ..., "resource": ShopDatabase}
+    _entity_info = {"description": ..., "resource": ShopStorage}
         │
         ▼  EntityIntentResolver, entity validators, EntityGraphNode
-    entity node ──entity_resource──► ShopDatabase ──domain──► ShopDomain
-    entity node ──domain──► ShopDomain   (read from ShopDatabase's @meta)
+    entity node ──entity_resource──► ShopStorage ──domain──► ShopDomain
+    entity node ──domain──► ShopDomain   (read from ShopStorage's @meta)
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE
@@ -77,10 +77,10 @@ EXAMPLE
         \"\"\"The store the shop database works with.\"\"\"
 
     @meta(description="Stores the shop model", domain=ShopDomain)
-    class ShopDatabase(BaseStorage[ShopDataSource]):
+    class ShopStorage(BaseStorage[ShopDataSource]):
         \"\"\"Hold the shop's entities.\"\"\"
 
-    @entity(description="Customer order", resource=ShopDatabase)
+    @entity(description="Customer order", resource=ShopStorage)
     class OrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 """
@@ -118,7 +118,7 @@ def validate_entity_description(description: Any) -> None:
         raise EntityDecoratorError(
             "@entity: description cannot be empty. "
             "Provide a non-empty entity description, e.g. "
-            '@entity(description="Customer order", resource=ShopDatabase).'
+            '@entity(description="Customer order", resource=ShopStorage).'
         )
 
 
@@ -206,7 +206,7 @@ def entity(
             Invalid ``description`` or ``resource``, or target is not a class.
 
     Example:
-        @entity(description="Customer order", resource=ShopDatabase)
+        @entity(description="Customer order", resource=ShopStorage)
         class OrderCoreEntity(BaseCoreEntity):
             id: str = Field(description="Order id")
 

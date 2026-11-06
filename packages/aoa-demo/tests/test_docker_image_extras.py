@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 from aoa.action_machine.resources.postgres import PostgresDataSource
-from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
+from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 DOCKERFILE = Path(__file__).resolve().parents[1] / "Dockerfile"
 
@@ -19,7 +19,7 @@ def _extras() -> set[str]:
 
 
 def test_the_image_installs_the_postgres_extra_the_identity_resource_needs() -> None:
-    """``IdentityStoreBase`` names a PostgreSQL data source: importing the model needs the driver."""
-    data_source = IdentityStoreBase.data_source_type()
+    """``IdentityStorage`` names a PostgreSQL data source: importing the model needs the driver."""
+    data_source = IdentityStorage.data_source_type()
     assert data_source is not None and issubclass(data_source, PostgresDataSource)
     assert {"fastapi", "mcp", "postgres"} <= _extras()

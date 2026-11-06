@@ -37,7 +37,7 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseGateway, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
@@ -54,14 +54,15 @@ class AdminRole(ApplicationRole):
 
 
 @meta(description="Payment gateway", domain=BillingDomain)
-class PaymentService(BaseResource):
+class PaymentServiceGateway(BaseGateway):
     async def charge(self, amount: float) -> str:
         raise NotImplementedError("real gateway — mocked in tests")
 
     async def refund(self, txn_id: str) -> None:
         raise NotImplementedError("real gateway — mocked in tests")
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
@@ -76,18 +77,18 @@ class ChargeResult(BaseResult):
 
 @meta(description="Charge a payment", domain=BillingDomain)
 @check_roles(AdminRole)
-@depends(PaymentService)
+@depends(PaymentServiceGateway)
 class ChargeAction(BaseAction[ChargeParams, ChargeResult]):
 
     @regular_aspect("Charge via gateway")
     @result_string("txn_id", required=True)
     async def charge_aspect(self, params: ChargeParams, state: BaseState, box: ToolsBox, connections: Connections) -> dict[str, Any]:
-        gateway = await box.resolve(PaymentService)
+        gateway = await box.resolve(PaymentServiceGateway)
         return {"txn_id": await gateway.charge(params.amount)}
 
     @compensate(charge_aspect, "Refund the charge")
     async def charge_compensate(self, params: ChargeParams, state_before: BaseState, state_after: BaseState | None, box: ToolsBox, connections: Connections, error: Exception) -> None:
-        gateway = await box.resolve(PaymentService)
+        gateway = await box.resolve(PaymentServiceGateway)
         await gateway.refund(state_after["txn_id"])
 
     @summary_aspect("Build result")
@@ -103,7 +104,7 @@ def make_bench(gateway: AsyncMock) -> TestBench:
     return (
         TestBench()
         .with_user(user_id="admin", roles=(AdminRole,))   # so @check_roles passes (context: ch.25)
-        .with_mocks({PaymentService: gateway})            # mock @depends (ch.24)
+        .with_mocks({PaymentServiceGateway: gateway})            # mock @depends (ch.24)
     )
 
 
@@ -111,13 +112,13 @@ async def main() -> None:
     params = ChargeParams(amount=1500.0)
 
     # ── 1. Whole Action ──────────────────────────────────────────────────────
-    gw = AsyncMock(spec=PaymentService)
+    gw = AsyncMock(spec=PaymentServiceGateway)
     gw.charge.return_value = "txn-001"
     result = await make_bench(gw).run(ChargeAction(), params, rollup=False)
     print(f"1) run (whole Action)        -> txn={result.txn_id} amount={result.amount}")
 
     # ── 2. One regular aspect ────────────────────────────────────────────────
-    gw = AsyncMock(spec=PaymentService)
+    gw = AsyncMock(spec=PaymentServiceGateway)
     gw.charge.return_value = "txn-002"
     state_after = await make_bench(gw).run_aspect(
         ChargeAction(), "charge_aspect", params=params, state={}, rollup=False,
@@ -125,14 +126,14 @@ async def main() -> None:
     print(f"2) run_aspect (charge_aspect)-> state.txn_id={state_after['txn_id']}")
 
     # ── 3. Summary alone (state supplied; gateway never touched) ──────────────
-    gw = AsyncMock(spec=PaymentService)
+    gw = AsyncMock(spec=PaymentServiceGateway)
     result = await make_bench(gw).run_summary(
         ChargeAction(), params=params, state={"txn_id": "txn-pre"}, rollup=False,
     )
     print(f"3) run_summary               -> txn={result.txn_id}  (charge called: {gw.charge.await_count > 0})")
 
     # ── 4. Compensator as a unit (does NOT suppress exceptions) ───────────────
-    gw = AsyncMock(spec=PaymentService)
+    gw = AsyncMock(spec=PaymentServiceGateway)
     await make_bench(gw).run_compensator(
         ChargeAction(), "charge_compensate",
         params=params,
@@ -143,7 +144,7 @@ async def main() -> None:
     print(f"4) run_compensator           -> gateway.refund('txn-004') called: {gw.refund.await_count == 1}")
 
     # ── 5. @on_error via a full run that triggers the error ───────────────────
-    gw = AsyncMock(spec=PaymentService)
+    gw = AsyncMock(spec=PaymentServiceGateway)
     gw.charge.side_effect = ValueError("card declined")
     result = await make_bench(gw).run(ChargeAction(), params, rollup=False)
     print(f"5) run + @on_error(ValueError) -> txn={result.txn_id}  (handler returned a Result)")

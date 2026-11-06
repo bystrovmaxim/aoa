@@ -8,7 +8,7 @@ PURPOSE
 
 Provide a dedicated component for the `@on_error` stage in machine execution.
 This Step 6 implementation owns handler resolution, invocation, and fallback
-event contracts. Plugin event payloads come from ``PluginCoordinator``, not from
+event contracts. BasePlugin event payloads come from ``PluginCoordinator``, not from
 private methods on the machine.
 
 ═══════════════════════════════════════════════════════════════════════════════

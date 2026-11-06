@@ -49,6 +49,7 @@ from typing import Any, get_args, get_origin
 
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.core.exclude_graph_model import excluded_from_graph_model
+from aoa.action_machine.naming.suffix import require_suffix
 
 
 class BaseGraphNodeInspector[TRoot](ABC):
@@ -59,6 +60,11 @@ class BaseGraphNodeInspector[TRoot](ABC):
     INVARIANTS: Cannot be instantiated directly; must be subclassed for node emission.
     AI-CORE-END
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``Inspector``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseGraphNodeInspector", "Inspector")
 
     @staticmethod
     def _is_stale_redefinition(typ: type) -> bool:

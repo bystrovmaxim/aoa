@@ -10,11 +10,11 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
 from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceCoreEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 
 
-@entity(description="Chargeback case opened on payment-event", resource=BillingWarehouse)
+@entity(description="Chargeback case opened on payment-event", resource=BillingWarehouseStorage)
 class ChargebackTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: BillingDenseLifecycle = Field(description="Dispute lifecycle")

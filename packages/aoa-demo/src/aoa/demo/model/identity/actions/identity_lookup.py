@@ -22,7 +22,7 @@ ARCHITECTURE / DATA FLOW
     POST /api/v1/identity/lookup   |   MCP tool "identity.lookup"
               |
               v
-    @connection(IdentityStoreBase, key="identity")
+    @connection(IdentityStorage, key="identity")
               |
               v
     connections["identity"].read_person(person_id)      -> the person, or nothing
@@ -49,12 +49,12 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ..domain import IdentityDomain
-from ..resources.identity_store_base import IdentityStoreBase
+from ..resources.identity_storage import IdentityStorage
 
 
 @meta(description="Read an identity person and record the login", domain=IdentityDomain)
 @check_roles(GuestRole)
-@connection(IdentityStoreBase, key="identity", description="Identity store, one connection per call")
+@connection(IdentityStorage, key="identity", description="Identity store, one connection per call")
 class IdentityLookupAction(BaseAction["IdentityLookupAction.Params", "IdentityLookupAction.Result"]):
 
     class Params(BaseParams):
@@ -89,7 +89,7 @@ class IdentityLookupAction(BaseAction["IdentityLookupAction.Params", "IdentityLo
         connections: Connections,
     ) -> IdentityLookupAction.Result:
         """Read through the declared connection, and write inside the transaction it owns."""
-        store = cast(IdentityStoreBase, connections["identity"])
+        store = cast(IdentityStorage, connections["identity"])
 
         person = await store.read_person(params.person_id)
         if person is None:

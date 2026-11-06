@@ -6,8 +6,9 @@ Run: uv run python examples/extensions/postgresql/08_owned_connection.py
 """
 
 import asyncio
+from unittest.mock import AsyncMock, patch
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
 class RecordingConnection:
@@ -59,14 +60,13 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-from unittest.mock import AsyncMock, patch
 
 
 class ExampleDataSource(PostgresDataSource):
     """The database of this example: its connection parameters and its pool."""
 
 
-class ExampleResource(PostgresResource[ExampleDataSource]):
+class ExampleStorage(PostgresStorage[ExampleDataSource]):
     """A PostgreSQL resource that works through the example's data source."""
 
 
@@ -76,7 +76,7 @@ async def main():
     create_pool = AsyncMock(return_value=pool)
     with patch("aoa.action_machine.resources.postgres.postgres_data_source.asyncpg.create_pool", create_pool):
         async with ExampleDataSource("postgresql://example.invalid/demo", min_size=1, max_size=1) as source:
-            db = ExampleResource(data_source=source)
+            db = ExampleStorage(data_source=source)
             await db.open()
             await db.close()
     create_pool.assert_awaited_once_with("postgresql://example.invalid/demo", min_size=1, max_size=1)

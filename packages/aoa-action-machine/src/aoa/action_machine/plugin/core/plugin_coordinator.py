@@ -61,6 +61,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import (
     AccessGateFailedEvent,
     AfterAccessDecideAspectEvent,
@@ -72,7 +73,6 @@ from aoa.action_machine.plugin.core.events import (
     GlobalFinishEvent,
     GlobalStartEvent,
 )
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
 
@@ -88,13 +88,13 @@ class PluginCoordinator(BaseCoordinator):
 
     def __init__(
         self,
-        plugins: list[Plugin] | None = None,
+        plugins: list[BasePlugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
     ) -> None:
         """
         Initialize plugin coordinator with registered plugin instances.
         """
-        self._plugins: list[Plugin] = list(plugins) if plugins else []
+        self._plugins: list[BasePlugin] = list(plugins) if plugins else []
         self._log_coordinator = log_coordinator or LogCoordinator()
 
     @property
@@ -121,13 +121,13 @@ class PluginCoordinator(BaseCoordinator):
         )
 
     @property
-    def plugins(self) -> list[Plugin]:
+    def plugins(self) -> list[BasePlugin]:
         """
         Return registered plugin instances.
         """
         return self._plugins
 
-    def add_plugin(self, plugin: Plugin) -> None:
+    def add_plugin(self, plugin: BasePlugin) -> None:
         """Add a plugin to the coordinator."""
         self._plugins.append(plugin)
 

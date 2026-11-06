@@ -27,7 +27,7 @@ _HEAD = textwrap.dedent(
     from aoa.action_machine.intents.entity import entity
     from aoa.action_machine.intents.meta import meta
     from aoa.action_machine.resources import BaseGateway, BaseStorage, ExternalServiceDataSource, InMemoryDataSource
-    from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+    from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
     class ShopDomain(BaseDomain):
@@ -62,7 +62,8 @@ def test_a_resource_that_stores_an_entity_and_names_no_data_source_is_refused() 
         """
     @meta(description="Orders", domain=ShopDomain)
     class OrdersStorage(BaseStorage):
-        def get_wrapper_class(self):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
@@ -97,13 +98,15 @@ def test_a_resource_that_stores_nothing_may_name_no_data_source() -> None:
 
     @meta(description="Orders", domain=ShopDomain)
     class OrdersStorage(BaseStorage[ShopDataSource]):
-        def get_wrapper_class(self):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
     @meta(description="Mail sender", domain=ShopDomain)
     class MailGateway(BaseGateway):
-        def get_wrapper_class(self):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
@@ -123,12 +126,13 @@ def test_a_resource_that_stores_nothing_may_name_no_data_source() -> None:
     [
         ("InMemoryDataSource", "BaseStorage"),
         ("ExternalServiceDataSource", "BaseGateway"),
-        ("PostgresDataSource", "PostgresResource"),
+        ("PostgresDataSource", "PostgresStorage"),
     ],
     ids=["in memory", "external service", "PostgreSQL"],
 )
 def test_every_kind_of_data_source_gives_a_stored_entity_its_place(data_source: str, resource_base: str) -> None:
     """A resource on any kind AOA gives stores entities, and the graph names its data source."""
+    resource_name = "OrdersGateway" if resource_base == "BaseGateway" else "OrdersStorage"
     out = _run(
         f"""
     @meta(description="Shop store")
@@ -137,12 +141,13 @@ def test_every_kind_of_data_source_gives_a_stored_entity_its_place(data_source: 
 
 
     @meta(description="Orders", domain=ShopDomain)
-    class OrdersResource({resource_base}[ShopDataSource]):
-        def get_wrapper_class(self):
+    class {resource_name}({resource_base}[ShopDataSource]):
+        @classmethod
+        def get_wrapper_class(cls):
             return None
 
 
-    @entity(description="Customer order", resource=OrdersResource)
+    @entity(description="Customer order", resource={resource_name})
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 
@@ -150,4 +155,4 @@ def test_every_kind_of_data_source_gives_a_stored_entity_its_place(data_source: 
     build()
     """
     )
-    assert out == "OrdersResource->ShopDataSource"
+    assert out == f"{resource_name}->ShopDataSource"

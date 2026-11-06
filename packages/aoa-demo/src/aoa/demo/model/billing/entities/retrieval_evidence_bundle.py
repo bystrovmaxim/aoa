@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Retrieval / representment bundle", resource=BillingWarehouse)
+@entity(description="Retrieval / representment bundle", resource=BillingWarehouseStorage)
 class RetrievalEvidenceBundleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bundle id")
     lifecycle: BillingDenseLifecycle = Field(description="Bundle lifecycle")

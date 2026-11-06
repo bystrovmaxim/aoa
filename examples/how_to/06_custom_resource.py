@@ -9,7 +9,7 @@ import asyncio
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 
@@ -20,14 +20,15 @@ class NotesDomain(BaseDomain):
     description = "Notes transport"
 
 @meta(description="Append notes to a supplied store", domain=NotesDomain)
-class NotesResource(BaseResource):
+class NotesStorage(BaseStorage):
     """Expose storage access with an explicit usable interval."""
     def __init__(self, storage, events):
         """Remember the external storage and lifecycle log."""
         self.storage = storage
         self.events = events
         self.opened = False
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use of this non-transactional teaching store."""
         return None
     async def open(self):
@@ -51,7 +52,7 @@ async def main():
     storage = []
     events = []
     async with connection_scope({"notes": PerCallConnection(
-        lambda: NotesResource(storage, events), lambda resource: resource.close(),
+        lambda: NotesStorage(storage, events), lambda resource: resource.close(),
     )}) as connections:
         count = await connections["notes"].append("hello")
         print("written:", count)

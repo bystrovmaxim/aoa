@@ -22,7 +22,7 @@ Aspect logging (``ToolsBox`` / ``info`` / ``warning`` / ``critical``):
 - ``aspect`` — aspect method name.
 - ``nest_level`` — 0 root, 1 child ``box.run``, etc.
 
-Plugin handlers (``log`` argument):
+BasePlugin handlers (``log`` argument):
 
 - ``plugin``, ``action``, ``event``, ``nest_level``.
 

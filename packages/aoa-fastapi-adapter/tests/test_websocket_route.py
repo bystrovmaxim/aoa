@@ -10,7 +10,7 @@ Drives real actions on a real ``ActionProductMachine`` through Starlette's test
 client, so the whole path is exercised: accepting, building params from the
 connection, filtering connections to what each action declares, refusing with a
 close code, relaying without an action, the size and rate limits, and the close
-action. ``SocketChannel``'s two queues are tested on their own with a websocket
+action. ``SocketChannelController``'s two queues are tested on their own with a websocket
 that never reads, which a test client cannot simulate.
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -23,7 +23,7 @@ ARCHITECTURE / DATA FLOW
                                         │
                      OpenAction / EchoAction / CloseAction on the real machine
                                         │
-                  Recorder (what ran) ◄─┴─► StubRelay (what was relayed)
+                  RecorderController (what ran) ◄─┴─► StubRelayController (what was relayed)
 """
 
 from __future__ import annotations
@@ -52,49 +52,51 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_controller import BaseController
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.fastapi import ConnectionRefusalError, FastApiAdapter, SocketChannel
+from aoa.fastapi import ConnectionRefusalError, FastApiAdapter, SocketChannelController
 
 from .support import TestDomain
 
 
 @meta(description="Records which actions of the test route ran", domain=TestDomain)
-class Recorder(BaseController):
+class RecorderController(BaseController):
     """In-memory list of what the test route's actions did."""
 
     def __init__(self) -> None:
         self.events: list[tuple[str, Any]] = []
 
-    def get_wrapper_class(self) -> type[BaseController] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseController] | None:
         """Return ``None``: nested actions see this recorder itself."""
         return None
 
 
 @meta(description="Receives the relayed messages of the test route", domain=TestDomain)
-class StubRelay(BaseController):
+class StubRelayController(BaseController):
     """Relay target that records every relayed message and echoes it as a volatile event."""
 
     def __init__(self) -> None:
         self.relayed: list[dict[str, Any]] = []
 
-    def get_wrapper_class(self) -> type[BaseController] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseController] | None:
         """Return ``None``: nested actions see this relay itself."""
         return None
 
-    def relay(self, channel: SocketChannel, message: dict[str, Any]) -> None:
+    def relay(self, channel: SocketChannelController, message: dict[str, Any]) -> None:
         """Record ``message`` and send it back as the newest ``pointer``."""
         self.relayed.append(message)
         channel.send_volatile("pointer", {"type": "pointer", "x": message.get("x")})
 
 
-class _Empty(BaseResult):
+class _EmptyResult(BaseResult):
     """Nothing to return: the actions answer through the socket."""
 
 
 @meta(description="Open a test connection", domain=TestDomain)
 @check_roles(GuestRole)
-@connection(SocketChannel, key="socket", description="The connection")
-@connection(Recorder, key="recorder", description="What ran")
-class OpenAction(BaseAction["OpenAction.Params", _Empty]):
+@connection(SocketChannelController, key="socket", description="The connection")
+@connection(RecorderController, key="recorder", description="What ran")
+class OpenAction(BaseAction["OpenAction.Params", _EmptyResult]):
     """Welcome a connection, or refuse it when its room is ``full``."""
 
     class Params(BaseParams):
@@ -105,19 +107,19 @@ class OpenAction(BaseAction["OpenAction.Params", _Empty]):
         host: str = Field(description="The Host header")
 
     @summary_aspect("Welcome or refuse")
-    async def welcome_summary(self, params: OpenAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _Empty:
+    async def welcome_summary(self, params: OpenAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _EmptyResult:
         """Refuse the room ``full``; otherwise record and welcome."""
         if params.room == "full":
             raise ConnectionRefusalError(4409, "room full")
         connections["recorder"].events.append(("open", (params.room, params.origin, params.host)))
         connections["socket"].send({"type": "welcome", "room": params.room})
-        return _Empty()
+        return _EmptyResult()
 
 
 @meta(description="Echo a test message", domain=TestDomain)
 @check_roles(GuestRole)
-@connection(SocketChannel, key="socket", description="The connection")
-class EchoAction(BaseAction["EchoAction.Params", _Empty]):
+@connection(SocketChannelController, key="socket", description="The connection")
+class EchoAction(BaseAction["EchoAction.Params", _EmptyResult]):
     """Echo the text back, or refuse the text ``refuse``."""
 
     class Params(BaseParams):
@@ -127,18 +129,18 @@ class EchoAction(BaseAction["EchoAction.Params", _Empty]):
         text: str = Field(description="Text to echo", max_length=20)
 
     @summary_aspect("Echo")
-    async def echo_summary(self, params: EchoAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _Empty:
+    async def echo_summary(self, params: EchoAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _EmptyResult:
         """Send the text back with the connection's room."""
         if params.text == "refuse":
             raise ConnectionRefusalError(4403, "not allowed")
         connections["socket"].send({"type": "echo", "room": params.room, "text": params.text})
-        return _Empty()
+        return _EmptyResult()
 
 
 @meta(description="Close a test connection", domain=TestDomain)
 @check_roles(GuestRole)
-@connection(Recorder, key="recorder", description="What ran")
-class CloseAction(BaseAction["CloseAction.Params", _Empty]):
+@connection(RecorderController, key="recorder", description="What ran")
+class CloseAction(BaseAction["CloseAction.Params", _EmptyResult]):
     """Record that the connection ended."""
 
     class Params(BaseParams):
@@ -147,28 +149,28 @@ class CloseAction(BaseAction["CloseAction.Params", _Empty]):
         room: str = Field(description="Room from the path")
 
     @summary_aspect("Record the close")
-    async def record_summary(self, params: CloseAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _Empty:
+    async def record_summary(self, params: CloseAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _EmptyResult:
         """Record the close of ``params.room``."""
         connections["recorder"].events.append(("close", params.room))
-        return _Empty()
+        return _EmptyResult()
 
 
 @meta(description="Needs a connection the route does not give", domain=TestDomain)
 @check_roles(GuestRole)
-@connection(Recorder, key="missing", description="Never provided")
-class NeedsMissingAction(BaseAction["NeedsMissingAction.Params", _Empty]):
+@connection(RecorderController, key="missing", description="Never provided")
+class NeedsMissingAction(BaseAction["NeedsMissingAction.Params", _EmptyResult]):
     """Declares a connection key no route provides."""
 
     class Params(BaseParams):
         """No fields."""
 
     @summary_aspect("Nothing")
-    async def nothing_summary(self, params: NeedsMissingAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _Empty:
+    async def nothing_summary(self, params: NeedsMissingAction.Params, state: BaseState, box: ToolsBox, connections: Connections) -> _EmptyResult:
         """Do nothing."""
-        return _Empty()
+        return _EmptyResult()
 
 
-def _client(recorder: Recorder, relay: StubRelay) -> tuple[TestClient, ActionProductMachine]:
+def _client(recorder: RecorderController, relay: StubRelayController) -> tuple[TestClient, ActionProductMachine]:
     """Build an app with one WebSocket route on a real machine whose ``run`` is counted."""
     machine = ActionProductMachine(loggers=[])
     machine.run = AsyncMock(wraps=machine.run)  # type: ignore[method-assign]
@@ -203,7 +205,7 @@ class TestWebSocketRoute:
 
     def test_open_gets_path_and_origin(self) -> None:
         """(1) The open action runs with the path parameter and the Origin and Host headers."""
-        recorder, relay = Recorder(), StubRelay()
+        recorder, relay = RecorderController(), StubRelayController()
         client, _ = _client(recorder, relay)
         with client.websocket_connect("/rooms/r1/live", headers={"origin": "http://maxitor"}) as ws:
             assert ws.receive_json() == {"type": "welcome", "room": "r1"}
@@ -211,7 +213,7 @@ class TestWebSocketRoute:
 
     def test_message_runs_its_action(self) -> None:
         """(2) A mapped message runs its action, which answers through the socket with the connection's room."""
-        client, _ = _client(Recorder(), StubRelay())
+        client, _ = _client(RecorderController(), StubRelayController())
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
             ws.send_text(json.dumps({"type": "echo", "text": "hi"}))
@@ -219,8 +221,8 @@ class TestWebSocketRoute:
 
     def test_relayed_type_runs_no_action(self) -> None:
         """(3) A relayed type reaches the relay resource and runs no action."""
-        relay = StubRelay()
-        client, machine = _client(Recorder(), relay)
+        relay = StubRelayController()
+        client, machine = _client(RecorderController(), relay)
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
             runs_before = machine.run.await_count
@@ -231,7 +233,7 @@ class TestWebSocketRoute:
 
     def test_message_too_large_closes(self) -> None:
         """(4) A frame over 4 096 bytes closes the connection with 4413."""
-        client, _ = _client(Recorder(), StubRelay())
+        client, _ = _client(RecorderController(), StubRelayController())
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
             ws.send_text(json.dumps({"type": "echo", "text": "x" * 4100}))
@@ -241,7 +243,7 @@ class TestWebSocketRoute:
 
     def test_message_at_the_size_limit_is_accepted(self) -> None:
         """(4) A frame of exactly 4 096 bytes is still read (it fails validation, not the size limit)."""
-        client, _ = _client(Recorder(), StubRelay())
+        client, _ = _client(RecorderController(), StubRelayController())
         frame = json.dumps({"type": "echo", "text": ""})
         frame = frame.replace('""', '"' + "x" * (4096 - len(frame)) + '"')
         assert len(frame.encode()) == 4096
@@ -253,7 +255,7 @@ class TestWebSocketRoute:
     @pytest.mark.benchmark
     def test_too_many_messages_closes(self) -> None:
         """(5) More than 40 messages in one second close the connection with 4429."""
-        client, _ = _client(Recorder(), StubRelay())
+        client, _ = _client(RecorderController(), StubRelayController())
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
             for index in range(41):
@@ -265,8 +267,8 @@ class TestWebSocketRoute:
 
     def test_open_refusal_closes_with_its_code(self) -> None:
         """(6) A refusal from the open action closes with its code; the close action does not run."""
-        recorder = Recorder()
-        client, _ = _client(recorder, StubRelay())
+        recorder = RecorderController()
+        client, _ = _client(recorder, StubRelayController())
         with client.websocket_connect("/rooms/full/live") as ws, pytest.raises(WebSocketDisconnect) as closed:
             ws.receive_json()
         assert (closed.value.code, closed.value.reason) == (4409, "room full")
@@ -274,7 +276,7 @@ class TestWebSocketRoute:
 
     def test_message_refusal_keeps_the_connection(self) -> None:
         """(6) A refusal from a message action is answered and the connection stays open."""
-        client, _ = _client(Recorder(), StubRelay())
+        client, _ = _client(RecorderController(), StubRelayController())
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
             ws.send_text(json.dumps({"type": "echo", "text": "refuse"}))
@@ -284,7 +286,7 @@ class TestWebSocketRoute:
 
     def test_unknown_type_and_spoofed_identity_are_errors(self) -> None:
         """(7) An unknown type, and a message that sets a connection value, are answered with an error."""
-        client, _ = _client(Recorder(), StubRelay())
+        client, _ = _client(RecorderController(), StubRelayController())
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
             ws.send_text(json.dumps({"type": "nope"}))
@@ -295,8 +297,8 @@ class TestWebSocketRoute:
 
     def test_close_action_runs_on_disconnect(self) -> None:
         """(8) The close action runs when the client goes away."""
-        recorder = Recorder()
-        client, _ = _client(recorder, StubRelay())
+        recorder = RecorderController()
+        client, _ = _client(recorder, StubRelayController())
         with client.websocket_connect("/rooms/r1/live") as ws:
             ws.receive_json()
         assert _wait_for(lambda: ("close", "r1") in recorder.events)
@@ -338,7 +340,7 @@ class TestSocketChannel:
         async def scenario() -> list[Any]:
             gate = asyncio.Event()
             socket = _NeverReading(gate)
-            channel = SocketChannel(socket)  # type: ignore[arg-type]
+            channel = SocketChannelController(socket)  # type: ignore[arg-type]
             writer = asyncio.create_task(channel.run_writer())
             for index in range(10):
                 channel.send_volatile("pointer", {"x": index})
@@ -355,7 +357,7 @@ class TestSocketChannel:
 
         async def scenario() -> tuple[int, str] | None:
             socket = _NeverReading(asyncio.Event())
-            channel = SocketChannel(socket)  # type: ignore[arg-type]
+            channel = SocketChannelController(socket)  # type: ignore[arg-type]
             for index in range(257):
                 channel.send({"n": index})
             writer = asyncio.create_task(channel.run_writer())

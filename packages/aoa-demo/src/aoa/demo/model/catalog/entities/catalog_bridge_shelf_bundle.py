@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_bundle_cardinality_rule import BundleCardinalityRuleCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_shelf_placement_hint import ShelfPlacementHintCoreEntity
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
-@entity(description="Associative row sewing planogram island to bundle cardinality island", resource=CatalogObjectStore)
+@entity(description="Associative row sewing planogram island to bundle cardinality island", resource=CatalogObjectStoreStorage)
 class CatalogShelfBundleLinkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Assoc id")
     lifecycle: CatalogDenseLifecycle = Field(description="Link lifecycle")

@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Dispatcher shard tied to outbox", resource=OutboxPrimaryDatabase)
+@entity(description="Dispatcher shard tied to outbox", resource=OutboxPrimaryDatabaseStorage)
 class DispatcherCursorShardCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cursor id")
     lifecycle: MsgDenseLifecycle = Field(description="Dispatcher cursor lifecycle")

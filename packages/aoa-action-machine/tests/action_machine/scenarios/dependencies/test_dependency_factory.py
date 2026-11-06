@@ -26,7 +26,7 @@ Scenarios covered:
 import pytest
 
 from aoa.action_machine.intents.meta.meta_decorator import meta
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
@@ -51,10 +51,11 @@ class _NoArgService:
 
 
 @meta(description="Fake resource manager for dependency factory tests", domain=TestDomain)
-class _FakeResourceManager(BaseResource):
+class _FakeResourceController(BaseController):
     """A fake resource manager that supports rollup."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
     async def check_rollup_support(self) -> bool:
@@ -62,10 +63,11 @@ class _FakeResourceManager(BaseResource):
 
 
 @meta(description="Unsupported resource manager for dependency factory tests", domain=TestDomain)
-class _UnsupportedManager(BaseResource):
+class _UnsupportedController(BaseController):
     """A resource manager that does NOT support rollup."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         return None
 
     async def check_rollup_support(self) -> bool:
@@ -200,11 +202,11 @@ class TestRollupSupport:
 
     async def test_rollup_true_calls_check(self) -> None:
         """rollup=True on a resource manager calls check_rollup_support."""
-        factory = DependencyFactory((DependencyInfo(cls=_FakeResourceManager),))
+        factory = DependencyFactory((DependencyInfo(cls=_FakeResourceController),))
 
-        # Should not raise — _FakeResourceManager supports rollup
-        instance = await factory.resolve(_FakeResourceManager, rollup=True)
-        assert isinstance(instance, _FakeResourceManager)
+        # Should not raise — _FakeResourceController supports rollup
+        instance = await factory.resolve(_FakeResourceController, rollup=True)
+        assert isinstance(instance, _FakeResourceController)
 
     async def test_rollup_true_on_non_manager_is_safe(self) -> None:
         """rollup=True on a non-BaseResource is silently ignored."""
@@ -216,11 +218,11 @@ class TestRollupSupport:
 
     async def test_rollup_false_skips_check(self) -> None:
         """rollup=False (default) does not call check_rollup_support."""
-        factory = DependencyFactory((DependencyInfo(cls=_UnsupportedManager),))
+        factory = DependencyFactory((DependencyInfo(cls=_UnsupportedController),))
 
         # Should not raise — rollup check is skipped
-        instance = await factory.resolve(_UnsupportedManager, rollup=False)
-        assert isinstance(instance, _UnsupportedManager)
+        instance = await factory.resolve(_UnsupportedController, rollup=False)
+        assert isinstance(instance, _UnsupportedController)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

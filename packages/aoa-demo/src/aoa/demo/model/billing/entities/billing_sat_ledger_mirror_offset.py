@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_fee_schedule_ptr import MerchantFeeSchedulePointerCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Ledger mirror continuation on interchange fee spine", resource=BillingWarehouse)
+@entity(description="Ledger mirror continuation on interchange fee spine", resource=BillingWarehouseStorage)
 class LedgerMirrorOffsetCoreEntity(BaseCoreEntity):
     id: str = Field(description="Offset id")
     lifecycle: BillingDenseLifecycle = Field(description="Mirror offset lifecycle")

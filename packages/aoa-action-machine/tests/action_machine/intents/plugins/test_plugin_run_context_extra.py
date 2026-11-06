@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import GlobalStartEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_run_context import PluginRunContext
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 
 
-class _P(Plugin):
+class _TestPlugin(BasePlugin):
     async def get_initial_state(self) -> dict:
         return {"n": 0}
 
@@ -42,7 +42,7 @@ class _CoordFail:
 
 @pytest.mark.anyio
 async def test_plugin_run_context_filter_and_run_branches() -> None:
-    p = _P()
+    p = _TestPlugin()
     ctx = PluginRunContext([p], {id(p): {"n": 0}})
     ev = GlobalStartEvent(
         action_class=123,  # type: ignore[arg-type]
@@ -79,7 +79,7 @@ async def test_plugin_run_context_filter_and_run_branches() -> None:
 
 @pytest.mark.anyio
 async def test_plugin_run_context_sequential_error_paths() -> None:
-    p = _P()
+    p = _TestPlugin()
     ctx = PluginRunContext([p], {id(p): {"n": 0}})
     ev = GlobalStartEvent(
         action_class=type,

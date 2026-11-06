@@ -1,6 +1,6 @@
-# packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_store_base.py
+# packages/aoa-demo/src/aoa/demo/model/identity/resources/identity_storage.py
 """
-IdentityStoreBase — what the identity domain asks of its store, driver-free.
+IdentityStorage — what the identity domain asks of its store, driver-free.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
@@ -11,9 +11,9 @@ record one login inside a transaction. This class states those two, in terms of
 the SQL contract the framework already defines, and leaves the storage primitive
 to whoever implements it:
 
-* ``IdentityStore`` (PostgreSQL) mixes this with ``PostgresResource`` and reads
+* ``IdentityPostgresStorage`` (PostgreSQL) mixes this with ``PostgresStorage`` and reads
   rows from the connection the framework hands over;
-* ``IdentityStoreStub`` keeps the same two behaviours in memory, so the demo runs
+* ``IdentityStubStorage`` keeps the same two behaviours in memory, so the demo runs
   with no database and with no driver installed.
 
 Nothing here imports a driver. That is the point: the driver is needed to create
@@ -26,12 +26,12 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    IdentityStoreBase (SqlResource)
+    IdentityStorage (SqlStorage)
         │  read_person(id)      -> _read_person(id)
         │  record_login(id, at) -> begin / _write_login / commit, rollback on failure
         │
-        ├── IdentityStore      (+ PostgresResource)  pool-backed, real driver
-        └── IdentityStoreStub  (in-memory)           database-free mode
+        ├── IdentityPostgresStorage      (+ PostgresStorage)  pool-backed, real driver
+        └── IdentityStubStorage  (in-memory)           database-free mode
 
 """
 
@@ -41,14 +41,14 @@ from abc import abstractmethod
 from typing import Any
 
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.sql import SqlResource
+from aoa.action_machine.resources.sql import SqlStorage
 from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
 
 from ..domain import IdentityDomain
 
 
 @meta(description="Identity store: read a person, record a login", domain=IdentityDomain)
-class IdentityStoreBase(SqlResource[IdentityDataSource]):
+class IdentityStorage(SqlStorage[IdentityDataSource]):
     """
     AI-CORE-BEGIN
         ROLE: The identity domain's storage semantics, independent of any driver.

@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
-from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
+from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Federated IdP linkage for a person and optional email credential factor", resource=IdentityStoreBase)
+@entity(description="Federated IdP linkage for a person and optional email credential factor", resource=IdentityStorage)
 class IdentityFederatedLinkageCoreEntity(BaseCoreEntity):
     id: str = Field(description="Linkage id")
     lifecycle: IdentityDenseLifecycle = Field(description="Federated linkage lifecycle")

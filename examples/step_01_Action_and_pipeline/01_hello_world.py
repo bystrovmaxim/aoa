@@ -11,8 +11,8 @@ What's new:
   - @meta            — required class decorator: description and domain
   - @check_roles     — required access declaration (GuestRole = open to everyone)
   - BaseAction[P, R] — base class for all operations
-  - ParamsStub       — input data stub (no fields)
-  - ResultStub       — result stub (no fields)
+  - StubParams       — input data stub (no fields)
+  - StubResult       — result stub (no fields)
   - @summary_aspect  — the single exit point of an Action, returns Result
   - ActionProductMachine — the machine that runs the pipeline
   - Context()        — call context (user, metadata, etc.; empty here)
@@ -29,7 +29,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, ParamsStub, ResultStub
+from aoa.action_machine.model import BaseAction, StubParams, StubResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
@@ -54,9 +54,9 @@ class GreetingDomain(BaseDomain):
 # ---------------------------------------------------------------------------
 # Step 2 — Declare the Action
 #
-# BaseAction[ParamsStub, ResultStub]:
-#   - ParamsStub means "the operation takes no input data"
-#   - ResultStub means "the operation returns no fields in the result"
+# BaseAction[StubParams, StubResult]:
+#   - StubParams means "the operation takes no input data"
+#   - StubResult means "the operation returns no fields in the result"
 #
 # Two required decorators (the machine refuses to run without them):
 #   @meta(description=..., domain=...)  — what this operation is and where it lives
@@ -68,14 +68,14 @@ class GreetingDomain(BaseDomain):
 
 @meta(description="Say hello to the world", domain=GreetingDomain)
 @check_roles(GuestRole)
-class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
+class SayHelloAction(BaseAction[StubParams, StubResult]):
 
     # -----------------------------------------------------------------------
     # Step 3 — Declare the single aspect: @summary_aspect
     #
     # @summary_aspect — the final step of the pipeline.
     # Every Action must have exactly one such method — no more, no less.
-    # It returns a typed Result. Here — an empty ResultStub.
+    # It returns a typed Result. Here — an empty StubResult.
     #
     # NAMING RULE: the method name must end with "_summary".
     # Try writing "output" — you'll get NamingSuffixError when the decorator is applied.
@@ -92,9 +92,9 @@ class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
     # -----------------------------------------------------------------------
 
     @summary_aspect("Print greeting and return stub")
-    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> ResultStub:
+    async def output_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> StubResult:
         print("Hello, world!")
-        return ResultStub()
+        return StubResult()
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
 
 async def main() -> None:
     machine = ActionProductMachine()
-    await machine.run(Context(), SayHelloAction(), ParamsStub())
+    await machine.run(Context(), SayHelloAction(), StubParams())
 
 
 asyncio.run(main())

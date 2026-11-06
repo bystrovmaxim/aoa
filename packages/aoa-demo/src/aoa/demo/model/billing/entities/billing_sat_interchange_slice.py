@@ -11,7 +11,7 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 if TYPE_CHECKING:
     from aoa.demo.model.billing.entities.billing_mesh_chargeback_ingest import (
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     )
 
 
-@entity(description="Interchange economics slice", resource=BillingWarehouse)
+@entity(description="Interchange economics slice", resource=BillingWarehouseStorage)
 class InterchangeAssessmentSliceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: BillingDenseLifecycle = Field(description="Interchange slice lifecycle")

@@ -52,7 +52,6 @@ from aoa.action_machine.exceptions.decorator_argument_value_error import Decorat
 from aoa.action_machine.exceptions.decorator_target_error import DecoratorTargetError
 from aoa.action_machine.exceptions.description_type_error import DescriptionTypeError
 from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
-from aoa.action_machine.resources.base_resource import BaseResource
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Dataclass carrying one connection declaration
@@ -88,6 +87,8 @@ def _validate_connection_args(klass: Any, key: str, description: str) -> None:
     """
     Validate ``@connection`` decorator arguments.
     """
+    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
+
     if not isinstance(klass, type):
         raise DecoratorArgumentTypeError(
             f"@connection expects a class, got {type(klass).__name__}: {klass!r}. " f"Pass a resource manager class."

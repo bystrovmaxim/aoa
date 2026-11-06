@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.msg_throttle_lease import ThrottleLeaseCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Batching fence tail on reconciliation filament", resource=OutboxPrimaryDatabase)
+@entity(description="Batching fence tail on reconciliation filament", resource=OutboxPrimaryDatabaseStorage)
 class BatchingFenceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Fence id")
     lifecycle: MsgDenseLifecycle = Field(description="Batch fence lifecycle")

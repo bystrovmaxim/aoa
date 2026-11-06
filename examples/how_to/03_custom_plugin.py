@@ -5,7 +5,7 @@ A plugin is an OBSERVER of the machine's lifecycle, never a participant. It
 reacts to typed, frozen events (it cannot mutate them, the result, or the state)
 and is perfect for metrics, audit, tracing, side-effect logging.
 
-You implement two things on `Plugin`:
+You implement two things on `BasePlugin`:
 
   - `async get_initial_state()` — fresh per-run state (the machine calls it once
     per run; the state is threaded through this plugin's handlers and discarded
@@ -39,14 +39,14 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on import AspectEvent, GlobalFinishEvent, on
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.core import Plugin
+from aoa.action_machine.plugin.core import BasePlugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
 # ── The plugin: count aspect events per run, record each finish to a sink ────
-class CallAuditPlugin(Plugin):
+class CallAuditPlugin(BasePlugin):
     def __init__(self, sink: list[tuple[str, int]]) -> None:
         super().__init__()                 # optional watch_actions / watch_events filters
         self._sink = sink                  # external storage survives across runs

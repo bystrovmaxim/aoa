@@ -1,12 +1,12 @@
-# packages/aoa-action-machine/src/aoa/action_machine/plugin/plugin.py
+# packages/aoa-action-machine/src/aoa/action_machine/plugin/core/base_plugin.py
 """
-Plugin — abstract base class for all ActionMachine plugins.
+BasePlugin — abstract base class for all ActionMachine plugins.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Plugin is the base class for all plugin implementations. Plugins extend machine
+BasePlugin is the base class for all plugin implementations. Plugins extend machine
 behavior without changing core runtime logic (metrics, audit, observability,
 side-effect logging, and similar concerns).
 
@@ -65,6 +65,19 @@ HANDLER DISCOVERY
 ``_on_subscriptions``, and returns matching ``SubscriptionInfo`` records with
 handler callables. ``PluginRunContext`` calls it on each ``emit_event()``.
 
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    BasePlugin subclass -> Plugin suffix check
+    PluginRunContext -> instance filters -> matching @on handlers
+
+Action filters include descendants of the watched action types. Event filters
+include instances of the watched event types. Both default to None, accepting
+all events, even when a subclass does not call the base constructor.
+
 """
 
 from __future__ import annotations
@@ -74,23 +87,27 @@ from collections.abc import Callable
 from typing import Any
 
 from aoa.action_machine.intents.on.on_intent import OnIntent
+from aoa.action_machine.naming.suffix import require_suffix
 from aoa.action_machine.plugin.core.events import BasePluginEvent
 from aoa.action_machine.plugin.core.subscription_info import SubscriptionInfo
 from aoa.action_machine.runtime.base_observer import BaseObserver
 
 
-class Plugin(OnIntent, BaseObserver, ABC):
+class BasePlugin(OnIntent, BaseObserver, ABC):
     """
+    Initialize per-run state and discover matching lifecycle handlers.
+
     AI-CORE-BEGIN
-        ROLE: Plugin contract for per-run state initialization and handler discovery.
-        CONTRACT: Implement get_initial_state and declare handlers via @on.
-            Optional constructor filters ``watch_actions`` and ``watch_events`` narrow
-            which events reach the plugin's handlers; subclasses that do not call
-            super().__init__() inherit class-level ``None`` defaults (no filtering).
-        INVARIANTS: Per-request state is externalized into PluginRunContext;
-            watch_actions uses issubclass so subclasses of a watched type are included.
-        AI-CORE-END
+    ROLE: Base contract for lifecycle observers.
+    CONTRACT: Implement get_initial_state and declare handlers with @on; descendant names end with Plugin.
+    INVARIANTS: Per-request state lives in PluginRunContext; optional action/event filters narrow subscriptions.
+    AI-CORE-END
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Require the ``Plugin`` suffix for every descendant."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BasePlugin", "Plugin")
 
     _watch_actions: frozenset[type] | None = None
     _watch_events: frozenset[type] | None = None
@@ -101,6 +118,7 @@ class Plugin(OnIntent, BaseObserver, ABC):
         watch_actions: frozenset[type] | None = None,
         watch_events: frozenset[type] | None = None,
     ) -> None:
+        """Configure optional action and event subscription filters."""
         self._watch_actions = watch_actions
         self._watch_events = watch_events
 
@@ -112,15 +130,7 @@ class Plugin(OnIntent, BaseObserver, ABC):
         self,
         event: BasePluginEvent,
     ) -> list[tuple[Callable[..., Any], SubscriptionInfo]]:
-        """Return handlers whose event_class prefilter matches incoming event.
-
-        Instance-level filters applied first (both default to ``None`` = pass all):
-
-        - ``watch_actions``: keeps event only when ``event.action_class`` is a
-          subclass of at least one type in the set (inheritance-aware).
-        - ``watch_events``: keeps event only when it is an instance of at least
-          one event type in the set (standard ``isinstance`` check).
-        """
+        """Return handlers matching the event and configured observer filters."""
         if self._watch_actions is not None:
             if not any(issubclass(event.action_class, cls) for cls in self._watch_actions):
                 return []

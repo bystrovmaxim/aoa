@@ -6,7 +6,7 @@ Tests for one connection per unit of work — concurrency, isolation, and the tw
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``PostgresResource`` must hold one connection for the length of one unit of work
+``PostgresStorage`` must hold one connection for the length of one unit of work
 and share it with nobody. Two defects follow from the old shape — a single
 connection per process — and this module is written to catch both:
 
@@ -29,7 +29,7 @@ ARCHITECTURE / DATA FLOW
     test
       │  creates one resource per unit of work, from one shared pool
       v
-    pooled(pool) — PostgresResource over a data source ──open()──> FakeConnection ──release──> FakePool
+    pooled(pool) — PostgresStorage over a data source ──open()──> FakeConnection ──release──> FakePool
       │                                    │
       │                                    └── one operation at a time
       └── the test itself plays the boundary: open, use, close in a finally
@@ -44,9 +44,9 @@ import inspect
 import pytest
 
 from aoa.action_machine.exceptions import TransactionLeftOpenError
-from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
+from aoa.action_machine.resources.postgres.postgres_storage import PostgresStorage
 
-from ...support.fake_data_source import FakeDataSource, PooledResource, pooled
+from ...support.fake_data_source import FakeDataSource, PooledStorage, pooled
 from ...support.fake_pool import FakePool, InterfaceError
 
 CONCURRENT_UNITS = 30
@@ -85,7 +85,7 @@ async def _unit_of_work(
 
 def test_construction_has_exactly_the_documented_shape() -> None:
     """A resource is built from its data source alone, by keyword, and rollup."""
-    params = inspect.signature(PostgresResource.__init__).parameters
+    params = inspect.signature(PostgresStorage.__init__).parameters
 
     assert list(params) == ["self", "data_source", "rollup"]
     assert params["data_source"].kind is inspect.Parameter.KEYWORD_ONLY
@@ -96,13 +96,13 @@ def test_construction_has_exactly_the_documented_shape() -> None:
 def test_construction_needs_the_data_source() -> None:
     """A resource with no way to reach a connection is a construction error."""
     with pytest.raises(TypeError, match="data_source"):
-        PooledResource()  # type: ignore[call-arg]
+        PooledStorage()  # type: ignore[call-arg]
 
 
 def test_data_source_cannot_be_passed_positionally() -> None:
     """The data source is given by keyword."""
     with pytest.raises(TypeError):
-        PooledResource(FakeDataSource(pool=FakePool()))  # type: ignore[misc]
+        PooledStorage(FakeDataSource(pool=FakePool()))  # type: ignore[misc]
 
 
 # ═════════════════════════════════════════════════════════════════════════════

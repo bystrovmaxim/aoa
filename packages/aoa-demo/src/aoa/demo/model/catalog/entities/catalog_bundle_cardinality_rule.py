@@ -6,10 +6,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
-@entity(description="Bundle cardinality island root for cross-subgraph bridging only", resource=CatalogObjectStore)
+@entity(description="Bundle cardinality island root for cross-subgraph bridging only", resource=CatalogObjectStoreStorage)
 class BundleCardinalityRuleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Rule id")
     lifecycle: CatalogDenseLifecycle = Field(description="Bundle cardinality lifecycle")

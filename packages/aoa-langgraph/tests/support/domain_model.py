@@ -3,7 +3,7 @@ Self-contained test-support domain model for the aoa-langgraph package.
 
 Faithful, trimmed copy of the action-machine scenario domain model, reduced to
 only what the langgraph adapter tests touch: ``PingAction``, ``FullAction`` and
-``OrdersDbManager`` plus their definition-time closure (domains, the manager
+``OrdersStorage`` plus their definition-time closure (domains, the manager
 role, and the two service resources used by ``FullAction``'s ``@depends`` /
 ``@connection``).
 
@@ -32,7 +32,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import BaseGateway, Connections
+from aoa.action_machine.resources import BaseGateway, BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -145,10 +145,11 @@ def default_notification_gateway() -> NotificationGateway:
     description="Test database resource manager for order-scenario actions",
     domain=OrdersDomain,
 )
-class OrdersDbManager(BaseResource):
-    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersDbManager)``."""
+class OrdersStorage(BaseStorage):
+    """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersStorage)``."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
@@ -198,14 +199,14 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
     factory=default_notification_gateway,
     description="Notification service",
 )
-@depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
-@connection(OrdersDbManager, key="db", description="Primary database")
+@depends(OrdersStorage, description="DB resource (class — same graph node as @connection)")
+@connection(OrdersStorage, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
     Full-featured Action: two regular + summary, depends, connection.
 
-    Requires role "manager". ``@depends`` lists classes (services + ``OrdersDbManager``);
-    ``@connection(OrdersDbManager, key="db")`` shares the same resource_manager node.
+    Requires role "manager". ``@depends`` lists classes (services + ``OrdersStorage``);
+    ``@connection(OrdersStorage, key="db")`` shares the same resource_manager node.
     """
 
     class Params(BaseParams):

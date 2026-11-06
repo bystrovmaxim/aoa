@@ -194,7 +194,7 @@ class TestSpecializedLifecycle:
     """Specialized `Lifecycle` subclasses with `_template`."""
 
     def setup_method(self):
-        class TestLC(Lifecycle):
+        class TestLCLifecycle(Lifecycle):
             _template = (
                 Lifecycle()
                 .state(status("draft", "Draft"))
@@ -207,73 +207,73 @@ class TestSpecializedLifecycle:
                 .final()
             )
 
-        self.TestLC = TestLC
+        self.TestLCLifecycle = TestLCLifecycle
 
     def test_create_instance(self):
         """Construct instance with current state key."""
-        lc = self.TestLC("draft")
+        lc = self.TestLCLifecycle("draft")
         assert lc.current_state == "draft"
 
     def test_invalid_state_raises(self):
         """Unknown state key at construction time."""
         with pytest.raises(InvalidStateError, match="not defined"):
-            self.TestLC("nonexistent")
+            self.TestLCLifecycle("nonexistent")
 
     def test_is_initial(self):
-        assert self.TestLC("draft").is_initial
-        assert not self.TestLC("draft").is_final
+        assert self.TestLCLifecycle("draft").is_initial
+        assert not self.TestLCLifecycle("draft").is_final
 
     def test_is_final(self):
-        lc = self.TestLC("archived")
+        lc = self.TestLCLifecycle("archived")
         assert lc.is_final
         assert not lc.is_initial
 
     def test_available_transitions(self):
-        lc = self.TestLC("draft")
+        lc = self.TestLCLifecycle("draft")
         assert lc.available_transitions == {"active"}
 
     def test_can_transition(self):
-        lc = self.TestLC("draft")
+        lc = self.TestLCLifecycle("draft")
         assert lc.can_transition("active")
         assert not lc.can_transition("archived")
 
     def test_transition(self):
         """`transition` returns a new instance; original unchanged."""
-        lc = self.TestLC("draft")
+        lc = self.TestLCLifecycle("draft")
         new_lc = lc.transition("active")
 
         assert new_lc.current_state == "active"
         assert lc.current_state == "draft"
-        assert type(new_lc) is self.TestLC
+        assert type(new_lc) is self.TestLCLifecycle
 
     def test_invalid_transition_raises(self):
         with pytest.raises(InvalidTransitionError, match="not allowed"):
-            self.TestLC("draft").transition("archived")
+            self.TestLCLifecycle("draft").transition("archived")
 
     def test_final_state_no_transitions(self):
-        lc = self.TestLC("archived")
+        lc = self.TestLCLifecycle("archived")
         assert lc.available_transitions == set()
 
     def test_template_access(self):
-        template = self.TestLC._get_template()
+        template = self.TestLCLifecycle._get_template()
         assert template is not None
         assert len(template.get_states()) == 3
         assert template.get_initial_keys() == {"draft"}
         assert template.get_final_keys() == {"archived"}
 
     def test_equality(self):
-        lc1 = self.TestLC("draft")
-        lc2 = self.TestLC("draft")
+        lc1 = self.TestLCLifecycle("draft")
+        lc2 = self.TestLCLifecycle("draft")
         assert lc1 == lc2
 
     def test_inequality(self):
-        lc1 = self.TestLC("draft")
-        lc2 = self.TestLC("active")
+        lc1 = self.TestLCLifecycle("draft")
+        lc2 = self.TestLCLifecycle("active")
         assert lc1 != lc2
 
     def test_hash(self):
-        lc1 = self.TestLC("draft")
-        lc2 = self.TestLC("draft")
+        lc1 = self.TestLCLifecycle("draft")
+        lc2 = self.TestLCLifecycle("draft")
         assert hash(lc1) == hash(lc2)
 
 
@@ -320,13 +320,13 @@ _SHARED = AxisStateEntity(code="shared", display_name="Shared")
 _NEXT = AxisStateEntity(code="next", display_name="Next")
 
 
-class _SharedFinalChain(Lifecycle):
+class _SharedFinalChainLifecycle(Lifecycle):
     """The shared status is final here."""
 
     _template = Lifecycle().state(_SHARED).final()
 
 
-class _SharedIntermediateChain(Lifecycle):
+class _SharedIntermediateChainLifecycle(Lifecycle):
     """The same status is intermediate here."""
 
     _template = (
@@ -368,6 +368,6 @@ class TestEntityForm:
         assert _ForwardRefLifecycle._get_template().get_final_keys() == {"second"}
 
     def test_same_status_classified_differently_by_two_chains(self):
-        assert _SharedFinalChain._get_template().get_final_keys() == {"shared"}
-        intermediate = _SharedIntermediateChain._get_template().get_states()["shared"]
+        assert _SharedFinalChainLifecycle._get_template().get_final_keys() == {"shared"}
+        intermediate = _SharedIntermediateChainLifecycle._get_template().get_states()["shared"]
         assert intermediate.state_type is StateType.INTERMEDIATE

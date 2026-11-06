@@ -58,7 +58,7 @@ Aspect**.
 
 **Access** — source ``NONE``, target ``OPEN_ARROW``, line ``DASHED``. Read access, query,
 or light coupling to data or meaning (no ownership). Examples: **Checker → Aspect**
-(validation reads aspect output); **Plugin → Action** (observation); **Aspect → Context
+(validation reads aspect output); **BasePlugin → Action** (observation); **Aspect → Context
 field** via ``@context_requires``; **Entity → Field**.
 """
 
@@ -432,7 +432,7 @@ class Access(EdgeRelationship):
     **Semantics:** Access to data or meaning (read / query), or light coupling without
     ownership—lighter than solid flow or composition.
 
-    **When to use:** **Checker → Aspect** (validation reads aspect output); **Plugin → Action**
+    **When to use:** **Checker → Aspect** (validation reads aspect output); **BasePlugin → Action**
     when the plugin observes without owning; **Aspect → Context field** via
     ``@context_requires``; **Entity → Field** when modeling field-level reads.
     """

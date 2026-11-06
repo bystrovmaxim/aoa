@@ -2,7 +2,7 @@
 
 [Contents](../index.md) · [Connection ownership](../tutorials/step-19-connections.md)
 
-`PostgresResource` is the PostgreSQL implementation of AOA's SQL resource contract.
+`PostgresStorage` is the PostgreSQL implementation of AOA's SQL resource contract.
 One resource holds at most one connection. Create a resource for each call that
 needs its own database session; keep the pool at application scope. The resource
 does not create a pool or make a shared instance safe for concurrent requests.
@@ -21,14 +21,14 @@ pip install "aoa-action-machine[postgres]"
 ```python
 # Fragment: one part of an example; `shop` is the data source the application opened at startup.
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 @meta(description="Main shop database")
 class ShopDataSource(PostgresDataSource): ...  # opened at startup: ShopDataSource("postgresql://…", min_size=1, max_size=10)
 
-class OrdersResource(PostgresResource[ShopDataSource]): ...
+class OrdersStorage(PostgresStorage[ShopDataSource]): ...
 
-db = OrdersResource(data_source=shop)
+db = OrdersStorage(data_source=shop)
 ```
 
 A PostgreSQL resource has one construction form. It names its data source as its type
@@ -41,7 +41,7 @@ connect; `await db.open()` takes the connection. `await db.close()` releases it.
 
 The SQL resource contract provides `open`, `begin`, `commit`, `rollback` and
 `close`, but no public `execute()` method. An action calls a method of its resource,
-such as `add_note(text)`. A subclass of `PostgresResource` implements that method
+such as `add_note(text)`. A subclass of `PostgresStorage` implements that method
 using the protected helpers below. The leading underscore marks methods intended
 for resource implementations, rather than direct calls from actions:
 
@@ -67,7 +67,7 @@ one of its own; the framework neither provides nor forbids it.
 
 ## How to run these examples
 
-The scripts and notebooks below use the real `PostgresResource` and a small
+The scripts and notebooks below use the real `PostgresStorage` and a small
 `RecordingPool`. This replaces only the external connection: it records commands,
 limits the number of borrowers and rejects simultaneous use of one connection.
 It does not parse SQL, store rows or simulate database isolation. No PostgreSQL
@@ -79,13 +79,13 @@ with the complete setup in the linked script and notebook.
 
 ## Borrowing does not close the pool
 
-Use the real PostgresResource with a small recording pool. Only the external database connection is replaced.
+Use the real PostgresStorage with a small recording pool. Only the external database connection is replaced.
 
 [Python](../../examples/extensions/postgresql/01_borrow.py) · [Notebook](../../examples/extensions/postgresql/01_borrow.ipynb)
 
 ```python
 import asyncio
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
@@ -95,7 +95,7 @@ class ExampleDataSource(PostgresDataSource):
     """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleResource(PostgresResource[ExampleDataSource]):
+class ExampleStorage(PostgresStorage[ExampleDataSource]):
     """A PostgreSQL resource that works through the example's data source."""
 
 class RecordingConnection:
@@ -151,7 +151,7 @@ class RecordingPool:
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    resource = ExampleResource(data_source=ExampleDataSource(pool=pool))
+    resource = ExampleStorage(data_source=ExampleDataSource(pool=pool))
     print("after construction:", len(pool.held))
     await resource.open()
     assert len(pool.held) == 1
@@ -202,7 +202,7 @@ async def lifespan(app):
 
 Here `holder` is the application-owned holder of the
 [complete service example](../../examples/step_19_connections/16_pool_lifespan.ipynb).
-Register `PerCallConnection(lambda: OrdersResource(data_source=holder.require()),
+Register `PerCallConnection(lambda: OrdersStorage(data_source=holder.require()),
 lambda resource: resource.close())` on the route, then pass the hook to
 `adapter.build(lifespan=lifespan)`.
 
@@ -221,7 +221,7 @@ The statement examples use this small subclass. `add_note` is the method
 called by application code; only its implementation calls `_execute`.
 
 ```python
-class NotesResource(PostgresResource):
+class NotesStorage(PostgresStorage):
     """The notes domain's resource: its own method runs the statement."""
     async def add_note(self, text: str) -> str:
         """Write one note through the driver's statement helper."""
@@ -246,7 +246,7 @@ arrivals = []
 async def work(label):
     """Hold one resource until the other call has also opened."""
     async with connection_scope({"db": PerCallConnection(
-        lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close(),
+        lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close(),
     )}) as connections:
         arrivals.append(label)
         if len(arrivals) == 2:
@@ -289,11 +289,11 @@ The following is the body of `main()` from the standalone example; the linked fi
 class QuickDataSource(ExampleDataSource):
     """Use a short wait so this failure is quick to reproduce."""
     acquire_timeout = 0.01
-class QuickResource(PostgresResource[QuickDataSource]):
+class QuickStorage(PostgresStorage[QuickDataSource]):
     """A resource that works through the quick data source."""
 pool = RecordingPool()
-first = ExampleResource(data_source=ExampleDataSource(pool=pool))
-second = QuickResource(data_source=QuickDataSource(pool=pool))
+first = ExampleStorage(data_source=ExampleDataSource(pool=pool))
+second = QuickStorage(data_source=QuickDataSource(pool=pool))
 await first.open()
 try:
     await second.open()
@@ -315,7 +315,7 @@ Observed output:
 HandleError caused by TimeoutError
 ```
 
-The data source's acquire_timeout bounds waiting for a free pool connection. PostgresResource wraps the pool failure in HandleError and preserves its cause. The pool’s size and the wait duration are different settings.
+The data source's acquire_timeout bounds waiting for a free pool connection. PostgresStorage wraps the pool failure in HandleError and preserves its cause. The pool’s size and the wait duration are different settings.
 
 ## Connection parameters live in the data source
 
@@ -331,7 +331,7 @@ pool = RecordingPool()
 create_pool = AsyncMock(return_value=pool)
 with patch("aoa.action_machine.resources.postgres.postgres_data_source.asyncpg.create_pool", create_pool):
     async with ExampleDataSource("postgresql://example.invalid/demo", min_size=1, max_size=1) as source:
-        db = ExampleResource(data_source=source)
+        db = ExampleStorage(data_source=source)
         await db.open()
         await db.close()
 create_pool.assert_awaited_once_with("postgresql://example.invalid/demo", min_size=1, max_size=1)
@@ -360,7 +360,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
-    ExampleResource({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
+    ExampleStorage({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
 except TypeError:
     print("TypeError")
 else:
@@ -386,7 +386,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
-    PostgresResource(data_source=ExampleDataSource(pool=RecordingPool()))
+    PostgresStorage(data_source=ExampleDataSource(pool=RecordingPool()))
 except DataSourceDeclarationError:
     print("DataSourceDeclarationError")
 else:
@@ -399,7 +399,7 @@ Observed output:
 DataSourceDeclarationError
 ```
 
-A PostgreSQL resource names its data source as the type argument of its base, `PostgresResource[<Name>DataSource]`, so the model knows which database it works with. The check happens during construction, before open and before any database access.
+A PostgreSQL resource names its data source as the type argument of its base, `PostgresStorage[<Name>DataSource]`, so the model knows which database it works with. The check happens during construction, before open and before any database access.
 
 ## Open and close can be called again safely
 
@@ -412,7 +412,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-db = ExampleResource(data_source=ExampleDataSource(pool=pool))
+db = ExampleStorage(data_source=ExampleDataSource(pool=pool))
 await db.open()
 await db.open()
 assert len(pool.held) == 1
@@ -454,7 +454,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
     db = connections["db"]
     await db.begin()
     await db.add_note("hello")
@@ -486,7 +486,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         db = connections["db"]
         await db.begin()
         try:
@@ -523,7 +523,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool), rollup=True), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool), rollup=True), lambda resource: resource.close())}) as connections:
     db = connections["db"]
     await db.begin()
     await db.add_note("work")
@@ -560,7 +560,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-db = ExampleResource(data_source=ExampleDataSource(pool=pool))
+db = ExampleStorage(data_source=ExampleDataSource(pool=pool))
 await db.open()
 await db.begin()
 try:
@@ -598,7 +598,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: ExampleStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         await connections["db"].begin()
         raise ValueError("work failed")
 except TransactionLeftOpenError as error:
@@ -632,7 +632,7 @@ pool = RecordingPool()
 started = asyncio.Event()
 async def work():
     """Wait with an intentionally unfinished transaction."""
-    async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: ExampleStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         await connections["db"].begin()
         started.set()
         await asyncio.Event().wait()
@@ -684,7 +684,7 @@ connection = FailingCommitConnection(1)
 pool.connections = [connection]
 pool.free.put_nowait(connection)
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: ExampleStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         await connections["db"].begin()
         await connections["db"].commit()
 except TransactionLeftOpenError as error:
@@ -719,7 +719,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-resource = NotesResource(data_source=ExampleDataSource(pool=pool))
+resource = NotesStorage(data_source=ExampleDataSource(pool=pool))
 await resource.open()
 connection = pool.connections[0]
 
@@ -768,9 +768,9 @@ no connection and both helpers refuse with the framework's named error.
 ## The SQL stack: protocol, manager and wrapper
 
 `ProtocolSqlResource` describes the operations a SQL resource supports.
-`SqlResource` is the base class for implementations; its default close does nothing,
+`SqlStorage` is the base class for implementations; its default close does nothing,
 which is appropriate only for a subclass that owns no external handle.
-`PostgresResource` supplies the actual connection lifetime. `WrapperSqlResource`
+`PostgresStorage` supplies the actual connection lifetime. `SqlStorageWrapper`
 gives nested actions a restricted view of that owner.
 
 The wrapper delegates rollup inspection and nothing else, and rejects open, begin,
@@ -793,10 +793,10 @@ construction into the factory and keep only the data source global to the applic
 
 A resource that was given `pool=` or connection parameters now names a data source:
 declare a `PostgresDataSource` subclass, open it at startup over the same pool or DSN,
-derive the resource from `PostgresResource[YourDataSource]` and build it with
+derive the resource from `PostgresStorage[YourDataSource]` and build it with
 `data_source=`. Move an `acquire_timeout` from the resource to the data source.
 
 Replace a positional rollup argument with `rollup=True`:
-`OrdersResource(data_source=shop, rollup=True)`. Avoid reaching through a resource to close
+`OrdersStorage(data_source=shop, rollup=True)`. Avoid reaching through a resource to close
 its private connection: call close on the resource you own. Nested actions must not
 call it; their wrapper will refuse.

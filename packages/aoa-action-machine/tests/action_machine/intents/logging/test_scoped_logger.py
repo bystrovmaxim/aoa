@@ -224,7 +224,7 @@ class TestPluginLogger:
         plugin_logger: ScopedLogger,
         mock_coordinator: AsyncMock,
     ) -> None:
-        await plugin_logger.info(Channel.debug, "Plugin message")
+        await plugin_logger.info(Channel.debug, "BasePlugin message")
 
         scope = mock_coordinator.emit.call_args.kwargs["scope"]
         assert isinstance(scope, LogScope)

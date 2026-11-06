@@ -45,31 +45,33 @@ class SupportDataSource(BaseDataSource):
 
 
 @meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
     """The orders, in the storefront database."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """No wrapper: this example never opens the resource."""
         return None
 
 
 @meta(description="Support desk store", domain=SupportDomain)
-class SupportDatabase(BaseStorage[SupportDataSource]):
+class SupportDatabaseStorage(BaseStorage[SupportDataSource]):
     """The support tickets, in the support desk database."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """No wrapper: this example never opens the resource."""
         return None
 
 
-@entity(description="Customer order", resource=StorefrontDatabase)
+@entity(description="Customer order", resource=StorefrontDatabaseStorage)
 class SalesOrderCoreEntity(BaseCoreEntity):
     """A customer's order."""
 
     id: str = Field(description="Order identifier")
 
 
-@entity(description="Support ticket", resource=SupportDatabase)
+@entity(description="Support ticket", resource=SupportDatabaseStorage)
 class SupportTicketCoreEntity(BaseCoreEntity):
     """A ticket about an order of the other database."""
 

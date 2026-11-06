@@ -24,6 +24,7 @@ from typing import Any
 
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.validation import require_non_empty_str, require_non_null
+from aoa.action_machine.naming.suffix import require_suffix
 
 
 @dataclass(init=False, frozen=True)
@@ -45,6 +46,11 @@ class BaseGraphNode[T: object](ABC):
     label: str
     properties: dict[str, Any]
     node_obj: T
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``GraphNode``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseGraphNode", "GraphNode")
 
     @abstractmethod
     def __init__(

@@ -22,7 +22,7 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
 class _MsgDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -44,7 +44,7 @@ class _MsgDirectedCycleSketchLifecycle(Lifecycle[_MsgDirectedCycleSketchStateEnt
 
 @entity(
     description="Messaging triangle hop A (\u2192B, \u2190C reciprocal)",
-    resource=OutboxPrimaryDatabase,
+    resource=OutboxPrimaryDatabaseStorage,
 )
 class MsgDirectedCycleTriangleACoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop A id")
@@ -73,7 +73,7 @@ class MsgDirectedCycleTriangleACoreEntity(BaseCoreEntity):
 
 @entity(
     description="Messaging triangle hop B (\u2190A / \u2192C reciprocal)",
-    resource=OutboxPrimaryDatabase,
+    resource=OutboxPrimaryDatabaseStorage,
 )
 class MsgDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop B id")
@@ -103,7 +103,7 @@ class MsgDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
 
 @entity(
     description="Messaging triangle hop C (\u2190B / \u2192A reciprocal)",
-    resource=OutboxPrimaryDatabase,
+    resource=OutboxPrimaryDatabaseStorage,
 )
 class MsgDirectedCycleTriangleCCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop C id")

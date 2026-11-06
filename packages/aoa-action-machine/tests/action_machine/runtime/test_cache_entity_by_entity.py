@@ -96,7 +96,7 @@ async def test_an_entity_entry_of_a_form_the_reader_refuses_makes_a_miss() -> No
     assert shop.RUNS == {"GetOrderAction": 2}
 
 
-class CountingStore(CacheCoordinator):
+class CountingStoreCoordinator(CacheCoordinator):
     """The shipped store, counting how it is asked for entries."""
 
     def __init__(self) -> None:
@@ -115,7 +115,7 @@ class CountingStore(CacheCoordinator):
 async def test_a_hit_reads_every_entity_in_one_call() -> None:
     """12.7.4: one call for the collection entry, one for all its entities."""
     shop.reset({"o1": ("c1", 10.0), "o2": ("c1", 20.0), "o3": ("c1", 30.0)})
-    store = CountingStore()
+    store = CountingStoreCoordinator()
     machine = _machine(store)
     await machine.run(Context(), shop.ListOrdersAction(), shop.CustomerIdParams(customer_id="c1"))
     store.calls.clear()

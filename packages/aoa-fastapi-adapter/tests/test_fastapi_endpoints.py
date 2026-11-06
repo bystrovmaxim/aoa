@@ -51,7 +51,7 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi.adapter import FastApiAdapter
 
-from .support import DummyResourceManager, PingAction, SimpleAction
+from .support import DummyController, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — adapter with mocked machine.run
@@ -177,7 +177,7 @@ class TestPerRouteConnections:
     """``connections`` on each route resolve into ``machine.run``."""
 
     def test_connections_passed_to_machine_run(self) -> None:
-        res = DummyResourceManager()
+        res = DummyController()
         adapter, machine = _make_app()
         adapter.post("/ping", PingAction, connections={"db": res})
         app = adapter.build()
@@ -189,10 +189,10 @@ class TestPerRouteConnections:
         assert _args[3] == {"db": res}
 
     def test_per_call_connection_factory_each_request(self) -> None:
-        res = DummyResourceManager()
+        res = DummyController()
         calls: list[int] = []
 
-        def factory() -> DummyResourceManager:
+        def factory() -> DummyController:
             calls.append(1)
             return res
 
@@ -214,7 +214,7 @@ class TestPerRouteConnections:
         """The boundary opens what it created, hands it to the run, and finalizes it once."""
         log: list[str] = []
 
-        class LifecycleResource(DummyResourceManager):
+        class LifecycleController(DummyController):
             """A per-call resource that records its own lifecycle."""
 
             async def open(self) -> None:
@@ -223,7 +223,7 @@ class TestPerRouteConnections:
             async def close(self) -> None:
                 log.append("close")
 
-        resource = LifecycleResource()
+        resource = LifecycleController()
         adapter, machine = _make_app()
         adapter.post(
             "/ping",
@@ -244,8 +244,8 @@ class TestPerRouteConnections:
         assert _args[3] == {"db": resource}
 
     def test_two_routes_get_distinct_connections(self) -> None:
-        res_a = DummyResourceManager()
-        res_b = DummyResourceManager()
+        res_a = DummyController()
+        res_b = DummyController()
         adapter, machine = _make_app()
         adapter.post("/a", PingAction, connections={"svc": res_a})
         adapter.post("/b", PingAction, connections={"svc": res_b})

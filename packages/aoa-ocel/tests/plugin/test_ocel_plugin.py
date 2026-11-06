@@ -20,7 +20,7 @@ from aoa.ocel.dto import OcelAttribute
 from aoa.ocel.exceptions import OcelContractError
 from aoa.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
 from aoa.ocel.plugin.ocel_plugin import collect_ocel_frames
-from aoa.ocel.resource import InMemoryOcelStoreResource
+from aoa.ocel.resource import InMemoryOcelStorage
 
 from ..support import SampleCoreEntity, TestStorage
 
@@ -180,7 +180,7 @@ def test_build_ocel_event_short_names(event_time: datetime) -> None:
 @pytest.mark.asyncio
 async def test_on_export_reads_finish_snapshots(tmp_path, event_time: datetime) -> None:
     output = tmp_path / "plugin.ocel.json"
-    store = InMemoryOcelStoreResource(output_file=output)
+    store = InMemoryOcelStorage(output_file=output)
     await store.open()
     plugin = OcelPlugin(store=store)
     entity = SampleCoreEntity(id="1", name="A", value=1)

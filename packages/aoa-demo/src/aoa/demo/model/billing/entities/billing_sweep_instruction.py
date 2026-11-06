@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_payout_plan import BillingPayoutPlanCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Sweep instruction under payout plan", resource=BillingWarehouse)
+@entity(description="Sweep instruction under payout plan", resource=BillingWarehouseStorage)
 class BillingSweepInstructionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sweep id")
     lifecycle: BillingDenseLifecycle = Field(description="Sweep lifecycle")

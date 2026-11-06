@@ -36,7 +36,7 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.aspects.summary_aspect_intent_resolver import SummaryAspectIntentResolver
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseState, ParamsStub, ResultStub
+from aoa.action_machine.model import BaseAction, BaseState, StubParams, StubResult
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -46,60 +46,60 @@ from ....support.domain_model.domains import SystemDomain
 @exclude_graph_model
 @meta(description="duplicate: two exit points", domain=SystemDomain)
 @check_roles(GuestRole)
-class TwoSummariesAction(BaseAction[ParamsStub, ResultStub]):
+class TwoSummariesAction(BaseAction[StubParams, StubResult]):
     """An operation that declares two summary aspects."""
 
     @summary_aspect("First exit point")
     async def first_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Assemble the result, first way."""
-        return ResultStub()
+        return StubResult()
 
     @summary_aspect("Second exit point")
     async def second_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Assemble the result, second way."""
-        return ResultStub()
+        return StubResult()
 
 
 @exclude_graph_model
 @meta(description="duplicate: one exit point", domain=SystemDomain)
 @check_roles(GuestRole)
-class OneSummaryAction(BaseAction[ParamsStub, ResultStub]):
+class OneSummaryAction(BaseAction[StubParams, StubResult]):
     """An operation with exactly one summary aspect."""
 
     @summary_aspect("The only exit point")
     async def only_summary(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,
-    ) -> ResultStub:
+    ) -> StubResult:
         """Assemble the result."""
-        return ResultStub()
+        return StubResult()
 
 
 @exclude_graph_model
 @meta(description="duplicate: no exit point at all", domain=SystemDomain)
 @check_roles(GuestRole)
-class NoSummaryAction(BaseAction[ParamsStub, ResultStub]):
+class NoSummaryAction(BaseAction[StubParams, StubResult]):
     """An operation with a regular aspect and no summary."""
 
     @regular_aspect("Do something on the way")
     async def step_aspect(
         self,
-        params: ParamsStub,
+        params: StubParams,
         state: BaseState,
         box: ToolsBox,
         connections: Connections,

@@ -8,7 +8,7 @@ PURPOSE
 
 The richest Action in the test domain: two regular aspects with checkers,
 one summary aspect, two service dependencies (``PaymentGateway``, ``NotificationGateway``),
-``@depends(OrdersDbManager)`` and ``@connection(OrdersDbManager)`` — **class references**, same
+``@depends(OrdersStorage)`` and ``@connection(OrdersStorage)`` — **class references**, same
 pattern as ``@depends(PaymentGateway, factory=...)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
@@ -49,7 +49,7 @@ USAGE IN TESTS
     mock_payment = AsyncMock(spec=PaymentClient)
     mock_payment.charge.return_value = "TXN-001"
     mock_notification = AsyncMock(spec=NotificationClient)
-    mock_db = AsyncMock(spec=OrdersDbManager)
+    mock_db = AsyncMock(spec=OrdersStorage)
 
     bench = TestBench(
         mocks={
@@ -92,7 +92,7 @@ from .services import (
     default_notification_gateway,
     default_payment_gateway,
 )
-from .test_db_manager import OrdersDbManager
+from .test_db_manager import OrdersStorage
 
 
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
@@ -107,14 +107,14 @@ from .test_db_manager import OrdersDbManager
     factory=default_notification_gateway,
     description="Notification service",
 )
-@depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
-@connection(OrdersDbManager, key="db", description="Primary database")
+@depends(OrdersStorage, description="DB resource (class — same graph node as @connection)")
+@connection(OrdersStorage, key="db", description="Primary database")
 class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
     """
     Full-featured Action: two regular + summary, depends, connection.
 
-    Requires role "manager". ``@depends`` lists classes (services + ``OrdersDbManager``);
-    ``@connection(OrdersDbManager, key="db")`` shares the same resource_manager node.
+    Requires role "manager". ``@depends`` lists classes (services + ``OrdersStorage``);
+    ``@connection(OrdersStorage, key="db")`` shares the same resource_manager node.
     """
 
     class Params(BaseParams):

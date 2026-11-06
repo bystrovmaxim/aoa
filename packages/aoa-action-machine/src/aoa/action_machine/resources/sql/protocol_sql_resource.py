@@ -32,7 +32,7 @@ ARCHITECTURE / DATA FLOW
               │
               △ structural match
               │
-    SqlResource / wrappers / integrations
+    SqlStorage / wrappers / integrations
 
 """
 

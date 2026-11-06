@@ -1,5 +1,21 @@
-# packages/aoa-ocel/src/aoa/ocel/resource/in_memory_ocel_store_resource.py
-"""InMemoryOcelStoreResource — in-memory OCEL 2.0 backend."""
+# packages/aoa-ocel/src/aoa/ocel/resource/in_memory_ocel_storage.py
+"""
+InMemoryOcelStorage — in-memory OCEL 2.0 backend.
+
+═══════════════════════════════════════════════════════════════════════════════
+PURPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+Accumulate OCEL events in memory and persist the complete log when the owner closes the store.
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHITECTURE / DATA FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+::
+
+    Owner storage -> nested storage wrapper -> shared OCEL events
+"""
 
 from __future__ import annotations
 
@@ -16,7 +32,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.ocel.dto.ocel_event import OcelEvent
 from aoa.ocel.dto.ocel_object import OcelObject
 from aoa.ocel.exceptions.ocel_contract_error import OcelContractError
-from aoa.ocel.resource.ocel_store_resource import OcelStoreResource
+from aoa.ocel.resource.ocel_storage import OcelStorage
 
 
 def _type_catalog(type_attrs: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
@@ -33,6 +49,7 @@ def _type_catalog(type_attrs: dict[str, dict[str, str]]) -> list[dict[str, Any]]
 
 
 def _infer_ocel_type(value: Any) -> str:
+    """Classify an attribute for the OCEL type catalog."""
     if isinstance(value, bool):
         return "boolean"
     if isinstance(value, int):
@@ -45,10 +62,19 @@ def _infer_ocel_type(value: Any) -> str:
 
 
 @exclude_graph_model
-class InMemoryOcelStoreResource(OcelStoreResource):
-    """In-memory backend that writes OCEL 2.0 JSON on ``close()``."""
+class InMemoryOcelStorage(OcelStorage):
+    """
+    Accumulate events and persist OCEL JSON when the owner closes the store.
+
+    AI-CORE-BEGIN
+    ROLE: In-memory OCEL storage with file persistence.
+    CONTRACT: Accept events while open and write the accumulated log on close.
+    INVARIANTS: Event identities are unique; nested actions cannot control the lifecycle.
+    AI-CORE-END
+    """
 
     def __init__(self, output_file: Path) -> None:
+        """Prepare an empty store with a persistence destination."""
         self._output_file = output_file
         self._lock = asyncio.Lock()
         self._open = False
@@ -57,12 +83,14 @@ class InMemoryOcelStoreResource(OcelStoreResource):
         self._event_ids: set[str] = set()
 
     async def open(self) -> None:
+        """Begin accepting events into this store."""
         async with self._lock:
             if self._open:
-                raise ConnectionAlreadyOpenError("InMemoryOcelStoreResource is already open.")
+                raise ConnectionAlreadyOpenError("InMemoryOcelStorage is already open.")
             self._open = True
 
     async def close(self) -> None:
+        """Persist accumulated events and end the session."""
         async with self._lock:
             if not self._open:
                 return
@@ -70,6 +98,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
             self._open = False
 
     async def add_event(self, event: OcelEvent) -> None:
+        """Accumulate a unique event and its object facts."""
         async with self._lock:
             self._assert_open()
             if event.id in self._event_ids:
@@ -80,10 +109,12 @@ class InMemoryOcelStoreResource(OcelStoreResource):
                 self._merge_object_fact(obj_fact)
 
     def _assert_open(self) -> None:
+        """Require an active session before accepting events."""
         if not self._open:
             raise OcelContractError("Resource is not open. Call await resource.open() first.")
 
     def _merge_object_fact(self, incoming: OcelObject) -> None:
+        """Reconcile an object’s facts across incoming events."""
         if incoming.id not in self._objects:
             self._objects[incoming.id] = OcelObject(
                 id=incoming.id,
@@ -123,11 +154,13 @@ class InMemoryOcelStoreResource(OcelStoreResource):
 
     @staticmethod
     def _json_default(obj: Any) -> Any:
+        """Encode datetime values for OCEL JSON output."""
         if isinstance(obj, datetime):
             return obj.isoformat()
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
     def _materialize(self) -> dict[str, Any]:
+        """Assemble the complete OCEL interchange document."""
         return {
             "eventTypes": self._derive_event_types(),
             "objectTypes": self._derive_object_types(),
@@ -136,6 +169,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
         }
 
     def _derive_event_types(self) -> list[dict[str, Any]]:
+        """Describe attributes observed on each event type."""
         type_attrs: dict[str, dict[str, str]] = {}
         for ev in self._events:
             type_attrs.setdefault(ev.type, {})
@@ -145,6 +179,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
         return _type_catalog(type_attrs)
 
     def _derive_object_types(self) -> list[dict[str, Any]]:
+        """Describe attributes observed on each object type."""
         type_attrs: dict[str, dict[str, str]] = {}
         for obj in self._objects.values():
             type_attrs.setdefault(obj.type, {})
@@ -154,6 +189,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
         return _type_catalog(type_attrs)
 
     def _serialize_event(self, ev: OcelEvent) -> dict[str, Any]:
+        """Express an event in the OCEL interchange shape."""
         return {
             "id": ev.id,
             "type": ev.type,
@@ -163,6 +199,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
         }
 
     def _serialize_object(self, obj: OcelObject) -> dict[str, Any]:
+        """Express an object in the OCEL interchange shape."""
         attrs_out: list[dict[str, Any]] = []
         for attr in sorted(obj.attributes, key=lambda a: a.name):
             attrs_out.append({"name": attr.name, "value": self._serialize_attr_value(attr.value)})
@@ -178,6 +215,7 @@ class InMemoryOcelStoreResource(OcelStoreResource):
 
     @staticmethod
     def _serialize_attr_value(value: Any) -> Any:
+        """Normalize an attribute value for OCEL interchange."""
         if isinstance(value, datetime):
             return value.isoformat()
         if isinstance(value, bool):

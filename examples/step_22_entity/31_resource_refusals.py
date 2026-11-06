@@ -13,8 +13,8 @@ from aoa.action_machine.domain import BaseCoreEntity, EntityDecoratorError
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class StoreDomain(BaseDomain):
@@ -24,22 +24,22 @@ class StoreDomain(BaseDomain):
     description = "Store"
 
 
-@meta(description="Where StorefrontDatabase keeps its rows")
+@meta(description="Where StorefrontDatabaseStorage keeps its rows")
 class StorefrontDataSource(InMemoryDataSource):
-    """The store StorefrontDatabase works with."""
+    """The store StorefrontDatabaseStorage works with."""
 
 
 @meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
     """The shop's database."""
 
 
 @meta(description="Session cache", domain=StoreDomain)
-class StorefrontSessionCache(BaseStorage):
+class StorefrontSessionCacheStorage(BaseStorage):
     """The shop's session cache."""
 
 
-class UndeclaredDatabase(BaseStorage):
+class UndeclaredDatabaseStorage(BaseStorage):
     """A storage that never says which domain it serves."""
 
 
@@ -62,5 +62,5 @@ def declare(resource: object) -> None:
 # Run the case.
 declare(StoreDomain)
 declare(BaseStorage)
-declare(UndeclaredDatabase)
-declare((StorefrontDatabase, StorefrontSessionCache))
+declare(UndeclaredDatabaseStorage)
+declare((StorefrontDatabaseStorage, StorefrontSessionCacheStorage))

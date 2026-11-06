@@ -25,7 +25,7 @@ ARCHITECTURE / DATA FLOW
     builder (PR-7): root E2O + one-hop loaded FK → E2O with "{qualifier}.{field}"
               │
               ▼
-    OcelEvent → OcelStoreResource
+    OcelEvent → OcelStorage
 """
 
 from __future__ import annotations

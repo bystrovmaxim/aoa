@@ -11,10 +11,10 @@ from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDense
 from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Correlate row wiring dispute artefacts to ingestion manifests", resource=BillingWarehouse)
+@entity(description="Correlate row wiring dispute artefacts to ingestion manifests", resource=BillingWarehouseStorage)
 class BillingChargebackIngestCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlate id")
     lifecycle: BillingDenseLifecycle = Field(description="Correlate lifecycle")

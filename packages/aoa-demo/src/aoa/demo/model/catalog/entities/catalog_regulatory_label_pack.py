@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_merch_copy_variant import MerchCopyVariantCoreEntity
-from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
+from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
-@entity(description="Regulatory label continuation of planogram / copy spine", resource=CatalogObjectStore)
+@entity(description="Regulatory label continuation of planogram / copy spine", resource=CatalogObjectStoreStorage)
 class RegulatoryLabelPackCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pack id")
     lifecycle: CatalogDenseLifecycle = Field(description="Regulatory pack lifecycle")

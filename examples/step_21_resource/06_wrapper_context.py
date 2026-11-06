@@ -7,7 +7,9 @@ Run: uv run python examples/step_21_resource/06_wrapper_context.py
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.exceptions import TransactionProhibitedError
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.sql import SqlStorageWrapper
 
 
 class RecordingConnection:
@@ -59,24 +61,22 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-from aoa.action_machine.exceptions import TransactionProhibitedError
-from aoa.action_machine.resources.sql import WrapperSqlResource
 
 
 class ExampleDataSource(PostgresDataSource):
     """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleResource(PostgresResource[ExampleDataSource]):
+class ExampleStorage(PostgresStorage[ExampleDataSource]):
     """A PostgreSQL resource that works through the example's data source."""
 
 
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
+    owner = ExampleStorage(data_source=ExampleDataSource(pool=pool))
     await owner.open()
-    child_view = WrapperSqlResource(owner)
+    child_view = SqlStorageWrapper(owner)
     try:
         async with child_view:
            raise AssertionError("The context must not open")

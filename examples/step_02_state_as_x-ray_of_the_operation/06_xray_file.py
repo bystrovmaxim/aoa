@@ -120,7 +120,7 @@ async def main() -> None:
 
     with open(traces_path, "w") as traces_file, open(logs_path, "w") as logs_file:
 
-        # Plugin 1: full tracing — all events, spans to traces.txt
+        # BasePlugin 1: full tracing — all events, spans to traces.txt
         tp = TracerProvider()
         tp.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter(out=traces_file)))
         plugin_traces = OpenTelemetryPlugin(
@@ -128,7 +128,7 @@ async def main() -> None:
             service_name="checkout-service",
         )
 
-        # Plugin 2: focused logs — only state x-ray after each regular step and finish
+        # BasePlugin 2: focused logs — only state x-ray after each regular step and finish
         lp = LoggerProvider()
         lp.add_log_record_processor(SimpleLogRecordProcessor(ConsoleLogRecordExporter(out=logs_file)))
         plugin_logs = OpenTelemetryPlugin(

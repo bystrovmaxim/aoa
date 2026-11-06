@@ -10,12 +10,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
 @entity(
     description="Parallel billing bridge between orders and invoicing artefacts (creates cyclic routing options in ERD)",
-    resource=StorefrontDatabase,
+    resource=StorefrontDatabaseStorage,
 )
 class StoreOrderInvoiceBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")

@@ -6,6 +6,8 @@ Run: uv run python examples/step_19_connections/15_mcp_call.py
 """
 
 import asyncio
+import json
+from contextlib import asynccontextmanager
 
 from pydantic import Field
 
@@ -18,11 +20,11 @@ from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController, Connections
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
+from aoa.mcp import McpAdapter
 
 
 class CounterDomain(BaseDomain):
@@ -34,13 +36,14 @@ class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
 @meta(description="Count calls in memory", domain=CounterDomain)
-class CounterResource(BaseResource):
+class CounterController(BaseController):
     """Keep a count and record lifecycle events."""
     def __init__(self, events):
         """Start with an empty count."""
         self.count = 0
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use of this in-memory counter."""
         return None
     async def open(self):
@@ -56,7 +59,7 @@ class CountResult(BaseResult):
 
 @meta(description="Increment the supplied counter", domain=CounterDomain)
 @check_roles(GuestRole)
-@connection(CounterResource, key="counter")
+@connection(CounterController, key="counter")
 class CountAction(BaseAction[EmptyParams, CountResult]):
     """Increment the supplied resource once."""
     @summary_aspect("Count one call")
@@ -66,10 +69,7 @@ class CountAction(BaseAction[EmptyParams, CountResult]):
         counter.count += 1
         return CountResult(count=counter.count)
 
-import json
-from contextlib import asynccontextmanager
 
-from aoa.mcp import McpAdapter
 
 
 async def main():
@@ -85,7 +85,7 @@ async def main():
             events.append("shutdown")
     server = (McpAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
         .tool("count", CountAction, connections={"counter": PerCallConnection(
-            lambda: CounterResource(events), lambda resource: resource.close(),
+            lambda: CounterController(events), lambda resource: resource.close(),
         )}).build(lifespan=lifespan))
     # Direct calls do not start a network server; enter its configured lifespan explicitly.
     async with server.settings.lifespan(server):

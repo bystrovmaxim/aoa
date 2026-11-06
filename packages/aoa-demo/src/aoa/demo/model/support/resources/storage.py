@@ -13,6 +13,7 @@ from aoa.demo.model.support.support_domain import SupportDomain
 class SupportStorage(BaseStorage[ShopDataSource]):
     """Hold the support domain's entities; the demo never opens it."""
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         """No wrapper: a nested action may use this resource as it is."""
         return None

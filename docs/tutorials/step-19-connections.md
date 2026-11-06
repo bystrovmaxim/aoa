@@ -68,7 +68,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
-from aoa.action_machine.resources.base_resource import BaseResource
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
@@ -83,13 +83,14 @@ class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
 @meta(description="Count calls in memory", domain=CounterDomain)
-class CounterResource(BaseResource):
+class CounterController(BaseController):
     """Keep a count and record lifecycle events."""
     def __init__(self, events):
         """Start with an empty count."""
         self.count = 0
         self.events = events
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """Allow direct use of this in-memory counter."""
         return None
     async def open(self):
@@ -105,7 +106,7 @@ class CountResult(BaseResult):
 
 @meta(description="Increment the supplied counter", domain=CounterDomain)
 @check_roles(GuestRole)
-@connection(CounterResource, key="counter")
+@connection(CounterController, key="counter")
 class CountAction(BaseAction[EmptyParams, CountResult]):
     """Increment the supplied resource once."""
     @summary_aspect("Count one call")
@@ -119,7 +120,7 @@ class CountAction(BaseAction[EmptyParams, CountResult]):
 async def main():
     """Run this case and verify its observable result."""
     events = []
-    declaration = CounterResource(events)
+    declaration = CounterController(events)
     app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]),
              auth_coordinator=NoAuthCoordinator(context=Context()))
            .post("/count", CountAction, connections={"counter": declaration})
@@ -158,7 +159,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 
 ```python
 events = []
-declaration = PerCallConnection(lambda: CounterResource(events), lambda resource: resource.close())
+declaration = PerCallConnection(lambda: CounterController(events), lambda resource: resource.close())
 app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]),
          auth_coordinator=NoAuthCoordinator(context=Context()))
        .post("/count", CountAction, connections={"counter": declaration})
@@ -181,7 +182,7 @@ Observed output:
 lifecycle: ['open', 'close', 'open', 'close']
 ```
 
-Each factory call constructed a new counter. The scope opened it before the action and awaited cleanup before returning the response. Newness comes from CounterResource(events), not from the PerCallConnection name.
+Each factory call constructed a new counter. The scope opened it before the action and awaited cleanup before returning the response. Newness comes from CounterController(events), not from the PerCallConnection name.
 
 ## What to choose
 

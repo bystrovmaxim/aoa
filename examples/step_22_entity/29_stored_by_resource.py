@@ -17,8 +17,8 @@ from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.resources.base_storage import BaseStorage
 
 
 class StoreDomain(BaseDomain):
@@ -28,17 +28,17 @@ class StoreDomain(BaseDomain):
     description = "Store"
 
 
-@meta(description="Where StorefrontDatabase keeps its rows")
+@meta(description="Where StorefrontDatabaseStorage keeps its rows")
 class StorefrontDataSource(InMemoryDataSource):
-    """The store StorefrontDatabase works with."""
+    """The store StorefrontDatabaseStorage works with."""
 
 
 @meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
     """The database the shop's orders live in."""
 
 
-@entity(description="Customer order", resource=StorefrontDatabase)
+@entity(description="Customer order", resource=StorefrontDatabaseStorage)
 class SalesOrderCoreEntity(BaseCoreEntity):
     """A customer's order, stored by the shop's database."""
 

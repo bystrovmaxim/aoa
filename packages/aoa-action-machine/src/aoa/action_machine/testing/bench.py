@@ -154,7 +154,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.plugin.core.plugin import Plugin
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
@@ -400,7 +400,7 @@ class TestBench:
         self,
         coordinator: NodeGraphCoordinator | None = None,
         mocks: dict[type, Any] | None = None,
-        plugins: list[Plugin] | None = None,
+        plugins: list[BasePlugin] | None = None,
         log_coordinator: LogCoordinator | None = None,
         user: Any | None = None,
         runtime: Any | None = None,
@@ -435,8 +435,8 @@ class TestBench:
         return dict(self._mocks)
 
     @property
-    def plugins(self) -> list[Plugin]:
-        """Plugin list."""
+    def plugins(self) -> list[BasePlugin]:
+        """BasePlugin list."""
         return list(self._plugins)
 
     # ─────────────────────────────────────────────────────────────────────

@@ -80,7 +80,7 @@ A declared intent the system takes under control:
 
 ## The naming invariant
 
-A suffix in AOA is not a matter of style. Each suffix is fixed by a base class or a decorator, and a violation raises `NamingSuffixError` at the moment the class or method is defined — before the application starts. The benefit is not only strictness: suffixes work as visual anchors. `...Resource` is an adapter of an external system, `...Action` is a business operation; the context reads before the file is even opened.
+A suffix in AOA is not a matter of style. Each suffix is fixed by a base class or a decorator, and a violation raises `NamingSuffixError` at the moment the class or method is defined — before the application starts. The benefit is not only strictness: suffixes work as visual anchors. `...Storage` is a store, `...Gateway` someone else's service, `...Action` a business operation; the context reads before the file is even opened. Every base class names its descendants this way; the only exception is `BaseIntent`, a mixin every primitive inherits.
 
 ### The full suffix table
 
@@ -91,11 +91,35 @@ A suffix in AOA is not a matter of style. Each suffix is fixed by a base class o
 | `BaseRole` subclass | `Role` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | `BaseEvent` subclass | `Event` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | Entity-kind descendant | `CoreEntity`, `AssocEntity`, `DetailEntity`, `SpecEntity`, `EnumEntity` or `StateEntity`, matching its kind base | Inheritance hooks at class definition, including intermediate and undecorated classes | `NamingSuffixError` |
+| Resource | `Storage`, `Gateway` or `Controller`, matching its kind base; a resource inherits `BaseStorage`, `BaseGateway` or `BaseController`, never `BaseResource` directly, and one kind only | `BaseResource.__init_subclass__` at class definition | `NamingSuffixError`; `DeclarationStructureError` for a direct or mixed-kind resource |
+| Resource wrapper | `StorageWrapper`, `GatewayWrapper` or `ControllerWrapper`, matching the kind of the resource it wraps | at class definition, and for every class a resource's `get_wrapper_class()` names when the model is built | `NamingSuffixError`; `DeclarationStructureError` for a wrapper of another kind or a `get_wrapper_class` that is not a class method |
+| `BasePlugin` subclass | `Plugin` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BaseLogger` subclass | `Logger` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BaseParams` / `BaseResult` subclass | `Params` / `Result` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `Lifecycle` subclass | `Lifecycle` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BaseAdapter` / `BaseRouteRecord` subclass | `Adapter` / `RouteRecord` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BaseCoordinator` / `BaseActionMachine` subclass | `Coordinator` / `Machine` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BasePluginEvent` subclass | `Event` | `__init_subclass__` at class definition | `NamingSuffixError` |
+| `BaseGraphNode` / `BaseGraphEdge` / `BaseGraphNodeInspector` subclass | `GraphNode` / `GraphEdge` / `Inspector` | `__init_subclass__` at class definition | `NamingSuffixError` |
 | Method with `@regular_aspect` | `_aspect` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@summary_aspect` | `_summary` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@compensate` | `_compensate` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@on_error` | `_on_error` | the decorator at method definition | `NamingSuffixError` |
 | Method with `@cache_key`, `@cache_read`, `@cache_write`, `@cache_invalidate` | `_cache_key`, `_cache_read`, `_cache_write`, `_cache_invalidate` | the decorator at method definition | `NamingSuffixError` |
+| Method with `@on` (a plugin's handler) | prefix `on_` | the decorator at method definition | `NamingPrefixError` |
+
+### Classes renamed by the naming rules
+
+| Before | After |
+|---|---|
+| `SqlResource`, `PostgresResource`, `WrapperSqlResource` | `SqlStorage`, `PostgresStorage`, `SqlStorageWrapper` |
+| `Plugin` | `BasePlugin` |
+| `ParamsStub`, `ResultStub` | `StubParams`, `StubResult` |
+| `SocketChannel` (FastAPI adapter) | `SocketChannelController` |
+| `WrapperLangGraphController` | `LangGraphControllerWrapper` |
+| `OcelStoreResource`, `InMemoryOcelStoreResource`, `OcelStoreWrapper` | `OcelStorage`, `InMemoryOcelStorage`, `OcelStorageWrapper` |
+
+A resource that inherited `BaseResource` directly now inherits the kind it is — a store of data, `BaseStorage`; someone else's service, `BaseGateway`; an object the process owns, `BaseController` — and takes that kind as the end of its name. `get_wrapper_class` is a class method: `@classmethod def get_wrapper_class(cls)`.
 
 Beyond suffixes there are two more constraints. The description in `@regular_aspect("...")` and `@summary_aspect("...")` cannot be empty or whitespace-only — otherwise `ValueError` at decorator application. And indirect subclasses are checked on a par with direct ones: `class SpecificTask(BaseTaskAction)` without the `Action` suffix fails the same way.
 
@@ -193,7 +217,7 @@ Every operation has exactly one method marked `@summary_aspect`, and it must ret
 
 Otherwise the operation has no explicit exit point: the result could be assembled in several places, partially overwritten, or not assembled at all. An operation with none raises `MissingSummaryAspectError` at startup; an operation with **two** raises `DuplicateSummaryAspectError`, which names both methods — before this rule, a second summary surfaced as a graph error about a missing node, a message about a node the developer never wrote.
 
-The answer is checked against the operation's `Result` twice, and the two checks catch different mistakes. At assembly, a summary annotated with anything else — `Any`, another operation's result — is refused with `AspectSignatureError`, because the annotation is a promise the machine can read before serving a call. At run time, a method that contradicts its own annotation — an annotated `ResultStub` that returns a `dict` — is refused with `ActionResultTypeError`, naming the operation, the declared `Result` and what actually came back. A `Result` **supertype** is accepted (`-> BaseResult`), because it promises nothing false.
+The answer is checked against the operation's `Result` twice, and the two checks catch different mistakes. At assembly, a summary annotated with anything else — `Any`, another operation's result — is refused with `AspectSignatureError`, because the annotation is a promise the machine can read before serving a call. At run time, a method that contradicts its own annotation — an annotated `StubResult` that returns a `dict` — is refused with `ActionResultTypeError`, naming the operation, the declared `Result` and what actually came back. A `Result` **supertype** is accepted (`-> BaseResult`), because it promises nothing false.
 
 ---
 

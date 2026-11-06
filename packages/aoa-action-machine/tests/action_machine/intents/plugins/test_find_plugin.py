@@ -3,7 +3,7 @@
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 PURPOSE
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
-Tests the mechanism for finding handlers in a Plugin instance. Method
+Tests the mechanism for finding handlers in a BasePlugin instance. Method
 get_handlers(event) scans the MRO of the plugin class, finds methods with
 with the _on_subscriptions attribute and checks for a match for each subscription
 event_class via isinstance[1].
@@ -22,13 +22,13 @@ nest_level, domain, predicate) are executed in the PluginRunContext [1].
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
 SCENARIOS COVERED
 ═══════════════════ ════════════════════ ════════════════════ ════════════════════
-- Plugin with GlobalFinishEvent handler finds a handler for any
+- BasePlugin with GlobalFinishEvent handler finds a handler for any
   events of this type.
-- Plugin with action_name_pattern=".*Order.*" - filtering is checked
+- BasePlugin with action_name_pattern=".*Order.*" - filtering is checked
   at the SubscriptionInfo level, not get_handlers() (step 3, not step 1).
   get_handlers() returns candidates by event_class and action_name_pattern
   checked by the calling code.
-- Plugin subscribed to GlobalStartEvent is not found when searching
+- BasePlugin subscribed to GlobalStartEvent is not found when searching
   by GlobalFinishEvent.
 - A plugin with multiple handlers for different events returns
   the right amount for each type of event.
@@ -46,7 +46,7 @@ from .conftest import (
 
 
 class TestPluginGetHandlers:
-    """Tests of the Plugin.get_handlers() method - search for handlers by event type.
+    """Tests of the BasePlugin.get_handlers() method - search for handlers by event type.
 
     get_handlers(event) performs step 1 of the filter chain ONLY:
     isinstance(event, sub.event_class). Other filters (action_name_pattern,

@@ -10,11 +10,11 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.msg_webhook_signature_envelope import WebhookSignatureEnvelopeCoreEntity
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
 @entity(
-    description="Correlates isolated webhook verification path with transactional outbox rows", resource=OutboxPrimaryDatabase
+    description="Correlates isolated webhook verification path with transactional outbox rows", resource=OutboxPrimaryDatabaseStorage
 )
 class MsgOutboxWebhookCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")

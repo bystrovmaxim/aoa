@@ -1,5 +1,5 @@
 # tests/ocel/resource/test_in_memory_ocel_store_resource.py
-"""InMemoryOcelStoreResource (plan §5.27, §5.29)."""
+"""InMemoryOcelStorage (plan §5.27, §5.29)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from aoa.ocel.dto.ocel_event import OcelEvent
 from aoa.ocel.dto.ocel_object import OcelObject
 from aoa.ocel.dto.ocel_object_ref import OcelObjectRef
 from aoa.ocel.exceptions import OcelContractError
-from aoa.ocel.resource import InMemoryOcelStoreResource
+from aoa.ocel.resource import InMemoryOcelStorage
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def _sample_event(event_time: datetime, event_id: str = "trace-001") -> OcelEven
     )
 
 
-async def _run(resource: InMemoryOcelStoreResource, event: OcelEvent) -> None:
+async def _run(resource: InMemoryOcelStorage, event: OcelEvent) -> None:
     await resource.open()
     await resource.add_event(event)
     await resource.close()
@@ -48,7 +48,7 @@ async def _run(resource: InMemoryOcelStoreResource, event: OcelEvent) -> None:
 
 def test_close_writes_ocel_json(tmp_path: Path, event_time: datetime) -> None:
     output = tmp_path / "out.ocel.json"
-    resource = InMemoryOcelStoreResource(output_file=output)
+    resource = InMemoryOcelStorage(output_file=output)
     asyncio.run(_run(resource, _sample_event(event_time)))
 
     doc = json.loads(output.read_text(encoding="utf-8"))
@@ -59,22 +59,22 @@ def test_close_writes_ocel_json(tmp_path: Path, event_time: datetime) -> None:
 
 def test_close_leaves_only_the_output_file(tmp_path: Path, event_time: datetime) -> None:
     output = tmp_path / "out.ocel.json"
-    asyncio.run(_run(InMemoryOcelStoreResource(output_file=output), _sample_event(event_time)))
+    asyncio.run(_run(InMemoryOcelStorage(output_file=output), _sample_event(event_time)))
 
     assert [path.name for path in tmp_path.iterdir()] == ["out.ocel.json"]
 
 
 def test_a_failed_write_keeps_the_previous_file(tmp_path: Path, event_time: datetime, monkeypatch: pytest.MonkeyPatch) -> None:
     output = tmp_path / "out.ocel.json"
-    asyncio.run(_run(InMemoryOcelStoreResource(output_file=output), _sample_event(event_time)))
+    asyncio.run(_run(InMemoryOcelStorage(output_file=output), _sample_event(event_time)))
     before = output.read_text(encoding="utf-8")
 
     def broken_replace(source: str, target: object) -> None:
         raise OSError("disk full")
 
-    monkeypatch.setattr("aoa.ocel.resource.in_memory_ocel_store_resource.os.replace", broken_replace)
+    monkeypatch.setattr("aoa.ocel.resource.in_memory_ocel_storage.os.replace", broken_replace)
     with pytest.raises(OSError, match="disk full"):
-        asyncio.run(_run(InMemoryOcelStoreResource(output_file=output), _sample_event(event_time, "trace-002")))
+        asyncio.run(_run(InMemoryOcelStorage(output_file=output), _sample_event(event_time, "trace-002")))
 
     assert output.read_text(encoding="utf-8") == before
     assert [path.name for path in tmp_path.iterdir()] == ["out.ocel.json"]
@@ -82,7 +82,7 @@ def test_a_failed_write_keeps_the_previous_file(tmp_path: Path, event_time: date
 
 def test_duplicate_event_id_raises(tmp_path: Path, event_time: datetime) -> None:
     output = tmp_path / "dup.ocel.json"
-    resource = InMemoryOcelStoreResource(output_file=output)
+    resource = InMemoryOcelStorage(output_file=output)
 
     async def _add_twice() -> None:
         await resource.open()
@@ -95,7 +95,7 @@ def test_duplicate_event_id_raises(tmp_path: Path, event_time: datetime) -> None
 
 
 def test_add_event_when_closed_raises(tmp_path: Path, event_time: datetime) -> None:
-    resource = InMemoryOcelStoreResource(output_file=tmp_path / "closed.ocel.json")
+    resource = InMemoryOcelStorage(output_file=tmp_path / "closed.ocel.json")
 
     async def _add_closed() -> None:
         with pytest.raises(OcelContractError, match="Resource is not open"):
@@ -105,7 +105,7 @@ def test_add_event_when_closed_raises(tmp_path: Path, event_time: datetime) -> N
 
 
 def test_double_open_raises(tmp_path: Path) -> None:
-    resource = InMemoryOcelStoreResource(output_file=tmp_path / "open.ocel.json")
+    resource = InMemoryOcelStorage(output_file=tmp_path / "open.ocel.json")
 
     async def _double() -> None:
         await resource.open()
@@ -133,7 +133,7 @@ def test_distinct_object_ids_for_same_pk_different_types(tmp_path: Path, event_t
         time=event_time,
         objects=[obj_a, obj_b],
     )
-    resource = InMemoryOcelStoreResource(output_file=output)
+    resource = InMemoryOcelStorage(output_file=output)
     asyncio.run(_run(resource, ev))
     doc = json.loads(output.read_text(encoding="utf-8"))
     ids = {o["id"] for o in doc["objects"]}

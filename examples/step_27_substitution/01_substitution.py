@@ -41,7 +41,7 @@ from aoa.action_machine.intents.depends import depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseGateway, BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.testing import TestBench
@@ -54,20 +54,22 @@ class ShopDomain(BaseDomain):
 
 # ── Two @depends resources (no rollup support → default check_rollup_support raises) ──
 @meta(description="Pricing service", domain=ShopDomain)
-class PricingService(BaseResource):
+class PricingServiceGateway(BaseGateway):
     def price(self, sku: str) -> float:
         return {"sku-1": 8990.0}.get(sku, 0.0)
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
 @meta(description="Stock gateway", domain=ShopDomain)
-class StockGateway(BaseResource):
+class StockGateway(BaseGateway):
     async def reserve(self, sku: str, qty: int) -> str:
         raise NotImplementedError("real gateway — mocked in tests")
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
@@ -82,11 +84,11 @@ class QuoteResult(BaseResult):
 
 @meta(description="Quote a price", domain=ShopDomain)
 @check_roles(GuestRole)
-@depends(PricingService)
+@depends(PricingServiceGateway)
 class QuoteAction(BaseAction[QuoteParams, QuoteResult]):
     @summary_aspect("Quote")
     async def quote_summary(self, params: QuoteParams, state: BaseState, box: ToolsBox, connections: Connections) -> QuoteResult:
-        return QuoteResult(price=(await box.resolve(PricingService)).price(params.sku))
+        return QuoteResult(price=(await box.resolve(PricingServiceGateway)).price(params.sku))
 
 
 # ── 2 — a nested Action (its dependency is what gets mocked) ──────────────────
@@ -129,7 +131,7 @@ class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
 
 # ── 3/5 — a @connection journal that supports rollup ─────────────────────────
 @meta(description="Append-only journal", domain=ShopDomain)
-class JournalResource(BaseResource):
+class JournalStorage(BaseStorage):
     def __init__(self, rollup: bool = False) -> None:
         self._rollup = rollup
         self.persisted: list[str] = []
@@ -148,7 +150,8 @@ class JournalResource(BaseResource):
             self.persisted.extend(self._pending)
             self._pending.clear()
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None
 
 
@@ -163,7 +166,7 @@ class RecordResult(BaseResult):
 
 @meta(description="Record a row", domain=ShopDomain)
 @check_roles(GuestRole)
-@connection(JournalResource, key="journal")
+@connection(JournalStorage, key="journal")
 class RecordAction(BaseAction[RecordParams, RecordResult]):
     @summary_aspect("Write and commit")
     async def record_summary(self, params: RecordParams, state: BaseState, box: ToolsBox, connections: Connections) -> RecordResult:
@@ -177,9 +180,9 @@ class RecordAction(BaseAction[RecordParams, RecordResult]):
 
 async def main() -> None:
     # 1. Mock a @depends dependency (class-keyed).
-    pricing = AsyncMock(spec=PricingService)
+    pricing = AsyncMock(spec=PricingServiceGateway)
     pricing.price.return_value = 100.0
-    r = await TestBench().with_mocks({PricingService: pricing}).run(
+    r = await TestBench().with_mocks({PricingServiceGateway: pricing}).run(
         QuoteAction(), QuoteParams(sku="sku-1"), rollup=False,
     )
     print(f"1) mock @depends            -> price={r.price}")
@@ -193,7 +196,7 @@ async def main() -> None:
     print(f"2) nested Action, mocked dep-> reservation={r.reservation_id}  (mock reached the child)")
 
     # 3. Supply a @connection per run (connections= kwarg, string-keyed).
-    journal = JournalResource()
+    journal = JournalStorage()
     r = await TestBench().run(
         RecordAction(), RecordParams(row="row-A"), rollup=False, connections={"journal": journal},
     )
@@ -206,7 +209,7 @@ async def main() -> None:
         print(f"4) rollup, unsupported res  -> RollupNotSupportedError: {str(exc).splitlines()[0]}")
 
     # 5. Rollup commit→rollback: rollup-capable journal persists nothing.
-    journal = JournalResource(rollup=True)
+    journal = JournalStorage(rollup=True)
     r = await TestBench().run(
         RecordAction(), RecordParams(row="row-B"), rollup=True, connections={"journal": journal},
     )

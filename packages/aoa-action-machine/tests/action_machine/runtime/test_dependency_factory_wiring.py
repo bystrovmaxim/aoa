@@ -16,7 +16,7 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model import FullAction, PingAction
 from ...support.domain_model.services import NotificationGateway, PaymentGateway
-from ...support.domain_model.test_db_manager import OrdersDbManager
+from ...support.domain_model.test_db_manager import OrdersStorage
 
 
 def test_tools_box_dependency_factory_from_interchange_edges() -> None:
@@ -68,7 +68,7 @@ def test_full_action_dependency_factory_via_graph_matches_declarations() -> None
     cls_order = tuple(i.cls for i in from_graph)
     assert PaymentGateway in cls_order
     assert NotificationGateway in cls_order
-    assert OrdersDbManager in cls_order
+    assert OrdersStorage in cls_order
 
 
 def test_resolved_dependency_infos_requires_coordinator_when_depends_exist() -> None:

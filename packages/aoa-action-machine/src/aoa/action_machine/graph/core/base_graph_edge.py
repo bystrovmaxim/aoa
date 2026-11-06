@@ -45,6 +45,7 @@ from typing import Any, cast, final
 
 from aoa.action_machine.graph.core.edge_relationship import EdgeRelationship
 from aoa.action_machine.graph.core.validation import require_non_empty_str
+from aoa.action_machine.naming.suffix import require_suffix
 
 
 @dataclass(init=False, frozen=True, eq=False)
@@ -64,6 +65,11 @@ class BaseGraphEdge(ABC):
     target_node_id: str
     target_node: Any
     properties: dict[str, Any]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a descendant whose name does not end with ``GraphEdge``."""
+        super().__init_subclass__(**kwargs)
+        require_suffix(cls, "BaseGraphEdge", "GraphEdge")
 
     def __init__(
         self,

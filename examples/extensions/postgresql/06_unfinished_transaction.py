@@ -8,14 +8,14 @@ Run: uv run python examples/extensions/postgresql/06_unfinished_transaction.py
 import asyncio
 
 from aoa.action_machine.exceptions import TransactionLeftOpenError
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
 class ExampleDataSource(PostgresDataSource):
     """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleResource(PostgresResource[ExampleDataSource]):
+class ExampleStorage(PostgresStorage[ExampleDataSource]):
     """A PostgreSQL resource that works through the example's data source."""
 
 
@@ -72,7 +72,7 @@ class RecordingPool:
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    db = ExampleResource(data_source=ExampleDataSource(pool=pool))
+    db = ExampleStorage(data_source=ExampleDataSource(pool=pool))
     await db.open()
     await db.begin()
     try:

@@ -1,20 +1,20 @@
 """Borrowing does not close the pool.
 
-Use the real PostgresResource with a small recording pool. Only the external database connection is replaced.
+Use the real PostgresStorage with a small recording pool. Only the external database connection is replaced.
 
 Run: uv run python examples/extensions/postgresql/01_borrow.py
 """
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
 class ExampleDataSource(PostgresDataSource):
     """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleResource(PostgresResource[ExampleDataSource]):
+class ExampleStorage(PostgresStorage[ExampleDataSource]):
     """A PostgreSQL resource that works through the example's data source."""
 
 
@@ -71,7 +71,7 @@ class RecordingPool:
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    resource = ExampleResource(data_source=ExampleDataSource(pool=pool))
+    resource = ExampleStorage(data_source=ExampleDataSource(pool=pool))
     print("after construction:", len(pool.held))
     await resource.open()
     assert len(pool.held) == 1

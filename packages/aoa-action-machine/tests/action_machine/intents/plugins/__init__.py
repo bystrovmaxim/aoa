@@ -12,13 +12,13 @@ Tests the plugin mechanism for extending ActionMachine via lifecycle event subsc
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Plugin
+BasePlugin
     Abstract plugin base. Handlers are declared with @on. get_handlers(event_name,
     class_name) returns (handler, ignore_exceptions) tuples. get_initial_state() returns
     per-request initial plugin state.
 
 PluginCoordinator
-    Stateless plugin coordinator. Holds a list of Plugin instances and creates an
+    Stateless plugin coordinator. Holds a list of BasePlugin instances and creates an
     isolated PluginRunContext per machine.run() via create_run_context(). No mutable
     cross-request state.
 
@@ -33,7 +33,7 @@ PluginEvent
     state_aspect, is_summary, deps, context, result, duration, nest_level.
 
 @on(event_type, action_filter, ignore_exceptions)
-    Plugin method decorator declaring a subscription. event_type is a string such as
+    BasePlugin method decorator declaring a subscription. event_type is a string such as
     "global_finish" or "before:validate". action_filter is a regex on the full action name.
     ignore_exceptions suppresses handler errors when True. Handler signature must be
     (self, state, event, log).

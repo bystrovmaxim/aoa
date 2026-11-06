@@ -25,11 +25,11 @@ class TestActionSuffix:
     def test_correct_suffix_passes(self) -> None:
         """Name 'MyTaskAction' — class definition succeeds."""
         from aoa.action_machine.model.base_action import BaseAction
-        from aoa.action_machine.model.params_stub import ParamsStub
-        from aoa.action_machine.model.result_stub import ResultStub
+        from aoa.action_machine.model.stub_params import StubParams
+        from aoa.action_machine.model.stub_result import StubResult
 
         @exclude_graph_model
-        class MyTaskAction(BaseAction[ParamsStub, ResultStub]):
+        class MyTaskAction(BaseAction[StubParams, StubResult]):
             pass
 
         assert MyTaskAction.__name__.endswith("Action")
@@ -37,12 +37,12 @@ class TestActionSuffix:
     def test_missing_suffix_raises(self) -> None:
         """Name 'MyTask' without 'Action' suffix → NamingSuffixError."""
         from aoa.action_machine.model.base_action import BaseAction
-        from aoa.action_machine.model.params_stub import ParamsStub
-        from aoa.action_machine.model.result_stub import ResultStub
+        from aoa.action_machine.model.stub_params import StubParams
+        from aoa.action_machine.model.stub_result import StubResult
 
         with pytest.raises(NamingSuffixError, match="Action"):
 
-            class MyTask(BaseAction[ParamsStub, ResultStub]):
+            class MyTask(BaseAction[StubParams, StubResult]):
                 pass
 
         _exclude_leaked_subclass(BaseAction, "MyTask")
@@ -50,12 +50,12 @@ class TestActionSuffix:
     def test_wrong_suffix_raises(self) -> None:
         """Name 'MyTaskHandler' → NamingSuffixError (suffix is not 'Action')."""
         from aoa.action_machine.model.base_action import BaseAction
-        from aoa.action_machine.model.params_stub import ParamsStub
-        from aoa.action_machine.model.result_stub import ResultStub
+        from aoa.action_machine.model.stub_params import StubParams
+        from aoa.action_machine.model.stub_result import StubResult
 
         with pytest.raises(NamingSuffixError, match="Action"):
 
-            class MyTaskHandler(BaseAction[ParamsStub, ResultStub]):
+            class MyTaskHandler(BaseAction[StubParams, StubResult]):
                 pass
 
         _exclude_leaked_subclass(BaseAction, "MyTaskHandler")
@@ -63,11 +63,11 @@ class TestActionSuffix:
     def test_indirect_subclass_checked(self) -> None:
         """Indirect BaseAction subclass without suffix → NamingSuffixError."""
         from aoa.action_machine.model.base_action import BaseAction
-        from aoa.action_machine.model.params_stub import ParamsStub
-        from aoa.action_machine.model.result_stub import ResultStub
+        from aoa.action_machine.model.stub_params import StubParams
+        from aoa.action_machine.model.stub_result import StubResult
 
         @exclude_graph_model
-        class BaseTaskAction(BaseAction[ParamsStub, ResultStub]):
+        class BaseTaskAction(BaseAction[StubParams, StubResult]):
             pass
 
         with pytest.raises(NamingSuffixError, match="Action"):

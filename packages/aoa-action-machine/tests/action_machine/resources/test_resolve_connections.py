@@ -9,7 +9,7 @@ from aoa.action_machine.resources.per_call_connection import (
     validate_connection_entries,
 )
 
-from ...action_machine.resources.test_connections_dict import DummyResourceManager
+from ...action_machine.resources.test_connections_dict import DummyController
 
 
 def test_resolve_connections_none() -> None:
@@ -21,16 +21,16 @@ def test_resolve_connections_empty_dict() -> None:
 
 
 def test_resolve_connections_ready_resource() -> None:
-    res = DummyResourceManager()
+    res = DummyController()
     out = resolve_connections({"svc": res})
     assert out == {"svc": res}
 
 
 def test_resolve_connections_per_call_invokes_factory_each_time() -> None:
-    res = DummyResourceManager()
+    res = DummyController()
     calls: list[int] = []
 
-    def factory() -> DummyResourceManager:
+    def factory() -> DummyController:
         calls.append(1)
         return res
 
@@ -41,7 +41,7 @@ def test_resolve_connections_per_call_invokes_factory_each_time() -> None:
 
 
 def test_validate_connection_entries_rejects_bad_key() -> None:
-    res = DummyResourceManager()
+    res = DummyController()
     with pytest.raises(TypeError, match="non-empty string"):
         validate_connection_entries({"": res})
 
@@ -61,7 +61,7 @@ def test_mcp_route_record_accepts_connections_field() -> None:
 
     from ...support.domain_model import PingAction
 
-    res = DummyResourceManager()
+    res = DummyController()
     record = McpRouteRecord(
         action_class=PingAction,
         tool_name="system.ping",
@@ -75,7 +75,7 @@ def test_fastapi_route_record_accepts_connections_field() -> None:
 
     from ...support.domain_model import PingAction
 
-    res = DummyResourceManager()
+    res = DummyController()
     record = FastApiRouteRecord(
         action_class=PingAction,
         path="/ping",
@@ -92,7 +92,7 @@ def test_validate_connection_entries_rejects_non_callable_factory() -> None:
 
 def test_per_call_connection_requires_a_finalizer() -> None:
     """A resource created per call cannot be declared without saying how it is closed."""
-    factory = lambda: DummyResourceManager()  # noqa: E731 - the declaration is the point
+    factory = lambda: DummyController()  # noqa: E731 - the declaration is the point
 
     with pytest.raises(TypeError):
         PerCallConnection(factory)  # type: ignore[call-arg]
@@ -100,7 +100,7 @@ def test_per_call_connection_requires_a_finalizer() -> None:
 
 def test_validate_connection_entries_rejects_non_callable_finalize() -> None:
     """The finalizer is checked like the factory: callable, without being called."""
-    bad = PerCallConnection(factory=lambda: DummyResourceManager(), finalize=123)  # type: ignore[arg-type]
+    bad = PerCallConnection(factory=lambda: DummyController(), finalize=123)  # type: ignore[arg-type]
 
     with pytest.raises(TypeError, match="finalize"):
         validate_connection_entries({"svc": bad})
@@ -108,7 +108,7 @@ def test_validate_connection_entries_rejects_non_callable_finalize() -> None:
 
 def test_a_factory_returning_a_shared_resource_is_not_rejected() -> None:
     """The framework neither forbids nor detects a factory that hands back one object."""
-    res = DummyResourceManager()
+    res = DummyController()
     spec = {"svc": PerCallConnection(lambda: res, finalize=lambda resource: None)}
 
     assert resolve_connections(spec) == {"svc": res}

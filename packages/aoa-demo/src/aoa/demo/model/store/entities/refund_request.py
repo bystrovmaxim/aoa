@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.db import StorefrontDatabase
+from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 
 
-@entity(description="Refund request row", resource=StorefrontDatabase)
+@entity(description="Refund request row", resource=StorefrontDatabaseStorage)
 class RefundRequestCoreEntity(BaseCoreEntity):
     id: str = Field(description="Refund id")
     lifecycle: SalesOrderLifecycle = Field(description="Refund lifecycle")

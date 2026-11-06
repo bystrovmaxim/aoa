@@ -43,7 +43,8 @@ class ShopDataSource(BaseDataSource):
 class OrdersStorage(BaseStorage[ShopDataSource]):
     """The part of the shop database that keeps orders."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """No wrapper: this example never opens the resource."""
         return None
 
@@ -52,7 +53,8 @@ class OrdersStorage(BaseStorage[ShopDataSource]):
 class SupportStorage(BaseStorage[ShopDataSource]):
     """The part of the shop database that keeps support tickets."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """No wrapper: this example never opens the resource."""
         return None
 

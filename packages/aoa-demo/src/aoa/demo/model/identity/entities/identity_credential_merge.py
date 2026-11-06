@@ -11,10 +11,10 @@ from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLif
 from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorCoreEntity
-from aoa.demo.model.identity.resources.identity_store_base import IdentityStoreBase
+from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Credential merge correlate across person, email, and phone factors", resource=IdentityStoreBase)
+@entity(description="Credential merge correlate across person, email, and phone factors", resource=IdentityStorage)
 class IdentityCredentialMergeCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlate id")
     lifecycle: IdentityDenseLifecycle = Field(description="Merge correlate lifecycle")

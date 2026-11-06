@@ -32,8 +32,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.logging.scoped_logger import ScopedLogger
 from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import CompensateFailedEvent, SagaRollbackCompletedEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 from aoa.action_machine.plugin.core.plugin_coordinator import PluginCoordinator
 
 from .conftest import RecordingPlugin, SelectivePlugin, emit_global_finish, emit_global_start
@@ -43,8 +43,8 @@ from .conftest import RecordingPlugin, SelectivePlugin, emit_global_finish, emit
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-class CompensateFailedRecorderPlugin(Plugin):
-    """Plugin subscribed to CompensateFailedEvent.
+class CompensateFailedRecorderPlugin(BasePlugin):
+    """BasePlugin subscribed to CompensateFailedEvent.
     Logs each compensator failure event to state["failed_events"].
     Used to check that the subscription to CompensateFailedEvent
     works correctly via PluginRunContext.emit_event()."""
@@ -70,8 +70,8 @@ class CompensateFailedRecorderPlugin(Plugin):
         return state
 
 
-class SagaCompletedRecorderPlugin(Plugin):
-    """Plugin subscribed to SagaRollbackCompletedEvent.
+class SagaCompletedRecorderPlugin(BasePlugin):
+    """BasePlugin subscribed to SagaRollbackCompletedEvent.
     Writes the stack unwind results to state["completed_events"].
     Used to check that the subscription to SagaRollbackCompletedEvent
     works correctly via PluginRunContext.emit_event()."""

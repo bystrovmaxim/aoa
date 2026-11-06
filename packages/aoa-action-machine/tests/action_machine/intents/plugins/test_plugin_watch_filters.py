@@ -1,5 +1,5 @@
 # tests/action_machine/intents/plugins/test_plugin_watch_filters.py
-"""Unit tests for Plugin.get_handlers() watch_actions and watch_events filters."""
+"""Unit tests for BasePlugin.get_handlers() watch_actions and watch_events filters."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from aoa.action_machine.context.context import Context
 from aoa.action_machine.context.user_info import UserInfo
 from aoa.action_machine.intents.on.on_decorator import on
 from aoa.action_machine.model.base_params import BaseParams
+from aoa.action_machine.plugin.core.base_plugin import BasePlugin
 from aoa.action_machine.plugin.core.events import GlobalFinishEvent, GlobalStartEvent
-from aoa.action_machine.plugin.core.plugin import Plugin
 
 from ....support.domain_model import PingAction
 
@@ -51,8 +51,8 @@ def _make_finish_event(action_class: type = PingAction) -> GlobalFinishEvent:
     )
 
 
-class _AllEventsPlugin(Plugin):
-    """Plugin subscribed to all events."""
+class _AllEventsPlugin(BasePlugin):
+    """BasePlugin subscribed to all events."""
 
     async def get_initial_state(self) -> dict:
         return {}

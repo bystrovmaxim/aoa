@@ -20,8 +20,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.model.params_stub import ParamsStub
-from aoa.action_machine.model.result_stub import ResultStub
+from aoa.action_machine.model.stub_params import StubParams
+from aoa.action_machine.model.stub_result import StubResult
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -57,7 +57,7 @@ class _ChildGenAction(_ParentGenAction):
 
 
 @exclude_graph_model
-class _ExcludedParentAction(BaseAction[ParamsStub, ResultStub]):
+class _ExcludedParentAction(BaseAction[StubParams, StubResult]):
     """Parent action excluded from graph model — no edge target."""
 
 
@@ -163,7 +163,7 @@ def test_build_parent_domain_edges_skips_excluded_parent() -> None:
 
 def test_build_parent_action_edges_empty_for_root_chain() -> None:
     @exclude_graph_model
-    class _OnlyBaseActionSubclassAction(BaseAction[ParamsStub, ResultStub]):
+    class _OnlyBaseActionSubclassAction(BaseAction[StubParams, StubResult]):
         pass
 
     assert build_parent_action_edges(_OnlyBaseActionSubclassAction) == []

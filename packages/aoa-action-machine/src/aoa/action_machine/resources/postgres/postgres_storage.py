@@ -1,4 +1,4 @@
-# packages/aoa-action-machine/src/aoa/action_machine/resources/postgres/postgres_resource.py
+# packages/aoa-action-machine/src/aoa/action_machine/resources/postgres/postgres_storage.py
 """
 Concrete PostgreSQL connection manager implementation.
 
@@ -6,21 +6,21 @@ Concrete PostgreSQL connection manager implementation.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``PostgresResource`` is a ``SqlResource`` implementation
+``PostgresStorage`` is a ``SqlStorage`` implementation
 backed by ``asyncpg``. It performs direct database operations: connect,
 transaction control, and SQL execution.
 
 One resource is one unit of work. It holds **at most one connection**: it takes
 that connection from its data source in ``open()`` and gives it back in ``close()``.
 A PostgreSQL resource always names its data source —
-``class OrdersResource(PostgresResource[ShopDataSource])`` — and is built with
+``class OrdersStorage(PostgresStorage[ShopDataSource])`` — and is built with
 ``data_source=``: connection parameters and the pool live only in the data source.
 
 Two concurrent callers never share a connection, which is what
 keeps their transactions apart.
 
 Connection-state policy for child actions is enforced by
-``WrapperSqlResource``; this class handles low-level DB interaction.
+``SqlStorageWrapper``; this class handles low-level DB interaction.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -29,7 +29,7 @@ ARCHITECTURE / DATA FLOW
     machine/action
          |
          v
-    PostgresResource
+    PostgresStorage
       | open()    -> data_source.acquire()
       | begin()   -> "BEGIN"      (opens the transaction flag)
       | _execute() -> a statement, for a subclass
@@ -80,14 +80,14 @@ from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.transaction_left_open_error import TransactionLeftOpenError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.postgres.postgres_data_source import PostgresDataSource
-from aoa.action_machine.resources.sql import SqlResource
+from aoa.action_machine.resources.sql import SqlStorage
 
 TPostgresDataSource_co = TypeVar("TPostgresDataSource_co", bound=PostgresDataSource, default=PostgresDataSource, covariant=True)
 """The PostgreSQL data source a resource names; one that names none leaves it at its default."""
 
 
 @exclude_graph_model
-class PostgresResource(SqlResource[TPostgresDataSource_co]):
+class PostgresStorage(SqlStorage[TPostgresDataSource_co]):
     """
     AI-CORE-BEGIN
         ROLE: Concrete SQL manager for Postgres runtime operations.
@@ -111,7 +111,7 @@ class PostgresResource(SqlResource[TPostgresDataSource_co]):
         if type(self).data_source_type() is None:
             raise DataSourceDeclarationError(
                 f"{type(self).__name__} names no data source: a PostgreSQL resource names its data source "
-                f"as the type argument of its base, PostgresResource[<Name>DataSource]."
+                f"as the type argument of its base, PostgresStorage[<Name>DataSource]."
             )
         self._check_data_source(data_source)
         self._data_source: PostgresDataSource = data_source

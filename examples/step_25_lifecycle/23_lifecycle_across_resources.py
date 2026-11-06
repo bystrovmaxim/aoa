@@ -44,19 +44,21 @@ class SupportDataSource(BaseDataSource):
 
 
 @meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
     """The orders, in the storefront database."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """No wrapper: this example never opens the resource."""
         return None
 
 
 @meta(description="Support desk store", domain=SupportDomain)
-class SupportDatabase(BaseStorage[SupportDataSource]):
+class SupportDatabaseStorage(BaseStorage[SupportDataSource]):
     """The returns, in the support desk database."""
 
-    def get_wrapper_class(self):
+    @classmethod
+    def get_wrapper_class(cls):
         """No wrapper: this example never opens the resource."""
         return None
 
@@ -78,7 +80,7 @@ class OrderLifecycle(Lifecycle[OrderStateEntity]):
     )
 
 
-@entity(description="Customer order", resource=StorefrontDatabase)
+@entity(description="Customer order", resource=StorefrontDatabaseStorage)
 class SalesOrderCoreEntity(BaseCoreEntity):
     """An order with a status."""
 
@@ -86,7 +88,7 @@ class SalesOrderCoreEntity(BaseCoreEntity):
     lifecycle: OrderLifecycle = Field(description="Order status")
 
 
-@entity(description="Return", resource=SupportDatabase)
+@entity(description="Return", resource=SupportDatabaseStorage)
 class ReturnCoreEntity(BaseCoreEntity):
     """A return in the other database that reuses the order's statuses."""
 

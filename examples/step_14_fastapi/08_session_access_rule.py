@@ -34,9 +34,9 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.context_requires import context_requires
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, ParamsStub
+from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -61,11 +61,12 @@ class ViewerRole(ApplicationRole):
 
 
 @meta(description="Application registry of ended login sessions.", domain=OrdersDomain)
-class SessionRegistryResource(BaseResource):
+class SessionRegistryStorage(BaseStorage):
     def __init__(self) -> None:
         self._ended: set[str] = set()
 
-    def get_wrapper_class(self) -> type[BaseResource] | None:
+    @classmethod
+    def get_wrapper_class(cls) -> type[BaseResource] | None:
         return None  # in-memory registry, no transaction to wrap
 
     async def end(self, session_id: str) -> None:
@@ -110,12 +111,12 @@ class LoginAction(BaseAction[LoginParams, TokenResult]):
 
 @meta(description="End the caller's current login session.", domain=OrdersDomain)
 @check_roles(ViewerRole)
-@connection(SessionRegistryResource, key="sessions")
-class LogoutAction(BaseAction[ParamsStub, LogoutResult]):
+@connection(SessionRegistryStorage, key="sessions")
+class LogoutAction(BaseAction[StubParams, LogoutResult]):
 
     @summary_aspect("Record the current session as ended.")
     @context_requires(Ctx.User.session_id)
-    async def logout_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> LogoutResult:
+    async def logout_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections, ctx: ContextView) -> LogoutResult:
         session_id = ctx.get(Ctx.User.session_id)
         await connections["sessions"].end(session_id)
         return LogoutResult(ended_session=session_id)
@@ -123,23 +124,23 @@ class LogoutAction(BaseAction[ParamsStub, LogoutResult]):
 
 @meta(description="List orders for a caller whose session is still active.", domain=OrdersDomain)
 @check_roles(ViewerRole)
-@connection(SessionRegistryResource, key="sessions")
-class ListOrdersAction(BaseAction[ParamsStub, OrdersResult]):
+@connection(SessionRegistryStorage, key="sessions")
+class ListOrdersAction(BaseAction[StubParams, OrdersResult]):
 
     @access_decide("Refuse a session the application has ended")
     @context_requires(Ctx.User.session_id)
-    async def active_session_access_decide(self, params: ParamsStub, box: ToolsBox, connections: Connections, ctx: ContextView) -> Verdict:
+    async def active_session_access_decide(self, params: StubParams, box: ToolsBox, connections: Connections, ctx: ContextView) -> Verdict:
         if await connections["sessions"].is_ended(ctx.get(Ctx.User.session_id)):
             return Refused("SESSION_ENDED")
         return Allowed()
 
     @summary_aspect("Return the caller's orders.")
-    async def list_orders_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> OrdersResult:
+    async def list_orders_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> OrdersResult:
         return OrdersResult(orders=["ord-001"])
 
 
 def build_app():
-    registry = SessionRegistryResource()
+    registry = SessionRegistryStorage()
     auth = JwtAuthCoordinator(
         secret_key=_SECRET_KEY,
         algorithm=_ALGORITHM,

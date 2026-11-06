@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_narrative_correction import NarrativeCorrectionCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="FX residual facet continuing ingest narrative spine", resource=BillingWarehouse)
+@entity(description="FX residual facet continuing ingest narrative spine", resource=BillingWarehouseStorage)
 class FxResidualTagCoreEntity(BaseCoreEntity):
     id: str = Field(description="Residual id")
     lifecycle: BillingDenseLifecycle = Field(description="FX residual lifecycle")

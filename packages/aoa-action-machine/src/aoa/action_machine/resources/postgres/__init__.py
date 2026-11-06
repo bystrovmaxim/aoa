@@ -17,7 +17,7 @@ ARCHITECTURE / DATA FLOW
     App bootstrap (lifespan)
          |  opens one data source per database: the connection parameters and the pool
          v
-    OrdersResource(data_source=shop)        # class OrdersResource(PostgresResource[ShopDataSource])
+    OrdersStorage(data_source=shop)        # class OrdersStorage(PostgresStorage[ShopDataSource])
          |  open(): one connection borrowed from the data source
          |  close(): returned, the pool stays open
          v
@@ -34,7 +34,7 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``PostgresDataSource``: the kind of data source of a PostgreSQL database — connection parameters and the pool several resources share.
-- ``PostgresResource``: resource manager for PostgreSQL connections. It always names its data source and holds at most one connection, only for its own unit of work: taken from the data source in ``open()``, given back in ``close()``.
+- ``PostgresStorage``: resource manager for PostgreSQL connections. It always names its data source and holds at most one connection, only for its own unit of work: taken from the data source in ``open()``, given back in ``close()``.
 """
 try:
     import asyncpg  # noqa: F401
@@ -44,6 +44,6 @@ except ImportError:
     ) from None
 
 from aoa.action_machine.resources.postgres.postgres_data_source import PostgresDataSource
-from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
+from aoa.action_machine.resources.postgres.postgres_storage import PostgresStorage
 
-__all__ = ["PostgresDataSource", "PostgresResource"]
+__all__ = ["PostgresDataSource", "PostgresStorage"]

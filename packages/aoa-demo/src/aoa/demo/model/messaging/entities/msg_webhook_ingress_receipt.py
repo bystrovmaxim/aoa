@@ -6,10 +6,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgWebhookLifecycle
-from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Webhook ingress subgraph root isolated from reconciliation spine", resource=OutboxPrimaryDatabase)
+@entity(description="Webhook ingress subgraph root isolated from reconciliation spine", resource=OutboxPrimaryDatabaseStorage)
 class WebhookIngressReceiptCoreEntity(BaseCoreEntity):
     id: str = Field(description="Receipt id")
     lifecycle: MsgWebhookLifecycle = Field(description="Receipt lifecycle")

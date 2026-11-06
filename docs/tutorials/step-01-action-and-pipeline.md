@@ -46,12 +46,12 @@ class GreetingDomain(BaseDomain):
 
 @meta(description="Say hello to the world", domain=GreetingDomain)
 @check_roles(GuestRole)
-class SayHelloAction(BaseAction[ParamsStub, ResultStub]):
+class SayHelloAction(BaseAction[StubParams, StubResult]):
 
     @summary_aspect("Print greeting and return stub")
-    async def output_summary(self, params: ParamsStub, state: BaseState, box: ToolsBox, connections: Connections) -> ResultStub:
+    async def output_summary(self, params: StubParams, state: BaseState, box: ToolsBox, connections: Connections) -> StubResult:
         print("Hello, world!")
-        return ResultStub()
+        return StubResult()
 ```
 
 That is a fair number of lines for a plain greeting. But none of them is a ritual: each declares something without which an operation in AOA is not considered complete.
@@ -60,17 +60,17 @@ It all begins with a **domain**. An operation must belong to one — the domain 
 
 Next come two required decorators. **`@meta`** is the operation's passport: its `description` is not a note for a colleague but part of the system contract, and it lands in the OpenAPI schema, the MCP tool description, and the operation graph; `domain` ties the operation to its area. **`@check_roles(GuestRole)`** declares access. Here AOA takes a principled stance: access must be declared explicitly, and silence does not count as a decorator. `GuestRole` is "this operation is open to everyone" said out loud — a conscious decision, not a forgotten check. Skip `@check_roles` entirely and the machine refuses to run the operation.
 
-The class itself inherits `BaseAction[ParamsStub, ResultStub]`; in the brackets are the input and output types, stubs for now. The name must end with `Action`. And finally **`@summary_aspect`** — the single exit point: exactly one such method per operation, and it is the one that assembles and returns the `Result`. Without it — `MissingSummaryAspectError` at startup. The method has a fixed signature: `params`, `state`, `box`, `connections` are passed by the machine itself — respectively the input, the shared pipeline state (the whole next chapter is about it), the structured logger, and the open resources. `print` is here for the moment; the operations' proper output is `box`, and it is one step away.
+The class itself inherits `BaseAction[StubParams, StubResult]`; in the brackets are the input and output types, stubs for now. The name must end with `Action`. And finally **`@summary_aspect`** — the single exit point: exactly one such method per operation, and it is the one that assembles and returns the `Result`. Without it — `MissingSummaryAspectError` at startup. The method has a fixed signature: `params`, `state`, `box`, `connections` are passed by the machine itself — respectively the input, the shared pipeline state (the whole next chapter is about it), the structured logger, and the open resources. `print` is here for the moment; the operations' proper output is `box`, and it is one step away.
 
 The machine runs the operation:
 
 ```python
 # Fragment: its imports are left out.
 machine = ActionProductMachine()
-await machine.run(Context(), SayHelloAction(), ParamsStub())
+await machine.run(Context(), SayHelloAction(), StubParams())
 ```
 
-`ActionProductMachine` reads the declarations and leads the operation through the pipeline. `Context()` is the call environment: empty for now, but later it will hold the user, their roles, the request id. An empty object is mandatory — the machine will not accept `None`. `ParamsStub()` is an instance of the declared input.
+`ActionProductMachine` reads the declarations and leads the operation through the pipeline. `Context()` is the call environment: empty for now, but later it will hold the user, their roles, the request id. An empty object is mandatory — the machine will not accept `None`. `StubParams()` is an instance of the declared input.
 
 **Run:**
 

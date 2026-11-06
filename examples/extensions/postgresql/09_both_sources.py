@@ -7,7 +7,7 @@ Run: uv run python examples/extensions/postgresql/09_both_sources.py
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
 
 
 class RecordingConnection:
@@ -63,14 +63,14 @@ class ExampleDataSource(PostgresDataSource):
     """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleResource(PostgresResource[ExampleDataSource]):
+class ExampleStorage(PostgresStorage[ExampleDataSource]):
     """A PostgreSQL resource that works through the example's data source."""
 
 
 async def main():
     """Run this case and verify its observable result."""
     try:
-        ExampleResource({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
+        ExampleStorage({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
     except TypeError:
         print("TypeError")
     else:
