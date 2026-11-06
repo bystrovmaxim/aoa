@@ -36,7 +36,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 8: Protocol, dependencies, graphs, versions
 
-- [ ] T010 schema copy 1.7, `maxitor>=3.18.0`, CI action tag, `graph-builder write`, versions
+- [x] T010 schema copy 1.7, `maxitor>=3.18.0`, CI action tag, `graph-builder write`, versions
 
 ## Phase 9: The closing check run
 

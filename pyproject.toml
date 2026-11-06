@@ -27,7 +27,7 @@ classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "aoa-action-machine",
     "aoa-ocel",
-    "maxitor[all]>=3.16.0",
+    "maxitor[all]>=3.18.0",
     "aoa-demo",
 ]
 

@@ -89,7 +89,7 @@ jobs:
       # The demo's graph file is current, checked by graph-builder's own action, from the Maxitor release
       # this repository takes from PyPI.
       - name: Graph files are current (graph-builder action)
-        uses: bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@maxitor-v3.15.0
+        uses: bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@maxitor-v3.18.0
         with:
           graph-builder: uv run --extra dev graph-builder
 
