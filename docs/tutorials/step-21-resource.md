@@ -30,7 +30,36 @@ A resource is also where entities live. Every entity names the one resource that
 a gateway the records an outside service reports, a controller the state it keeps. The kinds are
 exported together — `from aoa.action_machine.resources import BaseStorage, BaseGateway, BaseController`.
 [Step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it) shows the declaration,
-and [step 24](step-24-relations.md#a-relation-stays-inside-one-resource) why relations stay inside one resource.
+and [step 24](step-24-relations.md#a-relation-stays-inside-one-data-source) why relations stay inside one data source.
+
+## Resources of one database share a data source
+
+A resource is often a part of a database rather than the whole of it: orders and support
+tickets live in one database, each kept by its own resource. A **data source** names that
+database. It is a primitive of its own, `BaseDataSource`: a description in `@meta` and no
+domain, because resources of several domains may share one store. A resource names it as
+the type argument of its base, and a resource that names none works on its own:
+
+```python
+# Fragment: the declarations of a model; `StoreDomain` is defined around them.
+@meta(description="Main shop database")
+class ShopDataSource(BaseDataSource): ...
+
+@meta(description="Orders", domain=StoreDomain)
+class OrdersStorage(BaseStorage[ShopDataSource]): ...
+
+@meta(description="Support desk", domain=StoreDomain)
+class SupportStorage(BaseStorage[ShopDataSource]): ...
+```
+
+Entities of `OrdersStorage` and `SupportStorage` may relate to each other; an entity of a
+resource without a data source relates only to entities of that resource. A data source
+also keeps what its resources share at run time: `PostgresDataSource` holds the
+connection parameters and the pool, and a resource built with `data_source=` takes its
+connection from it, while the transaction stays the resource's own
+([the PostgreSQL page](../extensions/postgresql.md#installation-and-construction)). In the
+graph a data source hangs on the application, as a domain does, and each resource that
+names it has a `resource_data_source` edge to it.
 
 ## The resource stores; the action decides
 
@@ -250,7 +279,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-owner = PostgresResource(pool=pool)
+owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
 await owner.open()
 child_view = WrapperSqlResource(owner)
 try:
@@ -285,7 +314,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-owner = PostgresResource(pool=pool)
+owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
 await owner.open()
 child_view = WrapperSqlResource(owner)
 try:
@@ -345,7 +374,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
     result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
     assert result.status == "OK; close refused"
     assert len(pool.held) == 1

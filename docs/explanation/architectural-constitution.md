@@ -282,6 +282,23 @@ class RuleEngineController(BaseController):     # an in-memory rules engine
 
 ---
 
+### `BaseDataSource` — the store several resources share
+
+**Meaning:** one database or other store. A resource is often a part of a database, not the whole of it; a data source names the database itself, so the model knows which resources share it. It keeps what they share at run time — the connection parameters and the pool — while each resource keeps its own transaction.
+
+**Constraint:** it is not a resource. An action never depends on it and reaches it only through a resource that names it. It belongs to no domain, because resources of several domains may share one store. It is optional: a resource that names none works on its own, with its own connection.
+
+A resource names its data source as the type argument of its base; relations between entities stay inside one data source, or inside one resource when it names none.
+
+```python
+# Fragment: an outline; `...` marks what is left out.
+class ShopDataSource(PostgresDataSource): ...              # the shop database and its pool
+class OrdersStorage(PostgresResource[ShopDataSource]): ... # one part of it
+class SupportStorage(PostgresResource[ShopDataSource]): ...# another part; its entities may relate to orders
+```
+
+---
+
 ## The choice algorithm
 
 The question "where does this go?" stops being a question:
@@ -291,6 +308,7 @@ Is this input/output data or an execution snapshot?          → BaseSchema (Par
 Is this a business decision?                                 → Action
 Is this a domain-area model?                                 → Entity
 Do you need to store data that lives forever?                → BaseStorage
+Do several resources work with one database?                  → BaseDataSource
 Do you need to call someone else's service (SMS, payment, API)? → BaseGateway
 Do you need to run a local graph, FSM, or legacy engine?      → BaseController
 Is this an accomplished fact that others should learn of?     → BaseEvent
@@ -336,8 +354,9 @@ AOA
 ├── BaseObserver    — observes the machine (side effects only)
 ├── BaseIntent      — declares participation in AOA's grammar
 ├── Lifecycle       — a state machine
-└── BaseResource    — a managed, long-lived dependency
-    ├── BaseStorage    — external, a store (I connect)
-    ├── BaseGateway    — external, a service (I delegate)
-    └── BaseController — internal (I own)
+├── BaseResource    — a managed, long-lived dependency
+│   ├── BaseStorage    — external, a store (I connect)
+│   ├── BaseGateway    — external, a service (I delegate)
+│   └── BaseController — internal (I own)
+└── BaseDataSource  — the store several resources share (optional for a resource)
 ```

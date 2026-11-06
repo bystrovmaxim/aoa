@@ -12,7 +12,7 @@ Serialization schemas now retain the definitions needed by enum properties. Rege
 
 ## Declare the vocabulary
 
-A dictionary is an ordinary entity of the resource that stores it: it names its resource with `@entity(resource=...)` like any entity, and only entities of that resource may select from it ([step 24](step-24-relations.md#a-relation-stays-inside-one-resource)). A dictionary several databases need is declared once per resource.
+A dictionary is an ordinary entity of the resource that stores it: it names its resource with `@entity(resource=...)` like any entity, and only entities inside its boundary — the data source its resource names, or that resource when it names none — may select from it ([step 24](step-24-relations.md#a-relation-stays-inside-one-data-source)). A dictionary several databases need is declared once per resource.
 
 Run this complete example in a fresh Python process.
 

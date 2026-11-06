@@ -44,7 +44,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 10: Documentation
 
-- [ ] T012 architectural constitution page, tutorial steps on the resource and relations, intents-and-invariants
+- [x] T012 architectural constitution page, tutorial steps on the resource and relations, intents-and-invariants
 
 ## Phase 11: Changelog
 

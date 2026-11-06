@@ -119,13 +119,13 @@ from aoa.fastapi import FastApiAdapter
 
 
 class PoolHolder:
-    """Expose the service pool only after startup."""
-    pool = None
+    """Expose the service's data source only after startup."""
+    data_source = None
     def require(self):
         """Return the running pool or report missing startup."""
-        if self.pool is None:
+        if self.data_source is None:
             raise RuntimeError("Pool is not started")
-        return self.pool
+        return self.data_source
 
 
 async def main():
@@ -136,13 +136,13 @@ async def main():
     async def lifespan(app):
         """Own the pool for the whole service lifetime."""
         pool = RecordingPool(size=2)
-        holder.pool = ExampleDataSource(pool=pool)
+        holder.data_source = ExampleDataSource(pool=pool)
         created.append(pool)
         try:
             yield
         finally:
             await pool.close()
-            holder.pool = None
+            holder.data_source = None
     app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
         .post("/query", QueryAction, connections={"db": PerCallConnection(
             factory=lambda: NotesResource(data_source=holder.require()),
@@ -154,7 +154,7 @@ async def main():
         assert not created[0].held and not created[0].closed
         print(response.json())
         print("returned after request:", len(created[0].held) == 0)
-    assert created[0].closed and holder.pool is None
+    assert created[0].closed and holder.data_source is None
     print("pool closed after shutdown:", created[0].closed)
 
 

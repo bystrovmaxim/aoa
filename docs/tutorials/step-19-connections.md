@@ -232,11 +232,12 @@ Observed output:
 
 FastApiAdapter passes lifespan to FastAPI. TestClient starts and stops it only when used as a context manager. This is where an application-owned pool belongs.
 
-The pool example uses a **holder**: an ordinary object whose `pool` field is filled
-at startup. Its `require()` method returns the pool or raises an explicit error.
-The route is registered before startup, but its factory calls `require()` later,
-when a request arrives. This timing is why the pool lookup belongs inside the lambda.
-The complete example includes the holder, a recording pool, the resource and an action.
+The pool example uses a **holder**: an ordinary object whose `data_source` field is
+filled at startup with the data source that keeps the pool. Its `require()` method
+returns the data source or raises an explicit error. The route is registered before
+startup, but its factory calls `require()` later, when a request arrives. This timing
+is why the lookup belongs inside the lambda. The complete example includes the holder,
+a recording pool, the data source, the resource that names it and an action.
 
 ## A service pool with a resource for each call
 
@@ -254,25 +255,25 @@ created = []
 async def lifespan(app):
     """Own the pool for the whole service lifetime."""
     pool = RecordingPool(size=2)
-    holder.pool = pool
+    holder.data_source = ExampleDataSource(pool=pool)
     created.append(pool)
     try:
         yield
     finally:
         await pool.close()
-        holder.pool = None
+        holder.data_source = None
 app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
     .post("/query", QueryAction, connections={"db": PerCallConnection(
-        factory=lambda: NotesResource(pool=holder.require()),
+        factory=lambda: NotesResource(data_source=holder.require()),
         finalize=lambda resource: resource.close(),
     )}).build(lifespan=lifespan))
 with TestClient(app) as client:
     response = client.post("/query", json={})
     assert response.status_code == 200 and response.json() == {"status": "OK"}
-    assert not holder.require().held and not holder.require().closed
+    assert not created[0].held and not created[0].closed
     print(response.json())
-    print("returned after request:", len(holder.require().held) == 0)
-assert created[0].closed and holder.pool is None
+    print("returned after request:", len(created[0].held) == 0)
+assert created[0].closed and holder.data_source is None
 print("pool closed after shutdown:", created[0].closed)
 ```
 
