@@ -48,4 +48,4 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 11: Changelog
 
-- [ ] T013 one article
+- [x] T013 one article
