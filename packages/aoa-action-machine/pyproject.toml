@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-action-machine"
-version = "1.2.0b1"
+version = "1.3.0b1"
 description = "Intent-first business logic framework with metadata-driven actions and role-based access control."
 readme = "README.md"
 license = "Apache-2.0"
