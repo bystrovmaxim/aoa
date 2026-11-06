@@ -7,7 +7,7 @@ Run: uv run python examples/extensions/postgresql/09_both_sources.py
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 
 
 class RecordingConnection:
@@ -62,10 +62,18 @@ class RecordingPool:
 from aoa.action_machine.exceptions import ConnectionValidationError
 
 
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
+
+
+class ExampleResource(PostgresResource[ExampleDataSource]):
+    """A PostgreSQL resource that works through the example's data source."""
+
+
 async def main():
     """Run this case and verify its observable result."""
     try:
-        PostgresResource({"dsn": "example"}, pool=RecordingPool())
+        ExampleResource({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
     except ConnectionValidationError:
         print("ConnectionValidationError")
     else:

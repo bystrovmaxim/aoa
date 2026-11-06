@@ -32,7 +32,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 7: Examples and tests
 
-- [ ] T009 every `pool=` in examples, tests and adapters' tests
+- [x] T009 every `pool=` in examples, tests and adapters' tests
 
 ## Phase 8: Protocol, dependencies, graphs, versions
 

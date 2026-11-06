@@ -11,7 +11,11 @@ import asyncio
 from typing import Any
 
 from aoa.action_machine.exceptions import HandleError
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+
+
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
 
 
 class RecordingConnection:
@@ -74,7 +78,7 @@ class RecordingPool:
         self.closed = True
 
 
-class NotesResource(PostgresResource):
+class NotesResource(PostgresResource[ExampleDataSource]):
     """The notes domain's resource: a page through ``_fetch``, a count through ``_fetchval``."""
 
     async def list_notes(self, limit: int = 2, offset: int = 0) -> list[dict[str, Any]]:
@@ -94,7 +98,7 @@ class NotesResource(PostgresResource):
 async def main() -> None:
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    resource = NotesResource(pool=pool)
+    resource = NotesResource(data_source=ExampleDataSource(pool=pool))
     await resource.open()
     connection = pool.connections[0]
 

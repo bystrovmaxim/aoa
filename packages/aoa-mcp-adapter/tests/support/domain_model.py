@@ -187,7 +187,7 @@ class PaymentService:
         raise NotImplementedError("PaymentService.refund() is not implemented")
 
 
-@meta(description="Payment service resource (test domain)", domain=TestDomain)
+@meta(description="Payment service resource of the orders domain", domain=OrdersDomain)
 class PaymentServiceResource(ExternalServiceResource[PaymentService]):
     """Resource manager wrapping :class:`PaymentService` for ``@depends`` / mocks."""
 
@@ -214,7 +214,7 @@ class NotificationService:
         raise NotImplementedError("NotificationService.send() is not implemented")
 
 
-@meta(description="Notification service resource (test domain)", domain=TestDomain)
+@meta(description="Notification service resource of the orders domain", domain=OrdersDomain)
 class NotificationServiceResource(ExternalServiceResource[NotificationService]):
     """Resource manager wrapping :class:`NotificationService` for ``@depends`` / mocks."""
 

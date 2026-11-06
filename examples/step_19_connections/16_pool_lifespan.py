@@ -9,7 +9,7 @@ import asyncio
 
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 
@@ -84,10 +84,14 @@ class NotesDomain(BaseDomain):
 class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
+@meta(description="The notes database")
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
+
+
 @meta(description="SQL statements for the notes example", domain=NotesDomain)
-class NotesResource(PostgresResource):
+class NotesResource(PostgresResource[ExampleDataSource]):
     """Use the standard PostgreSQL lifecycle."""
-    acquire_timeout = 1.0
 
     async def add_note(self, text: str) -> str:
         """Write one note through the driver's statement helper."""
@@ -132,7 +136,7 @@ async def main():
     async def lifespan(app):
         """Own the pool for the whole service lifetime."""
         pool = RecordingPool(size=2)
-        holder.pool = pool
+        holder.pool = ExampleDataSource(pool=pool)
         created.append(pool)
         try:
             yield
@@ -141,15 +145,15 @@ async def main():
             holder.pool = None
     app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
         .post("/query", QueryAction, connections={"db": PerCallConnection(
-            factory=lambda: NotesResource(pool=holder.require()),
+            factory=lambda: NotesResource(data_source=holder.require()),
             finalize=lambda resource: resource.close(),
         )}).build(lifespan=lifespan))
     with TestClient(app) as client:
         response = client.post("/query", json={})
         assert response.status_code == 200 and response.json() == {"status": "OK"}
-        assert not holder.require().held and not holder.require().closed
+        assert not created[0].held and not created[0].closed
         print(response.json())
-        print("returned after request:", len(holder.require().held) == 0)
+        print("returned after request:", len(created[0].held) == 0)
     assert created[0].closed and holder.pool is None
     print("pool closed after shutdown:", created[0].closed)
 
