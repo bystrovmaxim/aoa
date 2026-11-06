@@ -92,7 +92,7 @@ jobs:
       - name: Graph files are current (graph-builder action)
         uses: bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@9ecc198834cc7df462a729f751ddf4870874cc35
         with:
-          graph-builder: uvx --from "git+https://github.com/bystrovmaxim/gnomon@9ecc198834cc7df462a729f751ddf4870874cc35#subdirectory=packages/maxitor" graph-builder
+          graph-builder: uvx --from git+https://github.com/bystrovmaxim/gnomon@9ecc198834cc7df462a729f751ddf4870874cc35#subdirectory=packages/maxitor graph-builder
 
       # The graph files (graph-builder.toml) must be what the code builds: the check above only
       # reads them. The developer runs `graph-builder write` locally and commits the files with the
