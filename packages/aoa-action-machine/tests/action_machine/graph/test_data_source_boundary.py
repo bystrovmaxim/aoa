@@ -49,6 +49,11 @@ def _model(support_base: str) -> str:
             description = "Shop"
 
 
+        class SupportDomain(BaseDomain):
+            name = "support"
+            description = "Support"
+
+
         @meta(description="Main shop database")
         class ShopDataSource(BaseDataSource):
             pass
@@ -62,7 +67,7 @@ def _model(support_base: str) -> str:
                 return None
 
 
-        @meta(description="Support", domain=ShopDomain)
+        @meta(description="Support", domain=SupportDomain)
         class SupportResource({support_base}):
             def get_wrapper_class(self):
                 return None
@@ -225,3 +230,23 @@ def test_the_graph_build_refuses_a_resource_that_stores_an_entity_without_a_data
 def test_the_graph_build_lets_a_resource_that_stores_nothing_go_without_a_data_source() -> None:
     order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
     _build(_source("d.Shop"), _resource("r.Orders", "d.Shop"), _resource("r.Mail"), order)
+
+
+def test_the_graph_build_refuses_two_resources_of_one_domain_on_one_data_source() -> None:
+    """The graph build checks again that a domain reaches a data source through one resource."""
+    domain = _Node("dom.Sales", "Domain")
+    orders = _Node("r.Orders", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Sales")])
+    carts = _Node("r.Carts", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Sales")])
+    with pytest.raises(InvalidGraphError) as error:
+        _build(domain, _source("d.Shop"), orders, carts)
+    assert str(error.value) == (
+        "Domain dom.Sales reaches data source d.Shop through resources r.Orders and r.Carts; "
+        "a domain reaches one data source through one resource."
+    )
+
+
+def test_the_graph_build_lets_two_domains_share_a_data_source() -> None:
+    sales, billing = _Node("dom.Sales", "Domain"), _Node("dom.Billing", "Domain")
+    orders = _Node("r.Orders", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Sales")])
+    invoices = _Node("r.Invoices", "Resource", [_Link("resource_data_source", "d.Shop"), _Link("domain", "dom.Billing")])
+    _build(sales, billing, _source("d.Shop"), orders, invoices)

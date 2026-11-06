@@ -135,6 +135,11 @@ _MODEL = textwrap.dedent(
         description = "Shop"
 
 
+    class SupportDomain(BaseDomain):
+        name = "support"
+        description = "Support"
+
+
     @meta(description="Main shop database")
     class ShopDataSource(BaseDataSource):
         pass
@@ -146,7 +151,7 @@ _MODEL = textwrap.dedent(
             return None
 
 
-    @meta(description="Support", domain=ShopDomain)
+    @meta(description="Support", domain=SupportDomain)
     class SupportResource(BaseStorage[ShopDataSource]):
         def get_wrapper_class(self):
             return None

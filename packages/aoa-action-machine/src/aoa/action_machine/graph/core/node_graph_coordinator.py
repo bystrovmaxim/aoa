@@ -175,10 +175,11 @@ class NodeGraphCoordinator(BaseCoordinator):
                 not a string or contains ``|``, an entity without exactly one ``entity_resource``
                 edge, a resource with more than one ``resource_data_source`` edge or one that ends
                 elsewhere than at a data source, a data source without exactly one ``application``
-                edge or without a resource, or a resource that stores an entity without a
-                ``resource_data_source`` edge.
+                edge or without a resource, a resource that stores an entity without a
+                ``resource_data_source`` edge, or two resources of one domain on one data source.
             DuplicateEdgeError: two edges get the same edge id.
             EntityResourceError: a resource that stores an entity names no data source.
+            DataSourceDeclarationError: two resources of one domain name the same data source.
             RoleCompatibilityError: two endpoints of one relationship declare roles the
                 role-pair matrix refuses (an ownership/ownership pair, or a
                 specialization/generalization endpoint paired with an ordinary role).
@@ -203,6 +204,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
+        resource_domain_validator.validate_resource_data_sources(nodes.values())
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
         self._validate_edge_identity(nodes)
         self._validate_entity_resource_edges(nodes)
@@ -460,6 +462,7 @@ class NodeGraphCoordinator(BaseCoordinator):
         """
         named: set[str] = set()
         used: set[str] = set()
+        reached: dict[tuple[str, str], str] = {}
         for node_id, node in nodes.items():
             if node.node_type != ResourceGraphNode.NODE_TYPE:
                 continue
@@ -472,6 +475,13 @@ class NodeGraphCoordinator(BaseCoordinator):
             used.update(targets)
             if targets:
                 named.add(node_id)
+                for domain in (e.target_node_id for e in node.get_all_edges() if e.edge_name == "domain"):
+                    first = reached.setdefault((domain, targets[0]), node_id)
+                    if first != node_id:
+                        raise InvalidGraphError(
+                            f"Domain {domain} reaches data source {targets[0]} through resources {first} and {node_id}; "
+                            "a domain reaches one data source through one resource."
+                        )
         for node_id, node in nodes.items():
             if node.node_type != DataSourceGraphNode.NODE_TYPE:
                 continue

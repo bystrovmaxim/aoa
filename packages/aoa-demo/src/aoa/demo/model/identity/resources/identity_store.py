@@ -36,12 +36,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.resources.postgres import PostgresResource
 
 from .identity_data_source import IdentityDataSource
 from .identity_store_base import IdentityStoreBase
 
 
+# An implementation of IdentityStoreBase, the model's resource: the graph shows the resource once.
+@exclude_graph_model
 class IdentityStore(IdentityStoreBase, PostgresResource[IdentityDataSource]):
     """
     AI-CORE-BEGIN
