@@ -9,7 +9,7 @@ Four containers on one host; three of them behind the host's TLS front end:
 | `repo-graph-port` | `repo-graph-port.aoa.run` | `127.0.0.1:8103` | reads services' graph histories from their repositories; the only container that talks to GitHub |
 | `maxitor-public-port` | — (not published) | — | Maxitor's own port: the `repo-graph-port` image with an empty config, through which Maxitor reads public GitHub links (`MAXITOR_PUBLIC_PORT`); no history, no key, no App; only Maxitor reaches it, on the stand's network |
 
-The demo is built from this repository. Maxitor and both ports are built from [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon) at the release `GNOMON_REF` names (`maxitor-v3.15.0` unless `/etc/aoa-stand.env` says otherwise), together with the AOA commit its submodule fixes; moving the stand to a newer Maxitor is one line in that file and a deploy.
+The demo is built from this repository. Maxitor and both ports are built from [bystrovmaxim/gnomon](https://github.com/bystrovmaxim/gnomon) at the commit `GNOMON_REF` names — a merge commit of gnomon's `main`, `889db539` unless `/etc/aoa-stand.env` says otherwise; a release tag works as well — together with the AOA commit its submodule fixes. Moving the stand to a newer Maxitor needs no release: one line in that file and a deploy.
 
 Each service has one domain, and nothing else serves it. The demo and Maxitor are served with the front end's `aoa.run` certificate (`STAND_CERT_NAME`); the port has its own.
 
