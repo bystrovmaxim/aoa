@@ -1,6 +1,6 @@
 # tests/action_machine/graph/test_entity_resource_validator.py
 """
-Tests for ``validate_entity_resources`` — every link between entities stays inside one resource.
+Tests for ``validate_entity_resources`` — every link between entities stays inside one boundary: the data source, or the resource without one.
 
 Case 2.4 of issue #469 for every link kind: association, aggregation and composition on
 either side, an inverse side, a specialization, a generalization, a dictionary field and a
@@ -101,8 +101,8 @@ def test_case_2_4_an_association_across_resources_is_refused() -> None:
     """
     )
     assert out == (
-        "REFUSE SupportTicketCoreEntity.order relates SupportTicketCoreEntity (SupportDatabase) "
-        "to SalesOrderCoreEntity (StorefrontDatabase): a relation stays inside one resource."
+        "REFUSE SupportTicketCoreEntity.order relates SupportTicketCoreEntity (SupportDatabase, no data source) "
+        "to SalesOrderCoreEntity (StorefrontDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none."
     )
 
 
@@ -153,14 +153,14 @@ def _ownership(many: str, one: str, owner_first: bool) -> str:
 def test_a_composition_is_refused_from_the_owner_side() -> None:
     """Composition, judged from the owner: the owner's field is named."""
     out = _ownership("CompositeMany", "AssociationOne", owner_first=True)
-    assert out.startswith("REFUSE SalesOrderCoreEntity.lines relates SalesOrderCoreEntity (StorefrontDatabase) ")
-    assert out.endswith("to SalesOrderLineDetailEntity (SupportDatabase): a relation stays inside one resource.")
+    assert out.startswith("REFUSE SalesOrderCoreEntity.lines relates SalesOrderCoreEntity (StorefrontDatabase, no data source) ")
+    assert out.endswith("to SalesOrderLineDetailEntity (SupportDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none.")
 
 
 def test_a_composition_is_refused_from_the_other_side() -> None:
     """Composition, judged from the part: the part's field is named."""
     out = _ownership("CompositeMany", "AssociationOne", owner_first=False)
-    assert out.startswith("REFUSE SalesOrderLineDetailEntity.order relates SalesOrderLineDetailEntity (SupportDatabase) ")
+    assert out.startswith("REFUSE SalesOrderLineDetailEntity.order relates SalesOrderLineDetailEntity (SupportDatabase, no data source) ")
 
 
 def test_an_aggregation_is_refused_from_either_side() -> None:
@@ -187,7 +187,7 @@ def test_a_one_sided_aggregation_is_refused() -> None:
     probe(OrderNoteCoreEntity)
     """
     )
-    assert out.startswith("REFUSE OrderNoteCoreEntity.order relates OrderNoteCoreEntity (SupportDatabase) ")
+    assert out.startswith("REFUSE OrderNoteCoreEntity.order relates OrderNoteCoreEntity (SupportDatabase, no data source) ")
 
 
 _SPECIALIZATION = """
@@ -221,8 +221,8 @@ def test_a_specialization_across_resources_is_refused() -> None:
     """The head's specialization field names an alternative of another resource."""
     out = _run(_SPECIALIZATION + "    probe(CounterpartyCoreEntity)\n")
     assert out == (
-        "REFUSE CounterpartyCoreEntity.details relates CounterpartyCoreEntity (StorefrontDatabase) "
-        "to OrganisationSpecEntity (SupportDatabase): a relation stays inside one resource."
+        "REFUSE CounterpartyCoreEntity.details relates CounterpartyCoreEntity (StorefrontDatabase, no data source) "
+        "to OrganisationSpecEntity (SupportDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none."
     )
 
 
@@ -230,7 +230,7 @@ def test_a_generalization_across_resources_is_refused() -> None:
     """The alternative's generalization field names a head of another resource."""
     out = _run(_SPECIALIZATION + "    probe(OrganisationSpecEntity)\n")
     assert out.startswith(
-        "REFUSE OrganisationSpecEntity.counterparty relates OrganisationSpecEntity (SupportDatabase) to "
+        "REFUSE OrganisationSpecEntity.counterparty relates OrganisationSpecEntity (SupportDatabase, no data source) to "
     )
 
 
@@ -253,8 +253,8 @@ def test_a_dictionary_field_across_resources_is_refused() -> None:
     """
     )
     assert out == (
-        "REFUSE InvoiceCoreEntity.currency relates InvoiceCoreEntity (StorefrontDatabase) "
-        "to CurrencyEnumEntity (SupportDatabase): a relation stays inside one resource."
+        "REFUSE InvoiceCoreEntity.currency relates InvoiceCoreEntity (StorefrontDatabase, no data source) "
+        "to CurrencyEnumEntity (SupportDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none."
     )
 
 
@@ -288,8 +288,8 @@ def test_a_state_type_shared_across_resources_is_refused() -> None:
     """A state type takes its resource from the entities that use it."""
     out = _run(_LIFECYCLE.format(resource="SupportDatabase"))
     assert out == (
-        "REFUSE OrderStateEntity is the state type of SalesOrderCoreEntity.lifecycle (StorefrontDatabase) "
-        "and ReturnCoreEntity.lifecycle (SupportDatabase): a lifecycle stays inside one resource."
+        "REFUSE OrderStateEntity is the state type of SalesOrderCoreEntity.lifecycle (StorefrontDatabase, no data source) "
+        "and ReturnCoreEntity.lifecycle (SupportDatabase, no data source): a lifecycle stays inside one data source, or inside one resource when there is none."
     )
 
 

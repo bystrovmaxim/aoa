@@ -14,33 +14,24 @@ from aoa.action_machine.intents.checkers import result_float, result_string
 from aoa.action_machine.intents.compensate import compensate
 from aoa.action_machine.intents.connection import connection  # pylint: disable=no-name-in-module
 from aoa.action_machine.intents.context_requires import context_requires
-from aoa.action_machine.intents.depends import depends
+from aoa.action_machine.intents.depends import UseCase, depends
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.intents.on_error import on_error
-from aoa.action_machine.logging import sensitive
+from aoa.action_machine.logging import Channel, sensitive
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.demo.model.billing.resources.payment_gateway import PaymentGateway, PaymentGatewayResource
-from aoa.demo.model.messaging.resources.notification_gateway import NotificationGatewayResource
+from aoa.demo.model.billing.actions.invoice_settle import InvoiceSettleAction
+from aoa.demo.model.messaging.actions.publish_transactional import PublishTransactionalOutboxAction
 from aoa.demo.model.roles import EditorRole
-from aoa.demo.model.store.dependencies import _shared_notifier
 from aoa.demo.model.store.resources import StorefrontDatabase, StorefrontSessionCache
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @meta(description="Sample checkout with full decorator surface (graph demo)", domain=StoreDomain)
 @check_roles(EditorRole)
-@depends(
-    PaymentGatewayResource,
-    factory=lambda: PaymentGatewayResource(PaymentGateway()),
-    description="Payment gateway",
-)
-@depends(
-    NotificationGatewayResource,
-    factory=lambda: NotificationGatewayResource(_shared_notifier),
-    description="Notifier via factory",
-)
+@depends(InvoiceSettleAction, mode=UseCase.include, description="Charge through billing: its gateway is billing's own")
+@depends(PublishTransactionalOutboxAction, mode=UseCase.include, description="Notify through messaging: its gateway is messaging's own")
 @connection(StorefrontDatabase, key="db", description="DB connection")
 @connection(StorefrontSessionCache, key="cache", description="Cache connection")
 class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSubmitAction.Result"]):
@@ -93,9 +84,11 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        payment = await box.resolve(PaymentGatewayResource)
-        txn_id = await payment.service.charge(params.amount)
-        return {"txn_id": txn_id, "charged_amount": params.amount}
+        settled = await box.run(
+            InvoiceSettleAction,
+            InvoiceSettleAction.Params(invoice_id=f"checkout-{params.customer_id}", gross_cents=round(params.amount * 100)),
+        )
+        return {"txn_id": settled.capture_txn, "charged_amount": params.amount}
 
     @compensate(charge_aspect, "Refund on failure")
     async def charge_compensate(
@@ -108,8 +101,8 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
         error: Exception,
     ) -> None:
         if state_after is not None:
-            payment = await box.resolve(PaymentGatewayResource)
-            await payment.service.refund(state_after.txn_id)  # type: ignore[attr-defined]
+            # The capture belongs to billing, which voids it in its own compensator; the store only records the request.
+            await box.info(Channel.business, "refund of {%state.txn_id} requested from billing")
 
     @on_error(ValueError, description="Validation branch")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)

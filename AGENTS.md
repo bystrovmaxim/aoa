@@ -4,7 +4,7 @@
 
 `.specify/memory/constitution.md` is the binding text for this project. It is the maintainer's, written gradually, and nothing else in the repository overrides it. Today its six principles are written plus the section on the final check run; the remaining sections are still the toolkit's template.
 
-The rationale behind it lives in `docs/explanation/architectural-constitution.md` (the nine primitives) and `docs/reference/intents-and-invariants.md` (the invariants of each intent).
+The rationale behind it lives in `docs/explanation/architectural-constitution.md` (the primitives) and `docs/reference/intents-and-invariants.md` (the invariants of each intent).
 
 ## The workflow
 

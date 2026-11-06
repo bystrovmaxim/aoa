@@ -57,6 +57,8 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **Resource** (`BaseResource`) — access to storage or another external system, separated from business decisions. It may live for one call or wrap a shared client; its owner decides when it is opened and released.
 
+**Data source** (`BaseDataSource`) — one database or other store that several resources share. A resource names it as the type argument of its base (`PostgresResource[ShopDataSource]`); entities of resources of one data source may relate to each other. It belongs to no domain and keeps what its resources share at run time — the connection parameters and the pool. It is optional; an action never depends on it.
+
 **Database connection** — an open database session. Statements on it share session state and the current transaction. One open connection must not be shared by concurrent calls that need independent work.
 
 **Connection pool** — an application-owned collection of reusable connections. Calls borrow separate connections and return them when finished; the application closes the pool at shutdown.

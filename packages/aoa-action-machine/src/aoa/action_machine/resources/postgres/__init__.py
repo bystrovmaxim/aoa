@@ -33,7 +33,8 @@ INSTALLATION
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``PostgresResource``: resource manager for PostgreSQL connections. It holds at most one connection, only for its own unit of work: taken in ``open()`` from a pool or from the driver, given back in ``close()``.
+- ``PostgresDataSource``: the kind of data source of a PostgreSQL database — connection parameters and the pool several resources share.
+- ``PostgresResource``: resource manager for PostgreSQL connections. It holds at most one connection, only for its own unit of work: taken in ``open()`` from its data source or from the driver, given back in ``close()``.
 """
 try:
     import asyncpg  # noqa: F401
@@ -42,6 +43,7 @@ except ImportError:
         "To use action_machine.resources.postgres, install the optional dependency: " "pip install aoa-run[postgres]"
     ) from None
 
+from aoa.action_machine.resources.postgres.postgres_data_source import PostgresDataSource
 from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 
-__all__ = ["PostgresResource"]
+__all__ = ["PostgresDataSource", "PostgresResource"]

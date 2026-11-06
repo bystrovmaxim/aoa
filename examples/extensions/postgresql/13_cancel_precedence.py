@@ -9,7 +9,15 @@ import asyncio
 
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
+
+
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
+
+
+class ExampleResource(PostgresResource[ExampleDataSource]):
+    """A PostgreSQL resource that works through the example's data source."""
 
 
 class RecordingConnection:
@@ -68,7 +76,7 @@ async def main():
     started = asyncio.Event()
     async def work():
         """Wait with an intentionally unfinished transaction."""
-        async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+        async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
             await connections["db"].begin()
             started.set()
             await asyncio.Event().wait()

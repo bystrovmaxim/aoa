@@ -754,7 +754,7 @@ class OrderLineDetailEntity(BaseDetailEntity):
 
 Every relationship must have a mirror on the other side — declared via `Inverse(TargetClass, "field_name")`. The coordinator at startup verifies that both sides are consistent in type and cardinality. A mismatch is a build error before the first request.
 
-`NoInverse()` is an explicit exception: the referenced entity keeps no field pointing back. Both ends of every relation are stored by one resource — a relation is a join, and a join exists only inside one database; a link across resources is refused when the model is built.
+`NoInverse()` is an explicit exception: the referenced entity keeps no field pointing back. Both ends of every relation live in one database — a relation is a join, and a join exists only inside one database. Resources of one database name the same data source (`BaseStorage[ShopDataSource]`), and their entities may relate; a resource that names none keeps its relations to itself, and a link across databases is refused when the model is built.
 
 ### Lifecycle
 

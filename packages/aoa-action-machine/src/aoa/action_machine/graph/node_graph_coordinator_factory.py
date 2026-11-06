@@ -24,6 +24,7 @@ from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordi
 from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.inspectors.action_graph_node_inspector import ActionGraphNodeInspector
 from aoa.action_machine.graph.inspectors.application_graph_node_inspector import ApplicationGraphNodeInspector
+from aoa.action_machine.graph.inspectors.data_source_graph_node_inspector import DataSourceGraphNodeInspector
 from aoa.action_machine.graph.inspectors.domain_graph_node_inspector import DomainGraphNodeInspector
 from aoa.action_machine.graph.inspectors.entity_graph_node_inspector import EntityGraphNodeInspector
 from aoa.action_machine.graph.inspectors.event_graph_node_inspector import EventGraphNodeInspector
@@ -48,6 +49,7 @@ def all_axis_graph_node_inspectors() -> list[BaseGraphNodeInspector[Any]]:
         RoleGraphNodeInspector(),
         DomainGraphNodeInspector(),
         ApplicationGraphNodeInspector(),
+        DataSourceGraphNodeInspector(),
         ResourceGraphNodeInspector(),
         EntityGraphNodeInspector(),
         ActionGraphNodeInspector(),

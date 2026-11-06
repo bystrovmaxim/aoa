@@ -37878,25 +37878,27 @@
       "type": "@connection"
     },
     {
-      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@depends|aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource",
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@depends|aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
       "is_dag": true,
       "properties": {
-        "description": "Payment gateway"
+        "description": "Charge through billing: its gateway is billing's own",
+        "mode": "include"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
-      "target_id": "aoa.demo.model.billing.resources.payment_gateway.PaymentGatewayResource",
+      "target_id": "aoa.demo.model.billing.actions.invoice_settle.InvoiceSettleAction",
       "type": "@depends"
     },
     {
-      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@depends|aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction|@depends|aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
       "is_dag": true,
       "properties": {
-        "description": "Notifier via factory"
+        "description": "Notify through messaging: its gateway is messaging's own",
+        "mode": "include"
       },
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.actions.checkout_submit.CheckoutSubmitAction",
-      "target_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "target_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
       "type": "@depends"
     },
     {
@@ -95075,5 +95077,5 @@
       "type": "Domain"
     }
   ],
-  "schema_version": "1.6"
+  "schema_version": "1.7"
 }

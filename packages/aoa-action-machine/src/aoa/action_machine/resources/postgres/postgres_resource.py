@@ -11,9 +11,20 @@ backed by ``asyncpg``. It performs direct database operations: connect,
 transaction control, and SQL execution.
 
 One resource is one unit of work. It holds **at most one connection**, it takes
-that connection in ``open()`` — from a pool it was given, or from the driver
-when it was built with connection parameters — and it gives the connection back
-in ``close()``. Two concurrent callers never share a connection, which is what
+that connection in ``open()`` — from its data source, or from the driver when it
+was built with connection parameters — and it gives the connection back in
+``close()``.
+
+A resource works one of two ways, never both:
+
+- **with its own connection**: ``PostgresResource(connection_params={...})`` opens a
+  connection per unit of work and closes it; there is no pool, and the resource names
+  no data source;
+- **through a data source**: a resource that names one —
+  ``class OrdersResource(PostgresResource[ShopDataSource])`` — is built with
+  ``data_source=`` and takes a connection from that data source's pool.
+
+Two concurrent callers never share a connection, which is what
 keeps their transactions apart.
 
 Connection-state policy for child actions is enforced by
@@ -27,7 +38,7 @@ ARCHITECTURE / DATA FLOW
          |
          v
     PostgresResource
-      | open()    -> pool.acquire(timeout=acquire_timeout) | asyncpg.connect(...)
+      | open()    -> data_source.acquire() | asyncpg.connect(...)
       | begin()   -> "BEGIN"      (opens the transaction flag)
       | _execute() -> a statement, for a subclass
       | _fetchrow()-> the first row, for a subclass
@@ -35,7 +46,7 @@ ARCHITECTURE / DATA FLOW
       | _fetchval()-> one value, for a subclass
       | commit()  -> "COMMIT" or rollback when rollup=True (closes the flag)
       | rollback()-> "ROLLBACK"   (closes the flag)
-      | close()   -> pool.release(conn) | conn.close()
+      | close()   -> data_source.release(conn) | conn.close()
          |
          v
     PostgreSQL server
@@ -55,7 +66,7 @@ CLOSING WITH A TRANSACTION OPEN (FAIL FAST)
 ``begin()`` opens a transaction and ``commit()`` / ``rollback()`` close it; the
 resource tracks that with ``_in_transaction``. A ``close()`` that finds the
 transaction still open does not lean on the driver's own rollback: it issues
-``ROLLBACK`` itself, returns the connection to its pool or closes it, and then
+``ROLLBACK`` itself, returns the connection to its data source or closes it, and then
 raises ``TransactionLeftOpenError``.
 
 The raise is the signal that the caller's code must commit or roll back before
@@ -70,60 +81,64 @@ from __future__ import annotations
 from typing import Any
 
 import asyncpg
+from typing_extensions import TypeVar
 
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
 from aoa.action_machine.exceptions.handle_error import HandleError
 from aoa.action_machine.exceptions.transaction_left_open_error import TransactionLeftOpenError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.resources.postgres.postgres_data_source import PostgresDataSource
 from aoa.action_machine.resources.sql import SqlResource
-from aoa.action_machine.resources.sql.pool_protocol import PoolProtocol
+
+TPostgresDataSource_co = TypeVar("TPostgresDataSource_co", bound=PostgresDataSource, default=PostgresDataSource, covariant=True)
+"""The PostgreSQL data source a resource names; one that names none leaves it at its default."""
 
 
 @exclude_graph_model
-class PostgresResource(SqlResource):
+class PostgresResource(SqlResource[TPostgresDataSource_co]):
     """
     AI-CORE-BEGIN
         ROLE: Concrete SQL manager for Postgres runtime operations.
-        CONTRACT: Built from connection parameters or from a pool — exactly one; open/begin/commit/rollback/close over asyncpg, and its subclasses run statements and reads through the protected ``_execute``, ``_fetchrow``, ``_fetch`` and ``_fetchval`` — one per driver answer.
-        INVARIANTS: Holds at most one connection, only for its own unit of work; never closes the pool; commit uses rollback when rollup=True; closing with a transaction open rolls it back, returns the connection, then raises ``TransactionLeftOpenError``.
+        CONTRACT: Built from connection parameters or from the data source it names — exactly one; open/begin/commit/rollback/close over asyncpg, and its subclasses run statements and reads through the protected ``_execute``, ``_fetchrow``, ``_fetch`` and ``_fetchval`` — one per driver answer.
+        INVARIANTS: Holds at most one connection, only for its own unit of work; never closes its data source's pool; commit uses rollback when rollup=True; closing with a transaction open rolls it back, returns the connection, then raises ``TransactionLeftOpenError``.
         AI-CORE-END
     """
-
-    acquire_timeout: float | None = 30.0
-    """Wait bound for a connection from the pool; stated here, applied at ``acquire``."""
 
     def __init__(
         self,
         connection_params: dict[str, Any] | None = None,
         *,
-        pool: PoolProtocol | None = None,
+        data_source: PostgresDataSource | None = None,
         rollup: bool = False,
     ) -> None:
         """
         Initialize PostgreSQL connection manager from exactly one of two forms.
 
         Args:
-            connection_params: parameters passed to ``asyncpg.connect()``; ``None`` when a pool is given.
-            pool: a ready pool to borrow one connection from; ``None`` when the resource opens its own.
+            connection_params: parameters passed to ``asyncpg.connect()``; ``None`` when the resource works through a data source.
+            data_source: the data source this resource names, to take connections from; ``None`` when it opens its own.
             rollup: when True, ``commit()`` performs rollback instead.
 
         Raises:
             ConnectionValidationError: if both forms, or neither, are given.
+            DataSourceDeclarationError: if the resource names a data source and is not given an instance of it,
+                or names none and is given one.
         """
         super().__init__(rollup=rollup)
-        if (connection_params is None) == (pool is None):
+        if (connection_params is None) == (data_source is None):
             raise ConnectionValidationError(
-                "PostgresResource needs exactly one of connection_params and pool; "
-                f"got connection_params={connection_params!r}, pool={pool!r}."
+                f"{type(self).__name__} needs exactly one of connection_params and data_source; "
+                f"got connection_params={connection_params!r}, data_source={data_source!r}."
             )
+        self._check_data_source(data_source)
         self._connection_params: dict[str, Any] | None = connection_params
-        self._pool: PoolProtocol | None = pool
+        self._data_source: PostgresDataSource | None = data_source
         self._conn: asyncpg.Connection[asyncpg.Record] | None = None
         self._in_transaction: bool = False
 
     async def open(self) -> None:
         """
-        Take this unit of work's connection — from the pool, or from the driver.
+        Take this unit of work's connection — from the data source, or from the driver.
 
         Idempotent: a resource that already holds a connection keeps it.
 
@@ -133,8 +148,8 @@ class PostgresResource(SqlResource):
         if self._conn is not None:
             return
         try:
-            if self._pool is not None:
-                self._conn = await self._pool.acquire(timeout=self.acquire_timeout)
+            if self._data_source is not None:
+                self._conn = await self._data_source.acquire()
             else:
                 self._conn = await asyncpg.connect(**(self._connection_params or {}))
         except Exception as e:
@@ -190,7 +205,7 @@ class PostgresResource(SqlResource):
 
     async def close(self) -> None:
         """
-        Give this unit of work's connection back — to the pool, or closed when it is its own.
+        Give this unit of work's connection back — to the data source, or closed when it is its own.
 
         Harmless when no connection is held, so a second close is silent and never
         returns the same connection twice.
@@ -211,8 +226,8 @@ class PostgresResource(SqlResource):
                 except Exception as e:
                     raise HandleError(f"ROLLBACK on close failed: {e}") from e
         finally:
-            if self._pool is not None:
-                await self._pool.release(conn)
+            if self._data_source is not None:
+                await self._data_source.release(conn)
             else:
                 await conn.close()
         if leaked:

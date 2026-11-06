@@ -126,8 +126,9 @@ show both direct calls and automatic wrapping by box.run.
 ## If the implementation uses PostgreSQL
 
 Choose `PostgresResource(connection_params, *, rollup=False)` for an owned connection
-or `PostgresResource(pool=pool, rollup=False)` for a borrowed one. Never give both
-sources or neither. Set acquire_timeout on the concrete resource if the default
+or `OrdersResource(data_source=shop, rollup=False)` for one taken from the pool of the
+data source the resource names (`class OrdersResource(PostgresResource[ShopDataSource])`).
+Never give both sources or neither. Set acquire_timeout on the data source if the default
 30-second borrowing wait is inappropriate. The pool's capacity belongs to its
 creation at service startup; the per-call resource never closes it.
 

@@ -34,7 +34,7 @@ ARCHITECTURE / DATA FLOW
     test
       │  creates one resource per unit of work, from one shared pool
       v
-    PostgresResource(pool=…) ──open()──> FakeConnection ──release──> FakePool
+    pooled(pool) — PostgresResource over a data source ──open()──> FakeConnection ──release──> FakePool
       │                                    │
       │                                    └── one operation at a time
       └── the test itself plays the boundary: open, use, close in a finally
@@ -51,6 +51,7 @@ import pytest
 from aoa.action_machine.exceptions import ConnectionValidationError, TransactionLeftOpenError
 from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 
+from ...support.fake_data_source import FakeDataSource, PooledResource, pooled
 from ...support.fake_pool import FakePool, InterfaceError
 
 CONCURRENT_UNITS = 30
@@ -69,7 +70,7 @@ async def _unit_of_work(
     ``opened`` is set once the resource holds its connection, so a test can act at
     a known point; ``gate`` lets a test hold a unit inside its transaction.
     """
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     try:
         if opened is not None:
@@ -88,19 +89,19 @@ async def _unit_of_work(
 
 
 def test_construction_has_exactly_the_documented_shape() -> None:
-    """No substitution parameter and no positional pool: exactly the two forms plus rollup."""
+    """No substitution parameter and no positional data source: exactly the two forms plus rollup."""
     params = inspect.signature(PostgresResource.__init__).parameters
 
-    assert list(params) == ["self", "connection_params", "pool", "rollup"]
+    assert list(params) == ["self", "connection_params", "data_source", "rollup"]
     assert params["connection_params"].default is None
-    assert params["pool"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert params["data_source"].kind is inspect.Parameter.KEYWORD_ONLY
     assert params["rollup"].kind is inspect.Parameter.KEYWORD_ONLY
 
 
 def test_construction_rejects_both_forms_at_once() -> None:
-    """A resource with a connection description *and* a pool is a construction error."""
-    with pytest.raises(ConnectionValidationError):
-        PostgresResource({"dsn": "postgresql://example"}, pool=FakePool())
+    """A resource with a connection description *and* a data source is a construction error."""
+    with pytest.raises(ConnectionValidationError, match="exactly one of connection_params and data_source"):
+        PooledResource({"dsn": "postgresql://example"}, data_source=FakeDataSource(pool=FakePool()))
 
 
 def test_construction_rejects_neither_form() -> None:
@@ -109,10 +110,10 @@ def test_construction_rejects_neither_form() -> None:
         PostgresResource()
 
 
-def test_pool_cannot_be_passed_positionally() -> None:
-    """The pool is the second form, and a keyword keeps the two from being confused."""
+def test_data_source_cannot_be_passed_positionally() -> None:
+    """The data source is the second form, and a keyword keeps the two from being confused."""
     with pytest.raises(TypeError):
-        PostgresResource({"dsn": "postgresql://example"}, FakePool())  # type: ignore[misc]
+        PooledResource({"dsn": "postgresql://example"}, FakeDataSource(pool=FakePool()))  # type: ignore[misc]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -162,7 +163,7 @@ async def test_two_concurrent_transactions_do_not_interleave() -> None:
     barrier = asyncio.Barrier(2)
 
     async def transaction(tag: str) -> None:
-        resource = PostgresResource(pool=pool)
+        resource = pooled(pool)
         await resource.open()
         try:
             await resource.begin()
@@ -197,7 +198,7 @@ async def test_a_unit_of_work_that_raises_still_returns_its_connection() -> None
         """Raised by the unit of work under test."""
 
     async def failing_unit() -> None:
-        resource = PostgresResource(pool=pool)
+        resource = pooled(pool)
         await resource.open()
         try:
             await resource._execute("SELECT 1")
@@ -246,7 +247,7 @@ async def test_a_cancelled_unit_of_work_still_returns_its_connection() -> None:
 async def test_close_with_a_transaction_open_returns_the_connection_then_raises() -> None:
     """Rollback, return, and only then the violation — fail-fast never costs a connection."""
     pool = FakePool(min_size=0, max_size=1, timeout=1.0)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     await resource.begin()
     await resource._execute("INSERT")
@@ -262,7 +263,7 @@ async def test_close_with_a_transaction_open_returns_the_connection_then_raises(
 async def test_a_second_close_is_silent_and_returns_nothing_twice() -> None:
     """The resource is empty after the first close, so the second one has nothing to say."""
     pool = FakePool(min_size=0, max_size=1, timeout=1.0)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     await resource.begin()
 
@@ -276,7 +277,7 @@ async def test_a_second_close_is_silent_and_returns_nothing_twice() -> None:
 async def test_a_committed_transaction_leaves_nothing_to_report() -> None:
     """Committing closes the transaction flag, so closing afterwards is silent."""
     pool = FakePool(min_size=0, max_size=1, timeout=1.0)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     await resource.begin()
     await resource.commit()
@@ -288,7 +289,7 @@ async def test_a_committed_transaction_leaves_nothing_to_report() -> None:
 async def test_a_rollup_commit_closes_the_flag_through_rollback() -> None:
     """With rollup the commit is a rollback, and it ends the transaction just the same."""
     pool = FakePool(min_size=0, max_size=1, timeout=1.0)
-    resource = PostgresResource(pool=pool, rollup=True)
+    resource = pooled(pool, rollup=True)
     await resource.open()
     await resource.begin()
     await resource.commit()

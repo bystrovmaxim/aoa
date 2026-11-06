@@ -14,7 +14,7 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 from aoa.action_machine.resources.sql import WrapperSqlResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -89,10 +89,14 @@ class NotesDomain(BaseDomain):
 class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
+@meta(description="The notes database")
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
+
+
 @meta(description="SQL statements for the notes example", domain=NotesDomain)
-class NotesResource(PostgresResource):
+class NotesResource(PostgresResource[ExampleDataSource]):
     """Use the standard PostgreSQL lifecycle."""
-    acquire_timeout = 1.0
 
     async def add_note(self, text: str) -> str:
         """Write one note through the driver's statement helper."""
@@ -161,7 +165,7 @@ class ParentAction(BaseAction[EmptyParams, StatusResult]):
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
         assert result.status == "OK; close refused"
         assert len(pool.held) == 1

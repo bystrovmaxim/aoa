@@ -19,18 +19,28 @@ pip install "aoa-action-machine[postgres]"
 ```
 
 ```python
-# Fragment: one part of an example; `pool` comes from the code around it.
-from aoa.action_machine.resources.postgres import PostgresResource
+# Fragment: one part of an example; `shop` is the data source the application opened at startup.
+from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 
-# One connection owned by this resource:
+# One connection owned by this resource, no pool:
 db = PostgresResource({"dsn": "postgresql://user:password@localhost/shop"})
 
-# Alternatively, one connection borrowed from an existing application pool:
-db = PostgresResource(pool=pool)
+# Alternatively, a resource that works through a data source and its pool:
+@meta(description="Main shop database")
+class ShopDataSource(PostgresDataSource): ...
+
+class OrdersResource(PostgresResource[ShopDataSource]): ...
+
+db = OrdersResource(data_source=shop)
 ```
 
-These are alternative construction forms. Supply exactly one source. `pool` and
-`rollup` are keyword-only arguments. Construction is synchronous and does not
+These are alternative construction forms. Supply exactly one source. A resource
+that names a data source as its type argument takes `data_source=` and an instance
+of that class; a resource that names none takes connection parameters. A pool lives
+only in a data source: several resources of one database share it, and entities of
+those resources may relate to each other. `data_source` and `rollup` are
+keyword-only arguments. Construction is synchronous and does not
 connect; `await db.open()` takes the connection. `await db.close()` releases it.
 
 The SQL resource contract provides `open`, `begin`, `commit`, `rollback` and
@@ -79,10 +89,18 @@ Use the real PostgresResource with a small recording pool. Only the external dat
 
 ```python
 import asyncio
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.exceptions import HandleError, TransactionLeftOpenError
+
+
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
+
+
+class ExampleResource(PostgresResource[ExampleDataSource]):
+    """A PostgreSQL resource that works through the example's data source."""
 
 class RecordingConnection:
     """Record commands; do not parse SQL or simulate database storage."""
@@ -137,7 +155,7 @@ class RecordingPool:
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    resource = PostgresResource(pool=pool)
+    resource = ExampleResource(data_source=ExampleDataSource(pool=pool))
     print("after construction:", len(pool.held))
     await resource.open()
     assert len(pool.held) == 1
@@ -166,42 +184,42 @@ Construction takes no connection. open borrows one; close returns it. Only the a
 
 ## The pool: one connection per unit of work
 
-A pool is a service-owned object. In a real startup hook, create it with explicit
-capacity and close it in the corresponding shutdown path. This configuration
-fragment requires a reachable database; the runnable service-lifetime example
-uses a recording pool instead.
+A pool lives in a data source, and the data source is a service-owned object. In a
+real startup hook, open it with explicit capacity and close it in the corresponding
+shutdown path. This configuration fragment requires a reachable database; the
+runnable service-lifetime example uses a recording pool instead.
 
 ```python
+# Fragment: `holder` and `ShopDataSource` are defined around it.
 import os
-import asyncpg
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app):
-    pool = await asyncpg.create_pool(
-        os.environ["APP_POSTGRES_DSN"], min_size=1, max_size=10,
-    )
-    holder.pool = pool
-    try:
-        yield
-    finally:
-        await pool.close()
-        holder.pool = None
+    async with ShopDataSource(os.environ["APP_POSTGRES_DSN"], min_size=1, max_size=10) as shop:
+        holder.data_source = shop
+        try:
+            yield
+        finally:
+            holder.data_source = None
 ```
 
-Here `holder` is the application-owned holder defined in the
+Here `holder` is the application-owned holder of the
 [complete service example](../../examples/step_19_connections/16_pool_lifespan.ipynb).
-Register `PerCallConnection(lambda: NotesResource(pool=holder.require()),
+Register `PerCallConnection(lambda: OrdersResource(data_source=holder.require()),
 lambda resource: resource.close())` on the route, then pass the hook to
 `adapter.build(lifespan=lifespan)`.
 
-The pool's maximum size limits simultaneous borrowers. The resource's
-`acquire_timeout` limits waiting for a free connection; the default is 30 seconds.
-Override it on a resource subclass when the application's policy differs.
-The resource passes it to `pool.acquire(timeout=...)`. A connection-establishment
-timeout passed to `create_pool` is not this borrowing timeout. The pool interface
-expected by AOA is `PoolProtocol`: acquire an awaitable connection, release it,
-and close the pool. The application remains the pool's owner.
+Given a DSN, `PostgresDataSource` creates the pool with `asyncpg.create_pool` when
+it opens and closes it when it closes. Given a ready pool — `pool=`, one the
+application made itself or a test's fake — it uses that pool and leaves closing it
+to whoever made it. The pool's maximum size limits simultaneous borrowers. The data
+source's `acquire_timeout` limits waiting for a free connection; the default is 30
+seconds. Override it on your data source class when the application's policy
+differs. The data source passes it to `pool.acquire(timeout=...)`. A
+connection-establishment timeout passed to `create_pool` is not this borrowing
+timeout. A given pool must offer what AOA expects of one, `PoolProtocol`: acquire an
+awaitable connection, release it, and close the pool.
 
 The statement examples use this small subclass. `add_note` is the method
 called by application code; only its implementation calls `_execute`.
@@ -232,7 +250,7 @@ arrivals = []
 async def work(label):
     """Hold one resource until the other call has also opened."""
     async with connection_scope({"db": PerCallConnection(
-        lambda: NotesResource(pool=pool), lambda resource: resource.close(),
+        lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close(),
     )}) as connections:
         arrivals.append(label)
         if len(arrivals) == 2:
@@ -272,12 +290,14 @@ The following is the body of `main()` from the standalone example; the linked fi
 
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
-class QuickResource(PostgresResource):
+class QuickDataSource(ExampleDataSource):
     """Use a short wait so this failure is quick to reproduce."""
     acquire_timeout = 0.01
+class QuickResource(PostgresResource[QuickDataSource]):
+    """A resource that works through the quick data source."""
 pool = RecordingPool()
-first = PostgresResource(pool=pool)
-second = QuickResource(pool=pool)
+first = ExampleResource(data_source=ExampleDataSource(pool=pool))
+second = QuickResource(data_source=QuickDataSource(pool=pool))
 await first.open()
 try:
     await second.open()
@@ -299,7 +319,7 @@ Observed output:
 HandleError caused by TimeoutError
 ```
 
-acquire_timeout bounds waiting for a free pool connection. PostgresResource wraps the pool failure in HandleError and preserves its cause. The pool’s size and the wait duration are different settings.
+The data source's acquire_timeout bounds waiting for a free pool connection. PostgresResource wraps the pool failure in HandleError and preserves its cause. The pool’s size and the wait duration are different settings.
 
 ## A resource can own its connection without a pool
 
@@ -334,7 +354,7 @@ No network call occurred in this teaching example. In an application, supplying 
 
 ## Choose exactly one connection source
 
-A resource cannot both borrow and own its connection. Choose one source.
+A resource cannot both work through a data source and own its connection. Choose one source.
 
 [Python](../../examples/extensions/postgresql/09_both_sources.py) · [Notebook](../../examples/extensions/postgresql/09_both_sources.ipynb)
 
@@ -343,7 +363,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
-    PostgresResource({"dsn": "example"}, pool=RecordingPool())
+    ExampleResource({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
 except ConnectionValidationError:
     print("ConnectionValidationError")
 else:
@@ -356,7 +376,7 @@ Observed output:
 ConnectionValidationError
 ```
 
-A resource cannot both borrow and own its connection. Choose one source. The check happens during construction, before open and before any database access.
+A resource cannot both work through a data source and own its connection. Choose one source. The check happens during construction, before open and before any database access.
 
 ## Choose exactly one connection source
 
@@ -395,7 +415,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-db = PostgresResource(pool=pool)
+db = ExampleResource(data_source=ExampleDataSource(pool=pool))
 await db.open()
 await db.open()
 assert len(pool.held) == 1
@@ -437,7 +457,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
     db = connections["db"]
     await db.begin()
     await db.add_note("hello")
@@ -469,7 +489,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         db = connections["db"]
         await db.begin()
         try:
@@ -506,7 +526,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesResource(pool=pool, rollup=True), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesResource(data_source=ExampleDataSource(pool=pool), rollup=True), lambda resource: resource.close())}) as connections:
     db = connections["db"]
     await db.begin()
     await db.add_note("work")
@@ -543,7 +563,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-db = PostgresResource(pool=pool)
+db = ExampleResource(data_source=ExampleDataSource(pool=pool))
 await db.open()
 await db.begin()
 try:
@@ -581,7 +601,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         await connections["db"].begin()
         raise ValueError("work failed")
 except TransactionLeftOpenError as error:
@@ -615,7 +635,7 @@ pool = RecordingPool()
 started = asyncio.Event()
 async def work():
     """Wait with an intentionally unfinished transaction."""
-    async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         await connections["db"].begin()
         started.set()
         await asyncio.Event().wait()
@@ -667,7 +687,7 @@ connection = FailingCommitConnection(1)
 pool.connections = [connection]
 pool.free.put_nowait(connection)
 try:
-    async with connection_scope({"db": PerCallConnection(lambda: PostgresResource(pool=pool), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: ExampleResource(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
         await connections["db"].begin()
         await connections["db"].commit()
 except TransactionLeftOpenError as error:
@@ -702,7 +722,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 pool = RecordingPool()
-resource = NotesResource(pool=pool)
+resource = NotesResource(data_source=ExampleDataSource(pool=pool))
 await resource.open()
 connection = pool.connections[0]
 
@@ -772,10 +792,15 @@ Before, a per-call declaration supplied only a factory. It must now also state
 cleanup. Change `PerCallConnection(factory=make_resource)` to
 `PerCallConnection(factory=make_resource, finalize=lambda resource: resource.close())`.
 If the factory used to return one global PostgreSQL resource, move resource
-construction into the factory and keep only the pool global to the application.
+construction into the factory and keep only the data source global to the application.
+
+A resource that was given `pool=` now names a data source: declare a
+`PostgresDataSource` subclass, open it at startup over the same pool or DSN, derive
+the resource from `PostgresResource[YourDataSource]` and build it with
+`data_source=`. Move an `acquire_timeout` from the resource to the data source.
 
 Replace a positional rollup argument with `rollup=True`. Choose either
 `PostgresResource(connection_params, rollup=True)` or
-`PostgresResource(pool=pool, rollup=True)`. Avoid reaching through a resource to close
+`OrdersResource(data_source=shop, rollup=True)`. Avoid reaching through a resource to close
 its private connection: call close on the resource you own. Nested actions must not
 call it; their wrapper will refuse.

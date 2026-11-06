@@ -23,6 +23,7 @@ from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNo
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
 from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependencyError
+from aoa.action_machine.exceptions.data_source_declaration_error import DataSourceDeclarationError
 from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
 from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
@@ -80,6 +81,7 @@ __all__ = [
     "ConnectionValidationError",
     "ContextAccessError",
     "CyclicDependencyError",
+    "DataSourceDeclarationError",
     "DeclarationStructureError",
     "DecoratorArgumentTypeError",
     "DecoratorArgumentValueError",

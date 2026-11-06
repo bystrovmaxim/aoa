@@ -41,11 +41,11 @@ is handed for the key `identity`:
 | Mode | When it is chosen | What is supplied |
 | --- | --- | --- |
 | in memory | `AOA_DEMO_POSTGRES_DSN` is unset | `IdentityStoreStub` — no database, no driver, nothing to close |
-| over a pool | the variable names a database | `PerCallConnection(factory=…IdentityStore(pool=…), finalize=…close)` |
+| over a pool | the variable names a database | `PerCallConnection(factory=…IdentityStore(data_source=…), finalize=…close)` |
 
 In the pooled mode the store is created for one call, opened by the boundary before
 the run and closed after it — on success, on failure and on cancellation alike. The
-connection goes back to the pool; the pool itself is never closed by the resource.
+connection goes back to `IdentityDataSource`'s pool; the pool itself is never closed by the resource.
 
 ## Running it
 
@@ -72,10 +72,10 @@ uv run python packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_mcp_servic
 
 ## Where the bounds are stated
 
-- the pool's size: `min_size=1, max_size=10` where the pool is created, in
+- the pool's size: `min_size=1, max_size=10` where the data source is created, in
   `fastapi_mcp_services/infrastructure.py`;
-- the wait for a free connection: `IdentityStore.acquire_timeout = 30.0` on the
-  resource, because `create_pool` has no such parameter — a `timeout=` there would
+- the wait for a free connection: `IdentityDataSource.acquire_timeout = 30.0` on the
+  data source, because `create_pool` has no such parameter — a `timeout=` there would
   bound connecting, not waiting.
 
 ## Tests

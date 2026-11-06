@@ -55,12 +55,13 @@ wheels = [
 
 [[package]]
 name = "aoa-action-machine"
-version = "1.1.0b1"
+version = "1.2.0b1"
 source = { editable = "packages/aoa-action-machine" }
 dependencies = [
     { name = "jsonschema" },
     { name = "pydantic" },
     { name = "simpleeval" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -85,6 +86,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'jwt'", specifier = ">=2.8,<3" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
+    { name = "typing-extensions", specifier = ">=4.12" },
 ]
 provides-extras = ["postgres", "jwt"]
 
@@ -97,7 +99,7 @@ dev = [
 
 [[package]]
 name = "aoa-demo"
-version = "3.16.0"
+version = "3.17.0"
 source = { editable = "packages/aoa-demo" }
 dependencies = [
     { name = "aoa-action-machine" },
@@ -393,7 +395,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1.0" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29,<8.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13,<6.0" },
-    { name = "maxitor", extras = ["all"], specifier = ">=3.16.0" },
+    { name = "maxitor", extras = ["all"], specifier = ">=3.18.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2.0" },
     { name = "nbclient", marker = "extra == 'dev'", specifier = ">=0.10,<1.0" },
     { name = "pm4py", marker = "extra == 'dev'", specifier = ">=2.7.22.3" },
@@ -2302,15 +2304,15 @@ wheels = [
 
 [[package]]
 name = "maxitor"
-version = "3.16.0"
+version = "3.18.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
     { name = "jsonschema-rs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/cb/d08bce66560682cb7bbeb59c741afeb22d533491c425248be59fd02b8a8e/maxitor-3.16.0.tar.gz", hash = "sha256:bf467a8012cb0bd76ea40c02dcd8e362154f0133a9b71eb119f277bb252c7616", size = 2008687, upload-time = "2026-11-05T21:00:05.812Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/3a/13bdb62f7e9335e149e54414d2950d5a78fb3f4c2e820e4a7a819b6368de/maxitor-3.18.0.tar.gz", hash = "sha256:c49067117c4110013be35c80a4b03db361d0b3802c211cf6fce03ab4facf80fc", size = 2032849, upload-time = "2026-11-06T11:21:00.784Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/ba/12a0da3862499e5f9a02f266ec4b637352c60f85f9ebcd6461cbc33c67ef/maxitor-3.16.0-py3-none-any.whl", hash = "sha256:cc9b6f85c592fde7476f94aa8d59b79ee1cd89573c267795f30f4087afb6b987", size = 1388464, upload-time = "2026-11-05T21:00:04.401Z" },
+    { url = "https://files.pythonhosted.org/packages/94/fe/b7068eb51bba41489ba0e4337639bf98fd22df910085ae5f00914fef2432/maxitor-3.18.0-py3-none-any.whl", hash = "sha256:dd2347f79d1d80285e513193d24dbf41f8e186f4d5d4e951ad61656e395b0824", size = 1394905, upload-time = "2026-11-06T11:20:59.055Z" },
 ]
 
 [package.optional-dependencies]

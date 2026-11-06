@@ -49,7 +49,7 @@ class EditionKindEnumEntity(BaseEnumEntity):
 def _document(properties: dict) -> dict:
     """Return a one-node graph document for the given entity properties."""
     return {
-        "schema_version": "1.6",
+        "schema_version": "1.7",
         "nodes": [
             {
                 "id": "shop.model.EditionKindEnumEntity",

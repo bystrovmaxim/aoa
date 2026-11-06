@@ -14,7 +14,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    PostgresResource(pool=…) ──open()──> FakePool ──> FakeConnection
+    pooled(pool) — PostgresResource over a data source ──open()──> FakePool ──> FakeConnection
                                      │
                                      ├── at max_size the caller waits
                                      ├── the wait ends named, at the stated bound
@@ -30,8 +30,8 @@ import time
 import pytest
 
 from aoa.action_machine.exceptions import HandleError
-from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 
+from ...support.fake_data_source import FakeDataSource, PooledResource, pooled
 from ...support.fake_pool import FakePool, PoolAcquireTimeoutError
 
 pytestmark = pytest.mark.benchmark
@@ -41,7 +41,7 @@ WAIT = 10.0
 
 async def _one_unit(pool: FakePool) -> None:
     """One unit of work against the pool: open, run one statement, close."""
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     try:
         await resource._execute("SELECT 1")
@@ -56,7 +56,7 @@ async def test_a_third_caller_waits_for_a_ceiling_of_two() -> None:
     gates = [asyncio.Event(), asyncio.Event()]
 
     async def holder(index: int) -> None:
-        resource = PostgresResource(pool=pool)
+        resource = pooled(pool)
         await resource.open()
         started[index].set()
         await gates[index].wait()
@@ -86,11 +86,12 @@ async def test_a_third_caller_waits_for_a_ceiling_of_two() -> None:
 async def test_a_wait_that_never_frees_ends_in_a_named_failure() -> None:
     """The wait is bounded by the stated value and ends in the pool's own named failure."""
     pool = FakePool(min_size=0, max_size=1, timeout=30.0)
-    holder = PostgresResource(pool=pool)
+    holder = pooled(pool)
     await holder.open()
 
-    waiter = PostgresResource(pool=pool)
-    waiter.acquire_timeout = 0.05
+    narrow = FakeDataSource(pool=pool)
+    narrow.acquire_timeout = 0.05
+    waiter = PooledResource(data_source=narrow)
     started = time.monotonic()
     with pytest.raises(HandleError) as caught:
         await waiter.open()
@@ -118,7 +119,7 @@ async def test_a_borrowed_connection_returns_to_a_still_open_pool() -> None:
     """The connection goes back and is handed out again; the pool itself stays open."""
     pool = FakePool(min_size=0, max_size=1, timeout=1.0)
 
-    first = PostgresResource(pool=pool)
+    first = pooled(pool)
     await first.open()
     borrowed = pool.borrowed
     await first.close()
@@ -127,7 +128,7 @@ async def test_a_borrowed_connection_returns_to_a_still_open_pool() -> None:
     assert pool.free == 1
     assert pool.closed is False
 
-    second = PostgresResource(pool=pool)
+    second = pooled(pool)
     await second.open()
     assert pool.borrowed == borrowed, "the same connection is handed out again"
     await second.close()

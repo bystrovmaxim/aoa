@@ -48,7 +48,7 @@ from ....support.domain_model.compensate_actions import (
     CompensateTestParams,
     CompensateWithContextAction,
 )
-from ....support.domain_model.domains import TestDomain
+from ....support.domain_model.domains import OrdersDomain
 from ....support.domain_model.services import (
     InventoryServiceResource,
     PaymentService,
@@ -90,7 +90,7 @@ class CtxCheckResult(BaseResult):
     status: str = Field(default="ok", description="Execution Status")
 
 
-@meta(description="Action to check the context in the compensator", domain=TestDomain)
+@meta(description="Action to check the context in the compensator", domain=OrdersDomain)
 @check_roles(GuestRole)
 @depends(
     PaymentServiceResource,

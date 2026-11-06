@@ -59,7 +59,7 @@ wrapping each client type (formal model: external services are resources).
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 
-from .domains import TestDomain
+from .domains import OrdersDomain
 
 
 class PaymentService:
@@ -103,7 +103,7 @@ class PaymentService:
         raise NotImplementedError("PaymentService.refund() is not implemented")
 
 
-@meta(description="Payment service resource (test domain)", domain=TestDomain)
+@meta(description="Payment service resource of the orders domain", domain=OrdersDomain)
 class PaymentServiceResource(ExternalServiceResource[PaymentService]):
     """Resource manager wrapping :class:`PaymentService` for ``@depends`` / mocks."""
 
@@ -130,7 +130,7 @@ class NotificationService:
         raise NotImplementedError("NotificationService.send() is not implemented")
 
 
-@meta(description="Notification service resource (test domain)", domain=TestDomain)
+@meta(description="Notification service resource of the orders domain", domain=OrdersDomain)
 class NotificationServiceResource(ExternalServiceResource[NotificationService]):
     """Resource manager wrapping :class:`NotificationService` for ``@depends`` / mocks."""
 
@@ -174,7 +174,7 @@ class InventoryService:
         raise NotImplementedError("InventoryService.unreserve() is not implemented")
 
 
-@meta(description="Inventory service resource (test domain)", domain=TestDomain)
+@meta(description="Inventory service resource of the orders domain", domain=OrdersDomain)
 class InventoryServiceResource(ExternalServiceResource[InventoryService]):
     """Resource manager wrapping :class:`InventoryService` for ``@depends`` / mocks."""
 
