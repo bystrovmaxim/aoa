@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-06] — The demo's image starts again, and the stand moves without a release
+
+Since the demo's identity resource names a PostgreSQL data source, importing the demo needs the PostgreSQL driver, and its Docker image now installs the `postgres` extra; without it the demo would not start. The stand builds Maxitor and its ports from a gnomon commit rather than a release: `GNOMON_REF` names a merge commit of gnomon's `main`, so moving the stand to a newer Maxitor is one line in `/etc/aoa-stand.env` and a deploy. `aoa-demo` moves to 3.20.1.
+
 ## [2026-11-06] — The demo relates entities of two databases, and two domains share a service
 
 The demo now shows both sides of the logical data model. A chargeback ticket, kept in the billing warehouse, points at the customer order it disputes, kept in the shop database: a relation between entities of two databases, which the model accepts as a fact and leaves to the actions to read. And the card network is one external service of two domains: billing reaches it for the payment events it reports, the storefront to authorize a card, each through a resource of its own on one shared data source, so how the service's connection is shared is the data source's business alone. `aoa-demo` moves to 3.20.0, and [the demo's page](../packages/aoa-demo/README.md) lists its stores.
