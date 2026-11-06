@@ -16,7 +16,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 3: PostgresDataSource
 
-- [ ] T005 `PostgresDataSource`, `PostgresResource(connection_params= | data_source=)`; `pool=` removed; tests with a fake pool
+- [x] T005 `PostgresDataSource`, `PostgresResource(connection_params= | data_source=)`; `pool=` removed; tests with a fake pool
 
 ## Phase 4: The boundary of relations
 

@@ -41,6 +41,7 @@ from aoa.action_machine.exceptions import HandleError
 from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 from aoa.action_machine.resources.sql.wrapper_sql_resource import WrapperSqlResource
 
+from ...support.fake_data_source import pooled
 from ...support.fake_pool import FakeConnection, FakePool
 
 
@@ -52,7 +53,7 @@ async def _open(resource: PostgresResource, pool: FakePool) -> FakeConnection:
 
 async def test_execute_without_a_connection_names_the_failure() -> None:
     """A statement on a resource that never opened is the framework's error, not an attribute error."""
-    resource = PostgresResource(pool=FakePool())
+    resource = pooled(FakePool())
 
     with pytest.raises(HandleError, match="Connection is not open"):
         await resource._execute("SELECT 1")
@@ -60,7 +61,7 @@ async def test_execute_without_a_connection_names_the_failure() -> None:
 
 async def test_fetchrow_without_a_connection_names_the_failure() -> None:
     """A read on a resource that never opened refuses the same way."""
-    resource = PostgresResource(pool=FakePool())
+    resource = pooled(FakePool())
 
     with pytest.raises(HandleError, match="Connection is not open"):
         await resource._fetchrow("SELECT 1")
@@ -69,7 +70,7 @@ async def test_fetchrow_without_a_connection_names_the_failure() -> None:
 async def test_both_helpers_refuse_a_closed_resource() -> None:
     """After closing, the connection is gone and both helpers say so instead of failing obscurely."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     await resource.close()
 
@@ -88,7 +89,7 @@ async def test_a_failing_connection_arrives_as_handle_error_with_its_cause(
         raise RuntimeError("the server went away")
 
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
     monkeypatch.setattr(connection, "execute", refuse)
     monkeypatch.setattr(connection, "fetchrow", refuse)
@@ -103,7 +104,7 @@ async def test_a_failing_connection_arrives_as_handle_error_with_its_cause(
 async def test_parameters_reach_the_connection_positionally() -> None:
     """Both helpers forward the positional parameters the domain method wrote."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     await resource._execute("UPDATE t SET seen = true WHERE id = $1", ("p1",))
@@ -118,7 +119,7 @@ async def test_parameters_reach_the_connection_positionally() -> None:
 async def test_none_and_an_empty_tuple_are_the_same_call() -> None:
     """A statement without parameters takes the same path whether they are omitted or empty."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     await resource._execute("SELECT 1", None)
@@ -130,7 +131,7 @@ async def test_none_and_an_empty_tuple_are_the_same_call() -> None:
 async def test_fetchrow_answers_the_row_and_the_absence_of_one() -> None:
     """The row helper returns what the connection holds, or nothing when it holds nothing."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.row = {"id": "p1"}
@@ -143,7 +144,7 @@ async def test_fetchrow_answers_the_row_and_the_absence_of_one() -> None:
 async def test_fetch_answers_an_empty_list_when_nothing_matches() -> None:
     """A page with no match is an empty list, not nothing, so the caller iterates without a guard."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.rows = []
@@ -154,7 +155,7 @@ async def test_fetch_answers_an_empty_list_when_nothing_matches() -> None:
 async def test_fetch_answers_a_list_of_one_for_a_single_row() -> None:
     """One matching row arrives as a list of one, not as the row itself."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.rows = [{"id": "p1"}]
@@ -168,7 +169,7 @@ async def test_fetch_answers_a_list_of_one_for_a_single_row() -> None:
 async def test_fetch_answers_every_row_in_the_driver_order() -> None:
     """The helper neither sorts nor truncates: each statement answers what the connection returned."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.rows = [{"id": "p1"}, {"id": "p2"}, {"id": "p3"}]
@@ -181,7 +182,7 @@ async def test_fetch_answers_every_row_in_the_driver_order() -> None:
 async def test_fetch_forwards_its_parameters_positionally() -> None:
     """The page path takes its parameters the way the existing pair does."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     await resource._fetch("SELECT id FROM t WHERE id = $1", ("p1",))
@@ -192,7 +193,7 @@ async def test_fetch_forwards_its_parameters_positionally() -> None:
 async def test_fetch_treats_no_parameters_and_an_empty_tuple_alike() -> None:
     """A page without parameters takes the same path whether they are omitted or empty."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     await resource._fetch("SELECT id FROM t", None)
@@ -204,7 +205,7 @@ async def test_fetch_treats_no_parameters_and_an_empty_tuple_alike() -> None:
 async def test_fetchval_answers_the_first_value_not_the_row() -> None:
     """The value helper answers the first column of the first row, not the row and not a tuple."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.row = {"total": 2}
@@ -219,7 +220,7 @@ async def test_fetchval_answers_the_first_value_not_the_row() -> None:
 async def test_fetchval_answers_nothing_when_nothing_matches() -> None:
     """A value with no match is nothing, so the caller decides what absence means."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.value = None
@@ -230,7 +231,7 @@ async def test_fetchval_answers_nothing_when_nothing_matches() -> None:
 async def test_fetchval_cannot_tell_sql_null_from_no_row() -> None:
     """A matched row whose first value is NULL and no row at all answer the same None, by design."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     connection.row = {"total": None}
@@ -243,7 +244,7 @@ async def test_fetchval_cannot_tell_sql_null_from_no_row() -> None:
 async def test_fetchval_forwards_its_parameters_positionally() -> None:
     """The value path takes its parameters the way the other three helpers do."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
 
     await resource._fetchval("SELECT count(*) FROM t WHERE id = $1", ("p1",))
@@ -253,7 +254,7 @@ async def test_fetchval_forwards_its_parameters_positionally() -> None:
 
 async def test_the_new_pair_refuses_a_resource_that_never_opened() -> None:
     """Neither new helper runs without a connection, and neither fails on a missing attribute."""
-    resource = PostgresResource(pool=FakePool())
+    resource = pooled(FakePool())
 
     with pytest.raises(HandleError, match="Connection is not open"):
         await resource._fetch("SELECT 1")
@@ -264,7 +265,7 @@ async def test_the_new_pair_refuses_a_resource_that_never_opened() -> None:
 async def test_the_new_pair_refuses_a_closed_resource() -> None:
     """After closing, the connection is gone and both new helpers say so instead of failing obscurely."""
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     await resource.open()
     await resource.close()
 
@@ -283,7 +284,7 @@ async def test_the_new_pair_wraps_a_driver_failure_with_its_cause(
         raise RuntimeError("the server went away")
 
     pool = FakePool(max_size=1)
-    resource = PostgresResource(pool=pool)
+    resource = pooled(pool)
     connection = await _open(resource, pool)
     monkeypatch.setattr(connection, "fetch", refuse)
     monkeypatch.setattr(connection, "fetchval", refuse)
