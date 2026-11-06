@@ -358,21 +358,17 @@ def _prepare_all_mocks(mocks: dict[type, Any]) -> dict[type, Any]:
 
 def _reset_mock_tree(value: Any) -> None:
     """
-    Clear call history on unittest mocks, including doubles held on resources.
+    Clear call history on unittest mocks, including doubles held by a resource.
 
-    Handles: bare ``Mock`` / ``AsyncMock``, ``ExternalServiceResource.service``,
-    and ``WrapperExternalServiceResource`` chains (``_inner``).
+    Handles a bare ``Mock`` / ``AsyncMock`` passed as a resource, and every mock a
+    resource keeps in its own attributes — a gateway built around a mock client.
     """
     if isinstance(value, Mock):
         value.reset_mock()
         return
-    service = getattr(value, "service", None)
-    if isinstance(service, Mock):
-        service.reset_mock()
-        return
-    inner = getattr(value, "_inner", None)
-    if inner is not None:
-        _reset_mock_tree(inner)
+    for held in getattr(value, "__dict__", {}).values():
+        if isinstance(held, Mock):
+            held.reset_mock()
 
 
 def _reset_all_mocks(mocks: dict[type, Any] | None) -> None:

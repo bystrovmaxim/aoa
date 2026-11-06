@@ -21,7 +21,7 @@ ARCHITECTURE / DATA FLOW
     _prepare_mock(entry)  --priority-->  passthrough | MockAction wrap
               |
               v
-    _reset_all_mocks  ->  mock.reset_mock() on mocks and on ``.service`` / ``_inner`` chains
+    _reset_all_mocks  ->  mock.reset_mock() on mocks and on the mocks a resource holds
 
     TestBench.with_mocks  ->  replaces entire prepared map (not merge)
 
@@ -58,9 +58,6 @@ import pytest
 
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
-from aoa.action_machine.resources.external_service.wrapper_external_service_resource import (
-    WrapperExternalServiceResource,
-)
 from aoa.action_machine.testing.bench import TestBench, _prepare_all_mocks, _prepare_mock, _reset_all_mocks
 from aoa.action_machine.testing.mock_action import MockAction, MockActionResult
 
@@ -200,21 +197,16 @@ class TestResetAllMocks:
 
         assert mock.some_method.call_count == 0
 
-    def test_resets_asyncmock_inside_external_service_resource(self) -> None:
-        """``PaymentGateway(mock)`` — reset targets the client on ``.service``."""
+    def test_resets_the_mock_client_a_gateway_holds(self) -> None:
+        """``PaymentGateway(mock)`` — reset reaches the client the gateway keeps."""
         client = AsyncMock(spec=PaymentClient)
         client.refund.call_count = 1
         _reset_all_mocks({PaymentGateway: PaymentGateway(client)})
         assert client.refund.call_count == 0
 
-    def test_resets_through_wrapper_external_service_resource(self) -> None:
-        """Nested wrapper delegates ``.service`` to the same client mock."""
-        client = AsyncMock(spec=PaymentClient)
-        root = PaymentGateway(client)
-        wrapped = WrapperExternalServiceResource(root)
-        wrapped.service.refund.call_count = 1
-        _reset_all_mocks({PaymentGateway: wrapped})
-        assert client.refund.call_count == 0
+    def test_leaves_a_gateway_without_mocks_alone(self) -> None:
+        """A gateway around a real client has nothing to reset, and nothing fails."""
+        _reset_all_mocks({PaymentGateway: PaymentGateway(PaymentClient())})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
