@@ -6,5 +6,5 @@ One phase = one commit, referencing (#476).
 - [x] T002 Phase 2: the three relations, with descriptions
 - [x] T003 Phase 3: rebuild the graph files; raise the demo's version
 - [ ] T004 Phase 4: the closing check run (CI)
-- [ ] T005 Phase 5: documentation — the demo's pages name the three databases
+- [x] T005 Phase 5: documentation — the demo's pages name the three databases
 - [ ] T006 Phase 6: changelog — one article
