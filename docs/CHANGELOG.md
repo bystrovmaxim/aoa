@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-11-06] — An external service is reached through a gateway with its own methods
+
+Until now an external service was wrapped in `ExternalServiceResource`, which held the service's client and handed it to the action through `.service`: the resource itself was empty, and the action worked with the raw client. Now an external service is reached through a gateway — a `BaseGateway` that is given the client when it is built, keeps it private, and has one method for each thing the domain asks of the service. An action calls `await gateway.charge(...)`, not `gateway.service.charge(...)`, so what a domain asks of a service is written in one place and everything the service answers passes through the gateway.
+
+This is a breaking change, and `aoa-action-machine` moves to 1.4.0b1: `ExternalServiceResource`, its wrapper and its protocol are gone. To migrate, turn each `XResource(ExternalServiceResource[XClient])` into `XGateway(BaseGateway)` with an `__init__` that keeps the client and a method per call your aspects make, and replace `(await box.resolve(XResource)).service.method(...)` with `(await box.resolve(XGateway)).method(...)`. A gateway passes to a nested action as it is. A rollup run refuses a gateway, since a call already made to a service cannot be taken back; the old resource let such a run call the service. In tests, substitute the gateway around a mock client — `TestBench(mocks={XGateway: XGateway(AsyncMock(spec=XClient))})` — and the bench resets that client's calls between runs, as it reset the client of the old resource.
+
+The demo's eight external services — payment, tax quote, ledger archive, search index, pricing feed, notifications, SMTP and webhooks — are gateways now, and `aoa-demo` moves to 3.21.0. [Step 21](tutorials/step-21-resource.md#a-gateway-has-its-own-methods) shows a gateway and its test, and [the primitives page](explanation/architectural-constitution.md) says what a gateway is.
+
 ## [2026-11-06] — The demo's image starts again, and the stand moves without a release
 
 Since the demo's identity resource names a PostgreSQL data source, importing the demo needs the PostgreSQL driver, and its Docker image now installs the `postgres` extra; without it the demo would not start. The stand builds Maxitor and its ports from a gnomon commit rather than a release: `GNOMON_REF` names a merge commit of gnomon's `main`, so moving the stand to a newer Maxitor is one line in `/etc/aoa-stand.env` and a deploy. `aoa-demo` moves to 3.20.1.

@@ -9,7 +9,7 @@ One phase = one commit, referencing (#485). After a phase only its own tests run
 - [x] T005 Phase 5: rebuild the graph files, raise the versions
 - [ ] T006 Phase 6: the closing check run on the pull request, taken to zero
 - [x] T007 Phase 7: documentation — `docs/explanation/architectural-constitution.md`, `docs/tutorials/step-21-resource.md` and `docs/tutorials/step-00-get-started.md` show a gateway with its own methods; the testing page shows substituting one
-- [ ] T008 Phase 8: changelog
+- [x] T008 Phase 8: changelog
 
 ## Dependencies
 
