@@ -116,8 +116,15 @@ _TARGETS = textwrap.dedent(
         description = "Field declaration rules"
 
 
+    from aoa.action_machine.resources import InMemoryDataSource
+
+    @meta(description="Where FieldRulesStorage keeps its rows")
+    class FieldRulesDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the field rules entities", domain=FieldRulesDomain)
-    class FieldRulesStorage(BaseStorage):
+    class FieldRulesStorage(BaseStorage[FieldRulesDataSource]):
         pass
 
     @exclude_graph_model

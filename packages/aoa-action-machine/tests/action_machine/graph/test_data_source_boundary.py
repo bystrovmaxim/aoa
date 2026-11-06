@@ -209,3 +209,19 @@ def test_the_graph_build_lets_a_link_inside_one_data_source_through() -> None:
     ticket = _Node("e.Ticket", "Entity", [_Link("entity_resource", "r.Support"), _Link("entity_relation", "e.Order")])
     order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
     _build(_source("d.Shop"), _resource("r.Orders", "d.Shop"), _resource("r.Support", "d.Shop"), ticket, order)
+
+
+def test_the_graph_build_refuses_a_resource_that_stores_an_entity_without_a_data_source() -> None:
+    """A resource with an ``entity_resource`` edge into it has exactly one ``resource_data_source`` edge."""
+    order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
+    line = _Node("e.Line", "Entity", [_Link("entity_resource", "r.Orders")])
+    with pytest.raises(InvalidGraphError) as error:
+        _build(_resource("r.Orders"), order, line)
+    assert str(error.value) == (
+        "Resource r.Orders stores e.Line, e.Order and has no resource_data_source edge; a resource that stores an entity has exactly one."
+    )
+
+
+def test_the_graph_build_lets_a_resource_that_stores_nothing_go_without_a_data_source() -> None:
+    order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
+    _build(_source("d.Shop"), _resource("r.Orders", "d.Shop"), _resource("r.Mail"), order)

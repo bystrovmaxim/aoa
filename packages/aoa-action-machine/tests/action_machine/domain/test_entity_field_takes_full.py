@@ -23,6 +23,7 @@ from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -33,8 +34,13 @@ class _FullDomain(BaseDomain):
     description = "Entities for the full-entity field tests"
 
 
+@meta(description="Where _FullStorage keeps its rows")
+class _FullDataSource(InMemoryDataSource):
+    """The store _FullStorage works with."""
+
+
 @meta(description="Stores the full entities", domain=_FullDomain)
-class _FullStorage(BaseStorage):
+class _FullStorage(BaseStorage[_FullDataSource]):
     """Hold the full entities."""
 
 

@@ -29,6 +29,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseResult
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -39,8 +40,13 @@ class RoundTripDomain(BaseDomain):
     description = "Read-back model"
 
 
+@meta(description="Where RoundTripStorage keeps its rows")
+class RoundTripDataSource(InMemoryDataSource):
+    """The store RoundTripStorage works with."""
+
+
 @meta(description="Stores the round trip entities", domain=RoundTripDomain)
-class RoundTripStorage(BaseStorage):
+class RoundTripStorage(BaseStorage[RoundTripDataSource]):
     """Hold the round trip entities."""
 
 

@@ -35,6 +35,7 @@ from aoa.action_machine.intents.entity.entity_specialization_intent_resolver imp
     gather_entity_specialization_intent_resolvers,
 )
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -45,8 +46,13 @@ class VocabularyDomain(BaseDomain):
     description = "Vocabulary"
 
 
+@meta(description="Where VocabularyStorage keeps its rows")
+class VocabularyDataSource(InMemoryDataSource):
+    """The store VocabularyStorage works with."""
+
+
 @meta(description="Stores the vocabulary entities", domain=VocabularyDomain)
-class VocabularyStorage(BaseStorage):
+class VocabularyStorage(BaseStorage[VocabularyDataSource]):
     """Hold the vocabulary entities."""
 
 

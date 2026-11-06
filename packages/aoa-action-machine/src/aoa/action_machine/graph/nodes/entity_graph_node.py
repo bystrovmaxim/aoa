@@ -44,6 +44,7 @@ from aoa.action_machine.graph.edges.entity_specialization_graph_edge import (
 )
 from aoa.action_machine.graph.edges.lifecycle_graph_edge import LifeCycleGraphEdge
 from aoa.action_machine.graph.edges.parent_entity_graph_edge import ParentEntityGraphEdge
+from aoa.action_machine.graph.validators.entity_data_source_validator import validate_entity_data_sources
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
 from aoa.action_machine.graph.validators.entity_role_compatibility_validator import validate_entity_role_compatibility
@@ -105,6 +106,7 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         validate_entity_fields([entity_cls])
         validate_entity_inverses([entity_cls])
         validate_entity_role_compatibility([entity_cls])
+        validate_entity_data_sources([entity_cls])
         description = EntityIntentResolver.resolve_description(entity_cls)
         field_edges = EntityFieldGraphEdge.get_entity_field_edges(entity_cls)
         kind = entity_kind_of(entity_cls)

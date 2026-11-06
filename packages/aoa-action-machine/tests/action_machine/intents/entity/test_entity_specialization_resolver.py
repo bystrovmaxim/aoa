@@ -56,6 +56,7 @@ from aoa.action_machine.intents.entity.entity_specialization_intent_resolver imp
     is_specialization_field,
 )
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -64,8 +65,13 @@ class _SDomain(BaseDomain):
     description = "s"
 
 
+@meta(description="Where _SStorage keeps its rows")
+class _SDataSource(InMemoryDataSource):
+    """The store _SStorage works with."""
+
+
 @meta(description="Stores the s entities", domain=_SDomain)
-class _SStorage(BaseStorage):
+class _SStorage(BaseStorage[_SDataSource]):
     """Hold the s entities."""
 
 

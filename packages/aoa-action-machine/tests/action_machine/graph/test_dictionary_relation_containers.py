@@ -33,6 +33,7 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -43,8 +44,13 @@ class ContainerDomain(BaseDomain):
     description = "Containers"
 
 
+@meta(description="Where ContainerStorage keeps its rows")
+class ContainerDataSource(InMemoryDataSource):
+    """The store ContainerStorage works with."""
+
+
 @meta(description="Stores the container entities", domain=ContainerDomain)
-class ContainerStorage(BaseStorage):
+class ContainerStorage(BaseStorage[ContainerDataSource]):
     """Hold the container entities."""
 
 

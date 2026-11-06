@@ -1,13 +1,13 @@
-"""Choose exactly one connection source.
+"""A PostgreSQL resource names its data source.
 
-The resource has no implicit default pool or connection settings. Supply one source.
+A resource that names no data source is refused, even when it is given one: the class says which database it works with.
 
 Run: uv run python examples/extensions/postgresql/10_no_source.py
 """
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresResource
+from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 
 
 class RecordingConnection:
@@ -59,15 +59,19 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-from aoa.action_machine.exceptions import ConnectionValidationError
+from aoa.action_machine.exceptions import DataSourceDeclarationError
+
+
+class ExampleDataSource(PostgresDataSource):
+    """The database of this example: it hands out the recording pool's connections."""
 
 
 async def main():
     """Run this case and verify its observable result."""
     try:
-        PostgresResource()
-    except ConnectionValidationError:
-        print("ConnectionValidationError")
+        PostgresResource(data_source=ExampleDataSource(pool=RecordingPool()))
+    except DataSourceDeclarationError:
+        print("DataSourceDeclarationError")
     else:
         raise AssertionError("Invalid construction was accepted")
 

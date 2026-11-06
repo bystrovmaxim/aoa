@@ -38,6 +38,7 @@ _IMPORTS = textwrap.dedent(
         value,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
         validate_entity_role_compatibility,
     )
@@ -49,8 +50,13 @@ _IMPORTS = textwrap.dedent(
         description = "Adversarial"
 
 
+    @meta(description="Where AdvStorage keeps its rows")
+    class AdvDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the adv entities", domain=AdvDomain)
-    class AdvStorage(BaseStorage):
+    class AdvStorage(BaseStorage[AdvDataSource]):
         pass
     """
 )

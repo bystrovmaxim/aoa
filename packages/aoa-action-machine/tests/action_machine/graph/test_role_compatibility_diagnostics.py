@@ -35,6 +35,7 @@ _IMPORTS = textwrap.dedent(
         value,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError, RoleCompatibilityError
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
     from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
@@ -48,8 +49,13 @@ _IMPORTS = textwrap.dedent(
         description = "Diagnostics"
 
 
+    @meta(description="Where DiagStorage keeps its rows")
+    class DiagDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the diag entities", domain=DiagDomain)
-    class DiagStorage(BaseStorage):
+    class DiagStorage(BaseStorage[DiagDataSource]):
         pass
     """
 )

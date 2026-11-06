@@ -71,6 +71,7 @@ from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -82,8 +83,13 @@ class SchemaDomain(BaseDomain):
     description = "schema"
 
 
+@meta(description="Where SchemaStorage keeps its rows")
+class SchemaDataSource(InMemoryDataSource):
+    """The store SchemaStorage works with."""
+
+
 @meta(description="Stores the schema entities", domain=SchemaDomain)
-class SchemaStorage(BaseStorage):
+class SchemaStorage(BaseStorage[SchemaDataSource]):
     """Hold the schema entities."""
 
 

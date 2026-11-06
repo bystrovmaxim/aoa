@@ -75,17 +75,22 @@ async def test_a_data_source_not_open_hands_out_nothing() -> None:
 
 
 def test_a_resource_that_names_a_data_source_takes_an_instance_of_it() -> None:
-    """Connection parameters, or a data source of another class, are refused by a resource that names one."""
-    with pytest.raises(DataSourceDeclarationError, match="PooledResource works through FakeDataSource: pass data_source= of that class; got none"):
-        PooledResource({"dsn": "postgresql://example"})
-    with pytest.raises(DataSourceDeclarationError, match="got _OtherDataSource"):
+    """A data source of another class is refused by a resource that names one."""
+    with pytest.raises(DataSourceDeclarationError, match="PooledResource works through FakeDataSource: pass data_source= of that class; got _OtherDataSource"):
         PooledResource(data_source=_OtherDataSource(pool=FakePool()))
 
 
-def test_a_resource_that_names_none_takes_no_data_source() -> None:
-    """``PostgresResource`` itself names none: it opens its own connection, and a data source is refused."""
-    PostgresResource({"dsn": "postgresql://example"})
-    with pytest.raises(DataSourceDeclarationError, match="PostgresResource names no data source, so it takes none"):
+def test_connection_parameters_are_not_given_to_a_resource() -> None:
+    """Connection parameters live only in a data source: a resource takes none."""
+    with pytest.raises(TypeError):
+        PooledResource({"dsn": "postgresql://example"})  # type: ignore[misc,call-arg]
+    with pytest.raises(TypeError, match="connection_params"):
+        PooledResource(connection_params={"dsn": "postgresql://example"})  # type: ignore[call-arg]
+
+
+def test_a_resource_that_names_no_data_source_is_refused() -> None:
+    """``PostgresResource`` itself names none, so it is refused even when given a data source."""
+    with pytest.raises(DataSourceDeclarationError, match="PostgresResource names no data source: a PostgreSQL resource names its data source"):
         PostgresResource(data_source=FakeDataSource(pool=FakePool()))
 
 

@@ -33,6 +33,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.langgraph.node_binding import _run_action_node
 
@@ -44,8 +45,13 @@ class _NodeDomain(BaseDomain):
     description = "Entities for the LangGraph node binding test"
 
 
+@meta(description="Where _NodeStorage keeps its rows")
+class _NodeDataSource(InMemoryDataSource):
+    """The store _NodeStorage works with."""
+
+
 @meta(description="Stores the node entities", domain=_NodeDomain)
-class _NodeStorage(BaseStorage):
+class _NodeStorage(BaseStorage[_NodeDataSource]):
     """Hold the node entities."""
 
 

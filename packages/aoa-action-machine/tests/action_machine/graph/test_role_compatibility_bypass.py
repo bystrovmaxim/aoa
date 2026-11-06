@@ -28,6 +28,7 @@ _IMPORTS = textwrap.dedent(
         NoGraphEdge,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
         validate_entity_role_compatibility,
@@ -40,8 +41,13 @@ _IMPORTS = textwrap.dedent(
         description = "Compatibility"
 
 
+    @meta(description="Where CompatStorage keeps its rows")
+    class CompatDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the compat entities", domain=CompatDomain)
-    class CompatStorage(BaseStorage):
+    class CompatStorage(BaseStorage[CompatDataSource]):
         pass
     """
 )

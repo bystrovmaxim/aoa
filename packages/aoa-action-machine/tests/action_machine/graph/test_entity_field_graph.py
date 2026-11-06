@@ -31,6 +31,7 @@ from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNo
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -120,8 +121,13 @@ class ReferenceShopDomain(BaseDomain):
     description = "Reference shop"
 
 
+@meta(description="Where ReferenceShopStorage keeps its rows")
+class ReferenceShopDataSource(InMemoryDataSource):
+    """The store ReferenceShopStorage works with."""
+
+
 @meta(description="Stores the reference shop entities", domain=ReferenceShopDomain)
-class ReferenceShopStorage(BaseStorage):
+class ReferenceShopStorage(BaseStorage[ReferenceShopDataSource]):
     """Hold the reference shop entities."""
 
 

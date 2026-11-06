@@ -49,6 +49,7 @@ from aoa.action_machine.graph.validators.entity_specialization_validator import 
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -57,8 +58,13 @@ class GlobalDomain(BaseDomain):
     description = "global"
 
 
+@meta(description="Where GlobalStorage keeps its rows")
+class GlobalDataSource(InMemoryDataSource):
+    """The store GlobalStorage works with."""
+
+
 @meta(description="Stores the global entities", domain=GlobalDomain)
-class GlobalStorage(BaseStorage):
+class GlobalStorage(BaseStorage[GlobalDataSource]):
     """Hold the global entities."""
 
 

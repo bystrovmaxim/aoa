@@ -27,6 +27,7 @@ _IMPORTS = textwrap.dedent(
         NoInverse,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
     from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -39,8 +40,13 @@ _IMPORTS = textwrap.dedent(
         description = "Entrypoint"
 
 
+    @meta(description="Where EntrypointStorage keeps its rows")
+    class EntrypointDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the entrypoint entities", domain=EntrypointDomain)
-    class EntrypointStorage(BaseStorage):
+    class EntrypointStorage(BaseStorage[EntrypointDataSource]):
         pass
     """
 )

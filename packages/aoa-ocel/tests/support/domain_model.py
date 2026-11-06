@@ -14,6 +14,7 @@ from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -24,8 +25,13 @@ class TestDomain(BaseDomain):
     description = "Test domain"
 
 
+@meta(description="Where TestStorage keeps its rows")
+class TestDataSource(InMemoryDataSource):
+    """The store TestStorage works with."""
+
+
 @meta(description="Stores the test entities", domain=TestDomain)
-class TestStorage(BaseStorage):
+class TestStorage(BaseStorage[TestDataSource]):
     """Hold the test entities."""
 
 

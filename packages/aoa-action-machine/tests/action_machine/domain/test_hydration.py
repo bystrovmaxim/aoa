@@ -29,6 +29,7 @@ from aoa.action_machine.domain import BaseCoreEntity, build
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
@@ -39,8 +40,13 @@ class _HydrationTestDomain(BaseDomain):
     description = "Domain for hydration tests."
 
 
+@meta(description="Where _HydrationTestStorage keeps its rows")
+class _HydrationTestDataSource(InMemoryDataSource):
+    """The store _HydrationTestStorage works with."""
+
+
 @meta(description="Stores the hydration test entities", domain=_HydrationTestDomain)
-class _HydrationTestStorage(BaseStorage):
+class _HydrationTestStorage(BaseStorage[_HydrationTestDataSource]):
     """Hold the hydration test entities."""
 
 

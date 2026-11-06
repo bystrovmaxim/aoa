@@ -37,6 +37,7 @@ from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -50,8 +51,13 @@ class ReferenceDomain(BaseDomain):
     description = "Reference"
 
 
+@meta(description="Where ReferenceStorage keeps its rows")
+class ReferenceDataSource(InMemoryDataSource):
+    """The store ReferenceStorage works with."""
+
+
 @meta(description="Stores the reference entities", domain=ReferenceDomain)
-class ReferenceStorage(BaseStorage):
+class ReferenceStorage(BaseStorage[ReferenceDataSource]):
     """Hold the reference entities."""
 
 
@@ -333,8 +339,15 @@ def _run_hidden_dictionary_refusal() -> str:
             description = "Hidden"
 
 
+        from aoa.action_machine.resources import InMemoryDataSource
+
+        @meta(description="Where HiddenStorage keeps its rows")
+        class HiddenDataSource(InMemoryDataSource):
+            pass
+
+
         @meta(description="Stores the hidden entities", domain=HiddenDomain)
-        class HiddenStorage(BaseStorage):
+        class HiddenStorage(BaseStorage[HiddenDataSource]):
             pass
 
         @exclude_graph_model

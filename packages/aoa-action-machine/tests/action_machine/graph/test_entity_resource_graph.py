@@ -39,6 +39,7 @@ _MODEL = textwrap.dedent(
     from aoa.action_machine.intents.entity import entity
     from aoa.action_machine.intents.meta import meta
     from aoa.action_machine.resources.base_storage import BaseStorage
+    from aoa.action_machine.resources import InMemoryDataSource
 
 
     class StoreDomain(BaseDomain):
@@ -46,8 +47,13 @@ _MODEL = textwrap.dedent(
         description = "Store"
 
 
+    @meta(description="Where StorefrontDatabase keeps its rows")
+    class StorefrontDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Primary relational store", domain=StoreDomain)
-    class StorefrontDatabase(BaseStorage):
+    class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
         pass
 
 
@@ -168,9 +174,14 @@ def _stored(entity_id: str, resource_id: str, *links: BaseGraphEdge) -> _Node:
 
 
 def _build(*nodes: BaseGraphNode[Any]) -> None:
-    """Build a graph of two resources plus ``nodes``."""
-    resources = [_Node("r.StorefrontDatabase", "Resource"), _Node("r.SupportDatabase", "Resource")]
-    NodeGraphCoordinator().build([_Inspector([*resources, *nodes])])
+    """Build a graph of two resources, each on a data source of its own, plus ``nodes``."""
+    application = _Node("app.Application", "Application")
+    sources = [_Node(f"d.{name}", "DataSource", [_Link("application", "app.Application")]) for name in ("Storefront", "Support")]
+    resources = [
+        _Node("r.StorefrontDatabase", "Resource", [_Link("resource_data_source", "d.Storefront")]),
+        _Node("r.SupportDatabase", "Resource", [_Link("resource_data_source", "d.Support")]),
+    ]
+    NodeGraphCoordinator().build([_Inspector([application, *sources, *resources, *nodes])])
 
 
 def test_case_2_5_an_entity_without_the_edge_is_refused() -> None:

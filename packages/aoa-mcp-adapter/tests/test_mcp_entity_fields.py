@@ -41,7 +41,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -56,8 +56,13 @@ class McpShopDomain(BaseDomain):
     description = "Entities carried through MCP"
 
 
+@meta(description="Where McpShopStorage keeps its rows")
+class McpShopDataSource(InMemoryDataSource):
+    """The store McpShopStorage works with."""
+
+
 @meta(description="Stores the mcp shop entities", domain=McpShopDomain)
-class McpShopStorage(BaseStorage):
+class McpShopStorage(BaseStorage[McpShopDataSource]):
     """Hold the mcp shop entities."""
 
 

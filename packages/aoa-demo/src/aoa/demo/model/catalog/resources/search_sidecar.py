@@ -2,10 +2,11 @@
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
 from aoa.demo.model.catalog.domain import CatalogDomain
+from aoa.demo.model.data_sources.catalog_search_data_source import CatalogSearchDataSource
 
 
 @meta(description="Search sidecar index (stub)", domain=CatalogDomain)
-class CatalogSearchSidecar(SqlResource):
+class CatalogSearchSidecar(SqlResource[CatalogSearchDataSource]):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

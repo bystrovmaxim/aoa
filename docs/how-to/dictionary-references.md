@@ -32,6 +32,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class PricingDomain(BaseDomain):
@@ -40,8 +41,13 @@ class PricingDomain(BaseDomain):
     description = "Pricing"
 
 
+@meta(description="Where PricingStorage keeps its rows")
+class PricingDataSource(InMemoryDataSource):
+    """The store PricingStorage works with."""
+
+
 @meta(description="Stores the pricing entities", domain=PricingDomain)
-class PricingStorage(BaseStorage):
+class PricingStorage(BaseStorage[PricingDataSource]):
     """Hold the pricing entities."""
 
 

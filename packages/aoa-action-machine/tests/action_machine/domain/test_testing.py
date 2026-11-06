@@ -26,6 +26,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 from ...support.domain_model.entities import SampleCoreEntity
@@ -50,8 +51,13 @@ class _TestDomain(BaseDomain):
     description = "test domain for make()"
 
 
+@meta(description="Where _TestStorage keeps its rows")
+class _TestDataSource(InMemoryDataSource):
+    """The store _TestStorage works with."""
+
+
 @meta(description="Stores the test entities", domain=_TestDomain)
-class _TestStorage(BaseStorage):
+class _TestStorage(BaseStorage[_TestDataSource]):
     """Hold the test entities."""
 
 

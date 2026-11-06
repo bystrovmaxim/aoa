@@ -23,6 +23,7 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class CompositionDomain(BaseDomain):
@@ -32,8 +33,13 @@ class CompositionDomain(BaseDomain):
     description = "Composition"
 
 
+@meta(description="Where CompositionStorage keeps its rows")
+class CompositionDataSource(InMemoryDataSource):
+    """The store CompositionStorage works with."""
+
+
 @meta(description="Stores the composition entities", domain=CompositionDomain)
-class CompositionStorage(BaseStorage):
+class CompositionStorage(BaseStorage[CompositionDataSource]):
     """Hold the composition entities."""
 
 

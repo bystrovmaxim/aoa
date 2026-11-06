@@ -20,6 +20,7 @@ from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
@@ -32,8 +33,13 @@ class SchemaShopDomain(BaseDomain):
     description = "Schema shop"
 
 
+@meta(description="Where SchemaShopStorage keeps its rows")
+class SchemaShopDataSource(InMemoryDataSource):
+    """The store SchemaShopStorage works with."""
+
+
 @meta(description="Stores the schema shop entities", domain=SchemaShopDomain)
-class SchemaShopStorage(BaseStorage):
+class SchemaShopStorage(BaseStorage[SchemaShopDataSource]):
     """Hold the schema shop entities."""
 
 

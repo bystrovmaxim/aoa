@@ -20,11 +20,6 @@ connection from ``tests.support.fake_pool``: the connection enforces the
 driver's one-operation-at-a-time rule, and the pool records both a high-water
 mark and how many connections are still borrowed.
 
-The resource's other construction form — its own connection from
-``connection_params`` — deliberately has no unit test here: creating that
-connection is the driver's call, and the plan exercises it in the demo and the
-examples rather than by faking the driver.
-
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
@@ -48,7 +43,7 @@ import inspect
 
 import pytest
 
-from aoa.action_machine.exceptions import ConnectionValidationError, TransactionLeftOpenError
+from aoa.action_machine.exceptions import TransactionLeftOpenError
 from aoa.action_machine.resources.postgres.postgres_resource import PostgresResource
 
 from ...support.fake_data_source import FakeDataSource, PooledResource, pooled
@@ -84,36 +79,30 @@ async def _unit_of_work(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# FR-005 / SC-022 — the two construction forms, and nothing else
+# FR-005 / SC-022 — the one construction form: the data source, and rollup
 # ═════════════════════════════════════════════════════════════════════════════
 
 
 def test_construction_has_exactly_the_documented_shape() -> None:
-    """No substitution parameter and no positional data source: exactly the two forms plus rollup."""
+    """A resource is built from its data source alone, by keyword, and rollup."""
     params = inspect.signature(PostgresResource.__init__).parameters
 
-    assert list(params) == ["self", "connection_params", "data_source", "rollup"]
-    assert params["connection_params"].default is None
+    assert list(params) == ["self", "data_source", "rollup"]
     assert params["data_source"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert params["data_source"].default is inspect.Parameter.empty
     assert params["rollup"].kind is inspect.Parameter.KEYWORD_ONLY
 
 
-def test_construction_rejects_both_forms_at_once() -> None:
-    """A resource with a connection description *and* a data source is a construction error."""
-    with pytest.raises(ConnectionValidationError, match="exactly one of connection_params and data_source"):
-        PooledResource({"dsn": "postgresql://example"}, data_source=FakeDataSource(pool=FakePool()))
-
-
-def test_construction_rejects_neither_form() -> None:
+def test_construction_needs_the_data_source() -> None:
     """A resource with no way to reach a connection is a construction error."""
-    with pytest.raises(ConnectionValidationError):
-        PostgresResource()
+    with pytest.raises(TypeError, match="data_source"):
+        PooledResource()  # type: ignore[call-arg]
 
 
 def test_data_source_cannot_be_passed_positionally() -> None:
-    """The data source is the second form, and a keyword keeps the two from being confused."""
+    """The data source is given by keyword."""
     with pytest.raises(TypeError):
-        PooledResource({"dsn": "postgresql://example"}, FakeDataSource(pool=FakePool()))  # type: ignore[misc]
+        PooledResource(FakeDataSource(pool=FakePool()))  # type: ignore[misc]
 
 
 # ═════════════════════════════════════════════════════════════════════════════

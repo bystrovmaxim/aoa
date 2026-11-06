@@ -8,6 +8,7 @@ from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier, va
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class MediaDomain(BaseDomain):
@@ -17,8 +18,13 @@ class MediaDomain(BaseDomain):
     description = "Media"
 
 
+@meta(description="Where MediaStorage keeps its rows")
+class MediaDataSource(InMemoryDataSource):
+    """The store MediaStorage works with."""
+
+
 @meta(description="Stores the media entities", domain=MediaDomain)
-class MediaStorage(BaseStorage):
+class MediaStorage(BaseStorage[MediaDataSource]):
     """Hold the media entities."""
 
 

@@ -5,11 +5,12 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
+from aoa.demo.model.data_sources.settlement_desks_data_source import SettlementDesksDataSource
 from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
 
 
 @meta(description="Stores the settlement desks model (stub)", domain=SettlementDesksDomain)
-class SettlementDesksStorage(BaseStorage):
+class SettlementDesksStorage(BaseStorage[SettlementDesksDataSource]):
     """Hold the settlement desks domain's entities; the demo never opens it."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:

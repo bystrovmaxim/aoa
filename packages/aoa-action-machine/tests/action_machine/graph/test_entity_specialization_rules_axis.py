@@ -38,6 +38,7 @@ from aoa.action_machine.graph.validators.entity_specialization_validator import 
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -46,8 +47,13 @@ class AxisDomain(BaseDomain):
     description = "axis"
 
 
+@meta(description="Where AxisStorage keeps its rows")
+class AxisDataSource(InMemoryDataSource):
+    """The store AxisStorage works with."""
+
+
 @meta(description="Stores the axis entities", domain=AxisDomain)
-class AxisStorage(BaseStorage):
+class AxisStorage(BaseStorage[AxisDataSource]):
     """Hold the axis entities."""
 
 

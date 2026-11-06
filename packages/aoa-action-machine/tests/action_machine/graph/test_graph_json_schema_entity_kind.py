@@ -36,6 +36,7 @@ from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
@@ -48,8 +49,13 @@ class KindShopDomain(BaseDomain):
     description = "Kind shop"
 
 
+@meta(description="Where KindShopStorage keeps its rows")
+class KindShopDataSource(InMemoryDataSource):
+    """The store KindShopStorage works with."""
+
+
 @meta(description="Stores the kind shop entities", domain=KindShopDomain)
-class KindShopStorage(BaseStorage):
+class KindShopStorage(BaseStorage[KindShopDataSource]):
     """Hold the kind shop entities."""
 
 

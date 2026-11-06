@@ -23,6 +23,7 @@ _PREAMBLE = textwrap.dedent(
         validate_entity_role_compatibility,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
+    from aoa.action_machine.resources import InMemoryDataSource
     """
 )
 
@@ -69,8 +70,15 @@ def test_field_only_and_concrete_inverse_receive_the_same_check() -> None:
             description = "Cross 2"
 
 
+        from aoa.action_machine.resources import InMemoryDataSource
+
+        @meta(description="Where CrossStorage keeps its rows")
+        class CrossStorageDataSource(InMemoryDataSource):
+            pass
+
+
         @meta(description="Stores the cross entities", domain=CrossDomain)
-        class CrossStorage(BaseStorage):
+        class CrossStorage(BaseStorage[CrossStorageDataSource]):
             pass
 
         @entity(description="Offer", resource=CrossStorage)
@@ -110,8 +118,13 @@ def test_cross_module_ownership_pair_is_refused() -> None:
             description = "Cross 3"
 
 
+        @meta(description="Where CrossStorage keeps its rows")
+        class CrossDataSource(InMemoryDataSource):
+            pass
+
+
         @meta(description="Stores the cross entities", domain=CrossDomain)
-        class CrossStorage(BaseStorage):
+        class CrossStorage(BaseStorage[CrossDataSource]):
             pass
 
         @entity(description="A", resource=CrossStorage)

@@ -46,6 +46,7 @@ _IMPORTS = textwrap.dedent(
         SpecializationDeclarationError,
     )
     from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
         validate_entity_role_compatibility,
@@ -61,8 +62,13 @@ _IMPORTS = textwrap.dedent(
         description = "NoInverse"
 
 
+    @meta(description="Where NoInvStorage keeps its rows")
+    class NoInvDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the no inv entities", domain=NoInvDomain)
-    class NoInvStorage(BaseStorage):
+    class NoInvStorage(BaseStorage[NoInvDataSource]):
         pass
     """
 )

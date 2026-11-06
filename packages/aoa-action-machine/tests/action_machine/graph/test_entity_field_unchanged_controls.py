@@ -70,8 +70,15 @@ def test_scalar_schema_and_lifecycle_fields_pass() -> None:
             description = "Controls"
 
 
+        from aoa.action_machine.resources import InMemoryDataSource
+
+        @meta(description="Where ControlsStorage keeps its rows")
+        class ControlsStorageDataSource(InMemoryDataSource):
+            pass
+
+
         @meta(description="Stores the controls entities", domain=ControlsDomain)
-        class ControlsStorage(BaseStorage):
+        class ControlsStorage(BaseStorage[ControlsStorageDataSource]):
             pass
 
         class DraftStateEntity(BaseStateEntity):
@@ -109,8 +116,15 @@ def test_a_bare_state_field_keeps_its_refusal() -> None:
             description = "Controls"
 
 
+        from aoa.action_machine.resources import InMemoryDataSource
+
+        @meta(description="Where ControlsStorage keeps its rows")
+        class ControlsDataSource(InMemoryDataSource):
+            pass
+
+
         @meta(description="Stores the controls entities", domain=ControlsDomain)
-        class ControlsStorage(BaseStorage):
+        class ControlsStorage(BaseStorage[ControlsDataSource]):
             pass
 
         class DraftStateEntity(BaseStateEntity):

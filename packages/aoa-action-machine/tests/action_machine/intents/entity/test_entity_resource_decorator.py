@@ -12,6 +12,7 @@ from aoa.action_machine.domain.exceptions import EntityDecoratorError
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_controller import BaseController
 from aoa.action_machine.resources.base_gateway import BaseGateway
 from aoa.action_machine.resources.base_resource import BaseResource
@@ -25,8 +26,13 @@ class StoreDomain(BaseDomain):
     description = "Store"
 
 
+@meta(description="Where StorefrontDatabase keeps its rows")
+class StorefrontDataSource(InMemoryDataSource):
+    """The store StorefrontDatabase works with."""
+
+
 @meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabase(BaseStorage):
+class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
     """Hold the store's rows."""
 
 

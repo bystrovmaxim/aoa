@@ -27,6 +27,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -37,8 +38,13 @@ class ContainerShopDomain(BaseDomain):
     description = "Container shop"
 
 
+@meta(description="Where ContainerShopStorage keeps its rows")
+class ContainerShopDataSource(InMemoryDataSource):
+    """The store ContainerShopStorage works with."""
+
+
 @meta(description="Stores the container shop entities", domain=ContainerShopDomain)
-class ContainerShopStorage(BaseStorage):
+class ContainerShopStorage(BaseStorage[ContainerShopDataSource]):
     """Hold the container shop entities."""
 
 

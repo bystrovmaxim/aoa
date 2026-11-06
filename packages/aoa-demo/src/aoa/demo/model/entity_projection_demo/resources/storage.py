@@ -5,11 +5,12 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
+from aoa.demo.model.data_sources.entity_projection_demo_data_source import EntityProjectionDemoDataSource
 from aoa.demo.model.entity_projection_demo.domain import EntityProjectionDemoDomain
 
 
 @meta(description="Stores the entity projection demo model (stub)", domain=EntityProjectionDemoDomain)
-class EntityProjectionDemoStorage(BaseStorage):
+class EntityProjectionDemoStorage(BaseStorage[EntityProjectionDemoDataSource]):
     """Hold the entity projection demo domain's entities; the demo never opens it."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:

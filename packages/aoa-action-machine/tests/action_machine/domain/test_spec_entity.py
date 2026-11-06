@@ -28,6 +28,7 @@ from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -38,8 +39,13 @@ class SpecShopDomain(BaseDomain):
     description = "Spec shop"
 
 
+@meta(description="Where SpecShopStorage keeps its rows")
+class SpecShopDataSource(InMemoryDataSource):
+    """The store SpecShopStorage works with."""
+
+
 @meta(description="Stores the spec shop entities", domain=SpecShopDomain)
-class SpecShopStorage(BaseStorage):
+class SpecShopStorage(BaseStorage[SpecShopDataSource]):
     """Hold the spec shop entities."""
 
 

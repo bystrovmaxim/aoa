@@ -26,6 +26,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -36,8 +37,13 @@ class AssociationDomain(BaseDomain):
     description = "Association"
 
 
+@meta(description="Where AssociationStorage keeps its rows")
+class AssociationDataSource(InMemoryDataSource):
+    """The store AssociationStorage works with."""
+
+
 @meta(description="Stores the association entities", domain=AssociationDomain)
-class AssociationStorage(BaseStorage):
+class AssociationStorage(BaseStorage[AssociationDataSource]):
     """Hold the association entities."""
 
 
