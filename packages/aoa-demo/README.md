@@ -52,23 +52,19 @@ created; the wait for a free connection is bounded on the data source
 What each mode is for, and what the resource does with its connection, is in
 [`src/aoa/demo/model/identity/README.md`](src/aoa/demo/model/identity/README.md).
 
-## Its databases: resources that share one store
+## Its stores: every entity has a physical place
 
-A resource is often a part of a database rather than the whole of it. The demo's model has
-three databases, each a data source (`aoa.demo.model.data_sources`) that several of its
-resources name as their type argument — `class SupportStorage(BaseStorage[ShopDataSource])`:
+Every demo resource that stores an entity names a data source (`aoa.demo.model.data_sources`) as its type argument — `class SupportStorage(BaseStorage[ShopDataSource])` — and a domain reaches each data source through one resource. A data source may serve several domains, one resource each:
 
 | Data source | Resources | What it shows |
 | --- | --- | --- |
-| `ShopDataSource` | `StorefrontDatabase` (Store), `SupportStorage` (Support), `InventoryStorage` (Inventory) | a support ticket relates to the order and the customer it is about — across resources and across domains, inside one database |
-| `MessagingDataSource` | `OutboxPrimaryDatabase`, `MessagingDeadLetterStore` (Messaging) | a replay ticket in the dead-letter queue relates to the outbox message it replays |
-| `CatalogDataSource` | `CatalogObjectStore` (Catalog) | a database with one resource |
+| `ShopDataSource` | `StorefrontDatabase` (Store), `SupportStorage` (Support), `InventoryStorage` (Inventory) | one database of three domains, each through a resource of its own |
+| `MessagingDataSource` | `OutboxPrimaryDatabase` (Messaging) | the outbox and the dead-letter queue, kept by the domain's one resource |
+| `CatalogDataSource`, `CatalogSearchDataSource` | `CatalogObjectStore`, `CatalogSearchSidecar` (Catalog) | one domain, two databases, one resource each |
+| `IdentityDataSource` | `IdentityStoreBase` (Identity) | the identity route's PostgreSQL pool, from the section above |
+| `CardNetworkDataSource`, `NotificationGatewayDataSource` | `CardNetworkGateway` (Billing), `NotificationGatewayResource` (Messaging) | external services |
 
-Every other resource names no data source and keeps its relations to itself; a relation
-across two databases is refused when the model is built. The graph shows each data source
-on the application, with a `resource_data_source` edge from each of its resources. The
-identity route's `IdentityDataSource` is the runtime pool of the section above; its resource
-imports the PostgreSQL driver and is reached lazily, so it is not in the graph.
+Each other domain keeps its rows in a store of its own: an in-memory data source, or a database (`BillingWarehouseDataSource`, `SessionCacheDataSource`). A relation is a fact of the model and joins entities of any stores. The graph shows each data source on the application, with a `resource_data_source` edge from each of its resources.
 
 ## Its graph history
 

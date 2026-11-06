@@ -30,32 +30,37 @@ A resource is also where entities live. Every entity names the one resource that
 a gateway the records an outside service reports, a controller the state it keeps. The kinds are
 exported together — `from aoa.action_machine.resources import BaseStorage, BaseGateway, BaseController`.
 [Step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it) shows the declaration,
-and [step 24](step-24-relations.md#a-relation-stays-inside-one-data-source) why relations stay inside one data source.
+and [step 24](step-24-relations.md#a-relation-joins-entities-of-any-data-sources) why a relation knows no store.
 
 ## Resources of one database share a data source
 
 A resource is often a part of a database rather than the whole of it: orders and support
 tickets live in one database, each kept by its own resource. A **data source** names that
-database. It is a primitive of its own, `BaseDataSource`: a description in `@meta` and no
-domain, because resources of several domains may share one store. A resource names it as
-the type argument of its base, and a resource that names none works on its own:
+database — or any other store: an external service, a store kept in memory. It is a primitive
+of its own, `BaseDataSource`: a description in `@meta` and no domain, because resources of
+several domains may share one store, one resource each. A resource names it as the type
+argument of its base, and a resource that stores an entity must name one — it is the entity's
+physical place:
 
 ```python
-# Fragment: the declarations of a model; `StoreDomain` is defined around them.
+# Fragment: the declarations of a model; `StoreDomain` and `SupportDomain` are defined around them.
 @meta(description="Main shop database")
 class ShopDataSource(BaseDataSource): ...
 
 @meta(description="Orders", domain=StoreDomain)
 class OrdersStorage(BaseStorage[ShopDataSource]): ...
 
-@meta(description="Support desk", domain=StoreDomain)
+@meta(description="Support desk", domain=SupportDomain)
 class SupportStorage(BaseStorage[ShopDataSource]): ...
 ```
 
-Entities of `OrdersStorage` and `SupportStorage` may relate to each other; an entity of a
-resource without a data source relates only to entities of that resource. A data source
-also keeps what its resources share at run time: `PostgresDataSource` holds the
-connection parameters and the pool, and a resource built with `data_source=` takes its
+A domain reaches a data source through one resource: a second resource of `StoreDomain` on
+`ShopDataSource` is refused when the model is built, naming the domain, the data source and
+both resources. A resource that stores no entity — a gateway that only calls out — may name
+no data source. AOA gives a kind for each store: `PostgresDataSource`, `ExternalServiceDataSource`
+(the service's address, credentials and client) and `InMemoryDataSource`. A data source keeps
+what its resources share at run time, and the connection parameters live only there:
+`PostgresDataSource` holds them and the pool, and a resource built with `data_source=` takes its
 connection from it, while the transaction stays the resource's own
 ([the PostgreSQL page](../extensions/postgresql.md#installation-and-construction)). In the
 graph a data source hangs on the application, as a domain does, and each resource that

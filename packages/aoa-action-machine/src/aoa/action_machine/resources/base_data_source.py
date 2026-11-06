@@ -1,16 +1,17 @@
 # packages/aoa-action-machine/src/aoa/action_machine/resources/base_data_source.py
 """
-BaseDataSource — one database or other store that several resources share.
+BaseDataSource — one store several resources share: the physical place of their entities.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 A resource is often a part of a database, not the whole of it. A data source names
-that database, so the model knows which resources work with one store: entities of
-those resources may relate to each other, because a join between their tables is
-ordinary. A data source keeps what the resources share — the connection parameters
-and the pool, when there is one — while each resource keeps its own transaction.
+that database — or any other store: an external service, a store kept in memory — so
+the model knows where each entity lives. Relations between entities are a fact of the
+logical model and know no store; the data source is the physical axis. It keeps what
+its resources share — the connection parameters and the pool, the service's client —
+while each resource keeps its own transaction.
 
 ``BaseDataSource`` itself promises nothing about connections, so it fits any store:
 a database with a pool or without, an external service, something a controller owns.
@@ -26,7 +27,9 @@ RULES
 - Its class name ends in ``DataSource``.
 - It is not a resource: an action cannot depend on it, so it cannot go around a resource.
 - A resource names it as the type argument of its base: ``PostgresResource[ShopDataSource]``.
-  A data source is optional; a resource without one works on its own.
+  A resource that stores an entity names one; a resource that stores nothing may name none.
+- A domain reaches a data source through one resource; resources of several domains may
+  share one data source, one each.
 
 ═══════════════════════════════════════════════════════════════════════════════
 EXAMPLE

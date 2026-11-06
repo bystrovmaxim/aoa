@@ -8,5 +8,5 @@ One phase = one commit, referencing (#479). After a phase only its own tests run
 - [x] T004 Phase 4: the graph at protocol 1.8 — schema copy, `schema_version`, Maxitor pinned to the gnomon commit in the dependencies and CI; the graph tests
 - [x] T005 Phase 5: rebuild the graph files, raise the versions
 - [ ] T006 Phase 6: the closing check run on the pull request, taken to zero
-- [ ] T007 Phase 7: documentation — the data source page with the frame on the connection policy; the pages on relations and resources; the PostgreSQL page
+- [x] T007 Phase 7: documentation — the data source page with the frame on the connection policy; the pages on relations and resources; the PostgreSQL page
 - [ ] T008 Phase 8: changelog

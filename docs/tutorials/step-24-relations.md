@@ -609,11 +609,11 @@ Descriptions and defaults are checked for ownership relations, specializations a
 
 Specialization and Generalization require Inverse on both endpoints. NoInverse is refused on either specialized field. Ordinary reciprocal pairs are also checked against the endpoint-role matrix during model assembly.
 
-## A relation stays inside one data source
+## A relation joins entities of any data sources
 
-A relation is a join or a foreign key, and a join exists only inside one database. Every entity names the resource that stores it ([step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it)), and a resource is often only a part of a database. Resources of one database name the same **data source** — `BaseStorage[ShopDataSource]` — and the model knows they share it ([step 21](step-21-resource.md#resources-of-one-database-share-a-data-source)). The boundary of a relation is that data source, or the resource itself when it names none. The model refuses, while it is built, every link whose two entities have different boundaries: an association, an aggregation or a composition from either side, an inverse side, a specialization, a generalization and a dictionary field — a dictionary is an ordinary entity of its resource.
+A relation is a fact of the model: it says two entities are related and promises no foreign key, no join and no shared transaction. So it may join entities of any resources and any data sources — an association, an aggregation or a composition from either side, an inverse side, a specialization, a generalization and a dictionary field alike. In exchange every entity has a physical place: it names the resource that stores it ([step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it)), and that resource names its data source ([step 21](step-21-resource.md#resources-of-one-database-share-a-data-source)).
 
-Two resources of one database relate their entities:
+Two resources of one database, one per domain, relate their entities:
 
 [Script](../../examples/step_24_relations/75_relation_inside_one_data_source.py) · [Notebook](../../examples/step_24_relations/75_relation_inside_one_data_source.ipynb)
 
@@ -623,15 +623,17 @@ resource_data_source: SupportStorage -> ShopDataSource
 entity_relation: SupportTicketCoreEntity -> SalesOrderCoreEntity
 ```
 
-Two resources that name no data source keep their relations to themselves:
+Two resources of two databases relate their entities just the same:
 
 [Script](../../examples/step_24_relations/74_relation_across_resources.py) · [Notebook](../../examples/step_24_relations/74_relation_across_resources.ipynb)
 
 ```text
-EntityResourceError: SupportTicketCoreEntity.order relates SupportTicketCoreEntity (SupportDatabase, no data source) to SalesOrderCoreEntity (StorefrontDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none.
+resource_data_source: StorefrontDatabase -> StorefrontDataSource
+resource_data_source: SupportDatabase -> SupportDataSource
+entity_relation: SupportTicketCoreEntity -> SalesOrderCoreEntity
 ```
 
-The message names the field, both entities, both resources and their data sources. `OrderNoteCoreEntity` in the same model points at the same order from the order's own resource and is not refused. To keep the link, let both resources name the data source of the database they share, or store both entities in one resource; across two databases, drop the field — a reference from an entity of one database to an entity of another has no allowed form yet. The graph build checks the same rule once more on the finished graph, so a graph that breaks it is never written.
+How a relation across two databases is read or kept consistent is the actions' business, not the model's. The model build refuses a resource that stores an entity and names no data source, and two resources of one domain on one data source; the graph build checks both again on the finished graph, so a graph that breaks them is never written.
 
 ## Endpoint role compatibility
 
