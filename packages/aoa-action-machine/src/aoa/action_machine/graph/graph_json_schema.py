@@ -21,16 +21,19 @@ the schema leaves "exactly one per entity" to the exporter, which AOA checks whe
 
 ``DataSource`` (1.7) is one store several resources share; it hangs on the application by an
 ``application`` edge, and ``resource_data_source`` is the aggregation edge from a resource to it. The
-schema checks only the shape of these rows; every rule about counts and ends is AOA's.
+schema checks only the shape of these rows; every rule about counts and ends is AOA's. From 1.8 a
+resource that stores an entity has exactly one data source, a domain reaches a data source through one
+resource, and a relation may join entities of any data sources: rules across rows, which AOA checks,
+so the schema of 1.8 is that of 1.7 under a new version.
 
 ``entity_specialization`` is the association edge from a head to one of its alternatives. One edge per
 alternative; ``alternatives`` repeats the whole ordered declaration on every edge of the cluster, so a
 consumer holding one row has the set without a second lookup and without re-sorting what was written.
 
 The schema belongs to the Open Gnomon Protocol, a standard with no code that lives in
-bystrovmaxim/gnomon (``packages/open-gnomon-protocol/graph/1.7.json``); ``graph_json_schema.json``
+bystrovmaxim/gnomon (``packages/open-gnomon-protocol/graph/1.8.json``); ``graph_json_schema.json``
 beside this module is a copy of it, which ``tests/scripts/test_schema_copies.py`` keeps equal to
-version ``1.7`` as published. AOA writes version ``1.7``.
+version ``1.8`` as published. AOA writes version ``1.8``.
 """
 
 from __future__ import annotations

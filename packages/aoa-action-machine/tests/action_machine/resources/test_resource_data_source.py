@@ -169,7 +169,7 @@ _MODEL = textwrap.dedent(
 
 
 def test_the_graph_has_an_edge_from_each_resource_that_names_a_data_source() -> None:
-    """Two ``resource_data_source`` edges to ``ShopDataSource``; none from the resource without one; valid against 1.7."""
+    """Two ``resource_data_source`` edges to ``ShopDataSource``; none from the resource without one; valid against 1.8."""
     result = run_isolated_model(_MODEL)
     assert result.returncode == 0, result.stderr
     graph = json.loads(result.stdout)
