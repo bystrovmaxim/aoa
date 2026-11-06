@@ -45,22 +45,24 @@ ARCHITECTURE / DATA FLOW
 THE POOL, AND THE MODE WITHOUT A DATABASE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``pool_lifespan`` creates one pool when ``AOA_DEMO_POSTGRES_DSN`` is set, and closes
-it when the application stops. Both services pass it to their builder, which hands it
+``pool_lifespan`` opens the identity data source — the identity database and its one
+pool — when ``AOA_DEMO_POSTGRES_DSN`` is set, and closes it when the application stops. Both services pass it to their builder, which hands it
 to the framework untouched — an MCP service has no request-scoped startup hook, but
 its server has one.
 
-With a DSN, the identity route declares a per-call resource over that pool: one
+With a DSN, the identity route declares a per-call resource over that data source: one
 connection per call, taken in ``open()`` and given back in ``close()``. Without the
 variable, nothing is created and the route declares the in-memory identity store
 instead, so the demo answers with no database and with no driver installed.
 
 """
 
+from __future__ import annotations
+
 import os
 from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from aoa.action_machine.auth import NoAuthCoordinator
 from aoa.action_machine.context import Context
@@ -68,8 +70,10 @@ from aoa.action_machine.exceptions import HandleError
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.resources.per_call_connection import ConnectionValue, PerCallConnection
 from aoa.action_machine.resources.sql import SqlResource
-from aoa.action_machine.resources.sql.pool_protocol import PoolProtocol
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
+
+if TYPE_CHECKING:
+    from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
 
 # Register on the default graph before ``create_node_graph_coordinator()`` runs.
 from aoa.demo.model.actions import GetExampleModelGraphJsonAction  # noqa: F401  # pylint: disable=unused-import
@@ -88,34 +92,34 @@ def demo_dsn() -> str | None:
     return os.getenv(DEMO_DSN_ENV) or None
 
 
-class PoolHolder:
-    """Carries the process-wide pool to whoever needs it after the application has started."""
+class DataSourceHolder:
+    """Carries the identity data source, and its pool, to whoever needs it after the application has started."""
 
-    pool: PoolProtocol | None = None
+    data_source: IdentityDataSource | None = None
 
-    def require(self) -> PoolProtocol:
+    def require(self) -> IdentityDataSource:
         """
-        Return the pool, or fail naming the situation rather than an attribute.
+        Return the open data source, or fail naming the situation rather than an attribute.
 
         Raises:
-            HandleError: when there is no pool — a call before startup, or a process started
+            HandleError: when there is none — a call before startup, or a process started
                 without a connection description.
         """
-        if self.pool is None:
+        if self.data_source is None:
             raise HandleError(
-                f"The demo has no pool: set {DEMO_DSN_ENV} before starting, or use the "
+                f"The demo has no database: set {DEMO_DSN_ENV} before starting, or use the "
                 "database-free mode the identity route falls back to."
             )
-        return self.pool
+        return self.data_source
 
 
-pool_holder = PoolHolder()
+data_source_holder = DataSourceHolder()
 
 
 @asynccontextmanager
 async def pool_lifespan(app: object) -> AsyncIterator[None]:
     """
-    Create the pool at startup and close it at shutdown — the application's own hook.
+    Open the identity data source, and with it the pool, at startup and close it at shutdown.
 
     Without a connection description nothing is created, and nothing is closed.
     """
@@ -123,18 +127,21 @@ async def pool_lifespan(app: object) -> AsyncIterator[None]:
     if dsn:
         # The optional ``postgres`` extra, imported only when a DSN is given, so that the
         # demo still imports and runs without the driver installed.
-        import asyncpg  # pylint: disable=import-outside-toplevel
+        from aoa.demo.model.identity.resources.identity_data_source import (  # pylint: disable=import-outside-toplevel
+            IdentityDataSource,
+        )
 
-        # The size bounds are stated here. The wait for a free connection is bounded on the
-        # resource instead (``IdentityStore.acquire_timeout``): ``create_pool`` has no such
-        # parameter, so a ``timeout=`` here would bound connecting, not waiting.
-        pool_holder.pool = await asyncpg.create_pool(dsn, min_size=1, max_size=10)
+        # The size bounds are stated here; the wait for a free connection is stated on the
+        # data source (``IdentityDataSource.acquire_timeout``).
+        source = IdentityDataSource(dsn, min_size=1, max_size=10)
+        await source.open()
+        data_source_holder.data_source = source
     try:
         yield
     finally:
-        if pool_holder.pool is not None:
-            await pool_holder.pool.close()
-            pool_holder.pool = None
+        if data_source_holder.data_source is not None:
+            await data_source_holder.data_source.close()
+            data_source_holder.data_source = None
 
 
 def identity_connection() -> ConnectionValue:
@@ -152,7 +159,7 @@ def identity_connection() -> ConnectionValue:
                 IdentityStore,
             )
 
-            return IdentityStore(pool=pool_holder.require())
+            return IdentityStore(data_source=data_source_holder.require())
 
         return PerCallConnection(factory=pooled, finalize=_close_store)
 

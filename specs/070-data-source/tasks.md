@@ -28,7 +28,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 6: The demo
 
-- [ ] T008 `IdentityDataSource`, identity route; `CheckoutSubmitAction` uses resources of `StoreDomain` only
+- [x] T008 `IdentityDataSource`, identity route; `CheckoutSubmitAction` uses resources of `StoreDomain` only
 
 ## Phase 7: Examples and tests
 

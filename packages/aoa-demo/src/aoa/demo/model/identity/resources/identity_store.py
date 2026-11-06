@@ -6,9 +6,10 @@ IdentityStore — the identity domain over PostgreSQL, one connection per call.
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This is the resource the demo route declares per call: ``IdentityStore(pool=…)``
-borrows one connection from the application's pool in ``open()`` and gives it
-back in ``close()``, so two concurrent calls never share a session. The domain's
+This is the resource the demo route declares per call: ``IdentityStore(data_source=…)``
+takes one connection from ``IdentityDataSource``, the identity database's pool, in
+``open()`` and gives it back in ``close()``, so two concurrent calls never share a
+session. The domain's
 two operations come from ``IdentityStoreBase``; the storage primitive is the
 connection the framework handed over.
 
@@ -22,8 +23,8 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    IdentityStore(IdentityStoreBase, PostgresResource)
-        │  open()/close()      -> pool.acquire / pool.release   (once per call)
+    IdentityStore(IdentityStoreBase, PostgresResource[IdentityDataSource])
+        │  open()/close()      -> data_source.acquire / release   (once per call)
         │  read_person(id)     -> self._fetchrow(…)
         │  _list_persons(…)    -> self._fetch(…)               (ordered, bounded page)
         │  _count_persons()    -> self._fetchval(…)
@@ -37,20 +38,18 @@ from typing import Any
 
 from aoa.action_machine.resources.postgres import PostgresResource
 
+from .identity_data_source import IdentityDataSource
 from .identity_store_base import IdentityStoreBase
 
 
-class IdentityStore(IdentityStoreBase, PostgresResource):
+class IdentityStore(IdentityStoreBase, PostgresResource[IdentityDataSource]):
     """
     AI-CORE-BEGIN
-        ROLE: The identity domain's PostgreSQL store, built from a pool.
-        CONTRACT: ``IdentityStore(pool=…)`` borrows one connection per call; the domain's operations come from ``IdentityStoreBase``.
-        INVARIANTS: The wait bound is stated on the class, not inherited silently; the resource never closes the pool.
+        ROLE: The identity domain's PostgreSQL store, working through ``IdentityDataSource``.
+        CONTRACT: ``IdentityStore(data_source=…)`` takes one connection per call; the domain's operations come from ``IdentityStoreBase``.
+        INVARIANTS: The resource never closes the data source's pool.
     AI-CORE-END
     """
-
-    acquire_timeout: float | None = 30.0
-    """How long this resource waits for a free connection before it fails, stated here for the reader."""
 
     async def _write_login(self, person_id: str, at: str) -> None:
         """Write one login row through the driver's statement helper."""
