@@ -23382,6 +23382,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore|resource_data_source|aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.resources.object_store.CatalogObjectStore",
+      "target_id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.catalog.resources.pricing_feed.PricingFeedClientResource|domain|aoa.demo.model.catalog.domain.CatalogDomain",
       "is_dag": true,
       "properties": {},
@@ -26994,6 +27003,33 @@
       "source_id": "aoa.demo.model.clinical_supply.resources.storage.ClinicalSupplyStorage",
       "target_id": "aoa.demo.model.clinical_supply.domain.ClinicalSupplyDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
     },
     {
       "id": "aoa.demo.model.entity_projection_demo.actions.order_wire_preview.ProjectionDemoOrderWirePreviewAction.Params|field|aoa.demo.model.entity_projection_demo.actions.order_wire_preview.ProjectionDemoOrderWirePreviewAction.Params:label",
@@ -32275,6 +32311,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.inventory.resources.storage.InventoryStorage|resource_data_source|aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.inventory.resources.storage.InventoryStorage",
+      "target_id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.logistics_mesh.actions.cross_dock_relay_adapter_action.CrossDockRelayAdapterAction.Params|field|aoa.demo.model.logistics_mesh.actions.cross_dock_relay_adapter_action.CrossDockRelayAdapterAction.Params:adapter_lane",
       "is_dag": false,
       "properties": {},
@@ -36384,6 +36429,23 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity|entity_relation|message",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The outbox message this ticket replays, kept in the same messaging database",
+        "field_name": "message",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity",
+      "target_id": "aoa.demo.model.messaging.entities.outbox_message.OutboxMessageCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity|entity_resource|aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
       "is_dag": true,
       "properties": {},
@@ -37184,6 +37246,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore|resource_data_source|aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
+      "target_id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource|domain|aoa.demo.model.messaging.domain.MessagingDomain",
       "is_dag": true,
       "properties": {},
@@ -37200,6 +37271,15 @@
       "source_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
       "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase|resource_data_source|aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
+      "target_id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.messaging.resources.smtp_transport.SmtpTransportStubResource|domain|aoa.demo.model.messaging.domain.MessagingDomain",
@@ -56130,6 +56210,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.store.resources.db.StorefrontDatabase|resource_data_source|aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.resources.db.StorefrontDatabase",
+      "target_id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.store.store_domain.StoreDomain|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -57759,6 +57848,40 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.support.entities.support_ticket_aggregate.SupportTicketAggregateCoreEntity|entity_relation|customer",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The customer who opened the ticket, kept by the storefront in the same shop database",
+        "field_name": "customer",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.support.entities.support_ticket_aggregate.SupportTicketAggregateCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.support.entities.support_ticket_aggregate.SupportTicketAggregateCoreEntity|entity_relation|order",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The order the ticket is about, kept by the storefront in the same shop database",
+        "field_name": "order",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.support.entities.support_ticket_aggregate.SupportTicketAggregateCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.support.entities.support_ticket_aggregate.SupportTicketAggregateCoreEntity|entity_resource|aoa.demo.model.support.resources.storage.SupportStorage",
       "is_dag": true,
       "properties": {},
@@ -57786,6 +57909,15 @@
       "source_id": "aoa.demo.model.support.resources.storage.SupportStorage",
       "target_id": "aoa.demo.model.support.support_domain.SupportDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.support.resources.storage.SupportStorage|resource_data_source|aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.support.resources.storage.SupportStorage",
+      "target_id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.support.support_domain.SupportDomain|application|aoa.action_machine.application.application.Application",
@@ -76626,6 +76758,30 @@
         "description": "Stores the clinical supply model (stub)"
       },
       "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "label": "CatalogDataSource",
+      "properties": {
+        "description": "The catalog object database"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
+      "label": "MessagingDataSource",
+      "properties": {
+        "description": "The messaging database — transactional outbox and dead-letter queue"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "label": "ShopDataSource",
+      "properties": {
+        "description": "The shop database — storefront, support desk and inventory"
+      },
+      "type": "DataSource"
     },
     {
       "id": "aoa.demo.model.entity_projection_demo.actions.order_wire_preview.ProjectionDemoOrderWirePreviewAction",
