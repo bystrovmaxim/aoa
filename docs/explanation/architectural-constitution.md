@@ -260,10 +260,12 @@ class EventQueueResource(BaseStorage[EventQueueDataSource]):      # Kafka / Rabb
 
 ```python
 # Fragment: an outline, not complete code.
-class PaymentServiceResource(BaseGateway):      # Stripe API
-class NotificationServiceResource(BaseGateway): # SendGrid
-class FraudCheckResource(BaseGateway):          # an external service
+class PaymentGateway(BaseGateway):       # Stripe API
+class NotificationGateway(BaseGateway):  # SendGrid
+class FraudCheckGateway(BaseGateway):    # an external service
 ```
+
+A gateway is given the service's client when it is built and keeps it private. Its methods say what the domain asks of the service — `charge`, `refund`, `send` — and an action calls them: an action never holds the raw client, so everything a gateway answers passes through it. A gateway holds no transaction, so a nested action gets the same gateway, and a rollup run refuses it, since a call already made to a service cannot be taken back.
 
 ---
 
