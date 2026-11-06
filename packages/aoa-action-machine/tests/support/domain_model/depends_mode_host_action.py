@@ -16,12 +16,12 @@ from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from .domains import SystemDomain
+from .domains import OrdersDomain
 from .ping_action import PingAction
 from .services import PaymentServiceResource
 
 
-@meta(description="host for depends mode graph tests", domain=SystemDomain)
+@meta(description="host for depends mode graph tests", domain=OrdersDomain)
 @check_roles(GuestRole)
 @depends(PingAction, mode=UseCase.include, description="peer action")
 @depends(PaymentServiceResource, description="pay")

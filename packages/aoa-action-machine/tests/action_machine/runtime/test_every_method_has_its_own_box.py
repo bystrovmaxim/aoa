@@ -50,7 +50,7 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from ...support.domain_model.domains import SystemDomain
+from ...support.domain_model.domains import OrdersDomain, SystemDomain
 from ...support.domain_model.services import PaymentServiceResource
 
 
@@ -163,7 +163,7 @@ class _ReserveAction(BaseAction[_FailParams, _OutcomeResult]):
         return _OutcomeResult(outcome="handler")
 
 
-@meta(description="A handler that uses its box for more than logging", domain=SystemDomain)
+@meta(description="A handler that uses its box for more than logging", domain=OrdersDomain)
 @check_roles(GuestRole)
 @depends(PaymentServiceResource, factory=lambda: PaymentServiceResource(MagicMock()), description="pay")
 class _ToolsHandlerAction(BaseAction[_FailParams, _OutcomeResult]):

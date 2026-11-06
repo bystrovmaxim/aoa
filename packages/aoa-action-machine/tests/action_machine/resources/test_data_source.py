@@ -88,14 +88,26 @@ def test_an_action_cannot_depend_on_a_data_source() -> None:
 
 _MODEL = textwrap.dedent(
     """
+    from aoa.action_machine.domain import BaseDomain
     from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
     from aoa.action_machine.intents.meta import meta
-    from aoa.action_machine.resources import BaseDataSource
+    from aoa.action_machine.resources import BaseDataSource, BaseStorage
+
+
+    class ShopDomain(BaseDomain):
+        name = "shop"
+        description = "Shop"
 
 
     @meta(description="Main shop database")
     class ShopDataSource(BaseDataSource):
         pass
+
+
+    @meta(description="Orders", domain=ShopDomain)
+    class OrdersResource(BaseStorage[ShopDataSource]):
+        def get_wrapper_class(self):
+            return None
 
 
     print(create_node_graph_coordinator().to_json())
@@ -111,6 +123,6 @@ def test_the_graph_shows_a_data_source_on_the_application() -> None:
     jsonschema.Draft202012Validator(GRAPH_JSON_SCHEMA).validate(graph)
     (node,) = [n for n in graph["nodes"] if n["type"] == "DataSource"]
     assert (node["label"], node["properties"]) == ("ShopDataSource", {"description": "Main shop database"})
-    (edge,) = [e for e in graph["edges"] if e["source_id"] == node["id"]]
+    (edge,) = [e for e in graph["edges"] if e["source_id"] == node["id"]]  # its one edge: to the application
     assert (edge["type"], edge["relationship"], edge["is_dag"], edge["properties"]) == ("application", "Aggregation", True, {})
     assert edge["target_id"].endswith(".Application")

@@ -24,7 +24,7 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 5: Resources of the action's domain
 
-- [ ] T007 `resource_domain_validator.py`; tests
+- [x] T007 `resource_domain_validator.py`; tests
 
 ## Phase 6: The demo
 
