@@ -37,7 +37,6 @@ TEST LAYOUT
     ├── __init__.py                             — this file
     ├── test_sql_resource.py          — SqlResource, rollup, abstract API
     ├── test_wrapper_sql_resource.py  — transaction prohibition, no query member
-    ├── test_external_service_resource.py        — ExternalServiceResource, rollup flag
-    ├── test_wrapper_external_service_resource.py — nested proxy for external clients
+    ├── test_gateway_defaults.py                — a gateway: no rollup, no wrapper class
     └── test_connections_dict.py                — connections dict typing
 """

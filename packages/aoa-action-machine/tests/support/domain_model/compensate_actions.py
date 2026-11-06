@@ -48,10 +48,10 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
 from .services import (
-    InventoryServiceResource,
-    PaymentServiceResource,
-    default_inventory_service_resource,
-    default_payment_service_resource,
+    InventoryGateway,
+    PaymentGateway,
+    default_inventory_gateway,
+    default_payment_gateway,
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -89,13 +89,13 @@ class CompensateTestResult(BaseResult):
 )
 @check_roles(GuestRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payment processing service",
 )
 @depends(
-    InventoryServiceResource,
-    factory=default_inventory_service_resource,
+    InventoryGateway,
+    factory=default_inventory_gateway,
     description="Inventory service",
 )
 class CompensatedOrderAction(
@@ -105,9 +105,9 @@ class CompensatedOrderAction(
     Action with two regular aspects, both with compensators.
 
     Pipeline:
-    1. charge_aspect (regular) — charges via PaymentService.
+    1. charge_aspect (regular) — charges via PaymentClient.
        Compensator: rollback_charge_compensate — calls refund().
-    2. reserve_aspect (regular) — reserves stock via InventoryService.
+    2. reserve_aspect (regular) — reserves stock via InventoryClient.
        Compensator: rollback_reserve_compensate — calls unreserve().
     3. finalize_aspect (regular) — if should_fail=True, raises ValueError.
        No compensator.
@@ -129,8 +129,8 @@ class CompensatedOrderAction(
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        """Charge funds via PaymentService."""
-        payment = (await box.resolve(PaymentServiceResource)).service
+        """Charge funds via PaymentClient."""
+        payment = await box.resolve(PaymentGateway)
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -147,12 +147,12 @@ class CompensatedOrderAction(
         """
         Compensator for charge_aspect.
 
-        Calls refund() on PaymentService with txn_id from state_after.
+        Calls refund() on PaymentClient with txn_id from state_after.
         If state_after is None (checker rejected) — skip rollback.
         """
         if state_after is None:
             return
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -164,8 +164,8 @@ class CompensatedOrderAction(
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        """Reserve stock via InventoryService."""
-        inventory = (await box.resolve(InventoryServiceResource)).service
+        """Reserve stock via InventoryClient."""
+        inventory = await box.resolve(InventoryGateway)
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -182,12 +182,12 @@ class CompensatedOrderAction(
         """
         Compensator for reserve_aspect.
 
-        Calls unreserve() on InventoryService with reservation_id from
+        Calls unreserve() on InventoryClient with reservation_id from
         state_after. If state_after is None — skip.
         """
         if state_after is None:
             return
-        inventory = (await box.resolve(InventoryServiceResource)).service
+        inventory = await box.resolve(InventoryGateway)
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize order")
@@ -230,13 +230,13 @@ class CompensatedOrderAction(
 )
 @check_roles(GuestRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payment processing service",
 )
 @depends(
-    InventoryServiceResource,
-    factory=default_inventory_service_resource,
+    InventoryGateway,
+    factory=default_inventory_gateway,
     description="Inventory service",
 )
 class CompensateAndOnErrorAction(
@@ -263,7 +263,7 @@ class CompensateAndOnErrorAction(
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -279,7 +279,7 @@ class CompensateAndOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Reserve inventory")
@@ -291,7 +291,7 @@ class CompensateAndOnErrorAction(
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        inventory = (await box.resolve(InventoryServiceResource)).service
+        inventory = await box.resolve(InventoryGateway)
         reservation_id = await inventory.reserve(params.item_id, 1)
         return {"reservation_id": reservation_id}
 
@@ -307,7 +307,7 @@ class CompensateAndOnErrorAction(
     ) -> None:
         if state_after is None:
             return
-        inventory = (await box.resolve(InventoryServiceResource)).service
+        inventory = await box.resolve(InventoryGateway)
         await inventory.unreserve(state_after["reservation_id"])
 
     @regular_aspect("Finalize with error")
@@ -364,8 +364,8 @@ class CompensateAndOnErrorAction(
 )
 @check_roles(GuestRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payment processing service",
 )
 class CompensateWithContextAction(
@@ -393,7 +393,7 @@ class CompensateWithContextAction(
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         txn_id = await payment.charge(params.amount, "RUB")
         return {"txn_id": txn_id}
 
@@ -412,12 +412,12 @@ class CompensateWithContextAction(
         """
         Compensator with context access.
 
-        Uses ctx.get(Ctx.User.user_id) and calls refund() on PaymentService.
+        Uses ctx.get(Ctx.User.user_id) and calls refund() on PaymentClient.
         """
         _ = ctx.get(Ctx.User.user_id)
         if state_after is None:
             return
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         await payment.refund(state_after["txn_id"])
 
     @regular_aspect("Finalize with error")

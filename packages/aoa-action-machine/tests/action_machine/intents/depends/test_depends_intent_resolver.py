@@ -7,15 +7,15 @@ from aoa.action_machine.intents.depends.depends_intent_resolver import DependsIn
 
 from ....support.domain_model.full_action import FullAction
 from ....support.domain_model.ping_action import PingAction
-from ....support.domain_model.services import NotificationServiceResource, PaymentServiceResource
+from ....support.domain_model.services import NotificationGateway, PaymentGateway
 from ....support.domain_model.test_db_manager import OrdersDbManager
 
 
 def test_resolve_dependency_types_returns_declared_dependency_types() -> None:
     assert DependsIntentResolver.resolve_dependency_types(FullAction) == [
         OrdersDbManager,
-        NotificationServiceResource,
-        PaymentServiceResource,
+        NotificationGateway,
+        PaymentGateway,
     ]
 
 
@@ -25,8 +25,8 @@ def test_resolve_dependency_types_returns_empty_list_without_declarations() -> N
 
 def test_resolve_include_dependency_types_filters_include_only() -> None:
     @depends(PingAction, mode=UseCase.include, description="inc")
-    @depends(PaymentServiceResource, description="res")
-    class _Host(DependsIntent[PingAction | PaymentServiceResource]):
+    @depends(PaymentGateway, description="res")
+    class _Host(DependsIntent[PingAction | PaymentGateway]):
         pass
 
     assert DependsIntentResolver.resolve_include_dependency_types(_Host) == [PingAction]

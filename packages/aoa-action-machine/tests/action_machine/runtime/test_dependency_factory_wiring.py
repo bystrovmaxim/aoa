@@ -15,7 +15,7 @@ from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from ...support.domain_model import FullAction, PingAction
-from ...support.domain_model.services import NotificationServiceResource, PaymentServiceResource
+from ...support.domain_model.services import NotificationGateway, PaymentGateway
 from ...support.domain_model.test_db_manager import OrdersDbManager
 
 
@@ -66,8 +66,8 @@ def test_full_action_dependency_factory_via_graph_matches_declarations() -> None
     interchange = machine.get_action_node_by_id(FullAction)
     from_graph = interchange.resolved_dependency_infos()
     cls_order = tuple(i.cls for i in from_graph)
-    assert PaymentServiceResource in cls_order
-    assert NotificationServiceResource in cls_order
+    assert PaymentGateway in cls_order
+    assert NotificationGateway in cls_order
     assert OrdersDbManager in cls_order
 
 

@@ -18,13 +18,13 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 
 from .domains import OrdersDomain
 from .ping_action import PingAction
-from .services import PaymentServiceResource
+from .services import PaymentGateway
 
 
 @meta(description="host for depends mode graph tests", domain=OrdersDomain)
 @check_roles(GuestRole)
 @depends(PingAction, mode=UseCase.include, description="peer action")
-@depends(PaymentServiceResource, description="pay")
+@depends(PaymentGateway, description="pay")
 class DependsModeHostAction(BaseAction["DependsModeHostAction.Params", "DependsModeHostAction.Result"]):
     class Params(BaseParams):
         pass

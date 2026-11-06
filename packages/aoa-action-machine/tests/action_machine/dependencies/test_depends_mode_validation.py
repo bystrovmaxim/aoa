@@ -8,7 +8,7 @@ from aoa.action_machine.intents.depends.depends_intent import DependsIntent
 from aoa.action_machine.model.base_action import BaseAction
 
 from ...support.domain_model.ping_action import PingAction
-from ...support.domain_model.services import PaymentServiceResource
+from ...support.domain_model.services import PaymentGateway
 
 
 class _PlainSvc:
@@ -21,10 +21,10 @@ def test_depends_rejects_mode_non_str() -> None:
 
 
 def test_depends_resource_with_mode_value_error() -> None:
-    dec = depends(PaymentServiceResource, mode=UseCase.include, description="x")
+    dec = depends(PaymentGateway, mode=UseCase.include, description="x")
     with pytest.raises(ValueError, match="resource dependencies must not set mode"):
 
-        class _Host(DependsIntent[PaymentServiceResource]):
+        class _Host(DependsIntent[PaymentGateway]):
             pass
 
         dec(_Host)
@@ -88,16 +88,16 @@ def test_depends_plain_target_rejects_mode() -> None:
 
 
 def test_depends_resource_without_mode_ok() -> None:
-    @depends(PaymentServiceResource, description="pay")
-    class _Host(DependsIntent[PaymentServiceResource]):
+    @depends(PaymentGateway, description="pay")
+    class _Host(DependsIntent[PaymentGateway]):
         pass
 
     assert _Host._depends_info[0].mode is None
 
 
 def test_depends_resource_explicit_none_ok() -> None:
-    @depends(PaymentServiceResource, mode=None, description="pay")
-    class _Host(DependsIntent[PaymentServiceResource]):
+    @depends(PaymentGateway, mode=None, description="pay")
+    class _Host(DependsIntent[PaymentGateway]):
         pass
 
     assert _Host._depends_info[0].mode is None

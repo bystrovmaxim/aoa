@@ -32,9 +32,8 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import BaseGateway, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
-from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ─── Domains ──────────────────────────────────────────────────────────────────
@@ -73,29 +72,40 @@ class ManagerRole(ApplicationRole):
 # ─── Services ─────────────────────────────────────────────────────────────────
 
 
-class PaymentService:
+class PaymentClient:
     """
     Payment processing service.
 
     Provides charge() for debits and refund() for refunds. In production
-    this would talk to a payment gateway. In tests, use AsyncMock(spec=PaymentService).
+    this would talk to a payment gateway. In tests, use AsyncMock(spec=PaymentClient).
     """
 
     async def charge(self, amount: float, currency: str) -> str:
         """Charge funds and return a transaction id."""
-        raise NotImplementedError("PaymentService.charge() is not implemented")
+        raise NotImplementedError("PaymentClient.charge() is not implemented")
 
     async def refund(self, txn_id: str) -> bool:
         """Refund a transaction by id."""
-        raise NotImplementedError("PaymentService.refund() is not implemented")
+        raise NotImplementedError("PaymentClient.refund() is not implemented")
 
 
-@meta(description="Payment service resource (test domain)", domain=TestDomain)
-class PaymentServiceResource(ExternalServiceResource[PaymentService]):
-    """Resource manager wrapping :class:`PaymentService` for ``@depends`` / mocks."""
+@meta(description="Payment gateway (test domain)", domain=TestDomain)
+class PaymentGateway(BaseGateway):
+    """The gateway to the payment service: its methods are what the domain asks of it."""
+
+    def __init__(self, client: PaymentClient) -> None:
+        self._client = client
+
+    async def charge(self, amount: float, currency: str) -> str:
+        """Charge funds and return a transaction id."""
+        return await self._client.charge(amount, currency)
+
+    async def refund(self, txn_id: str) -> bool:
+        """Refund a transaction by id."""
+        return await self._client.refund(txn_id)
 
 
-class NotificationService:
+class NotificationClient:
     """
     Notification service.
 
@@ -105,20 +115,27 @@ class NotificationService:
 
     async def send(self, user_id: str, message: str) -> bool:
         """Send a notification to a user."""
-        raise NotImplementedError("NotificationService.send() is not implemented")
+        raise NotImplementedError("NotificationClient.send() is not implemented")
 
 
-@meta(description="Notification service resource (test domain)", domain=TestDomain)
-class NotificationServiceResource(ExternalServiceResource[NotificationService]):
-    """Resource manager wrapping :class:`NotificationService` for ``@depends`` / mocks."""
+@meta(description="Notification gateway (test domain)", domain=TestDomain)
+class NotificationGateway(BaseGateway):
+    """The gateway to the notification service: its methods are what the domain asks of it."""
+
+    def __init__(self, client: NotificationClient) -> None:
+        self._client = client
+
+    async def send(self, user_id: str, message: str) -> bool:
+        """Send a notification to a user."""
+        return await self._client.send(user_id, message)
 
 
-def default_payment_service_resource() -> PaymentServiceResource:
-    return PaymentServiceResource(PaymentService())
+def default_payment_gateway() -> PaymentGateway:
+    return PaymentGateway(PaymentClient())
 
 
-def default_notification_service_resource() -> NotificationServiceResource:
-    return NotificationServiceResource(NotificationService())
+def default_notification_gateway() -> NotificationGateway:
+    return NotificationGateway(NotificationClient())
 
 
 # ─── DB manager (resource referenced by @depends / @connection) ───────────────
@@ -172,13 +189,13 @@ class PingAction(BaseAction["PingAction.Params", "PingAction.Result"]):
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles(ManagerRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payment processing service",
 )
 @depends(
-    NotificationServiceResource,
-    factory=default_notification_service_resource,
+    NotificationGateway,
+    factory=default_notification_gateway,
     description="Notification service",
 )
 @depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
@@ -228,8 +245,8 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         box: ToolsBox,
         connections: Connections,
     ) -> dict:
-        """Charge funds via PaymentService and store the txn_id in state."""
-        payment = (await box.resolve(PaymentServiceResource)).service
+        """Charge funds via PaymentClient and store the txn_id in state."""
+        payment = await box.resolve(PaymentGateway)
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
@@ -255,7 +272,7 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         connections: Connections,
     ) -> "FullAction.Result":
         """Notify the user and assemble the final Result from state."""
-        notification = (await box.resolve(NotificationServiceResource)).service
+        notification = await box.resolve(NotificationGateway)
         await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(

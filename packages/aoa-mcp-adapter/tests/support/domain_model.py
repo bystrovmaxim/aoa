@@ -42,10 +42,9 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import BaseGateway, Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -151,12 +150,12 @@ class SampleCoreEntity(BaseCoreEntity):
 # ════════════════════════════════════════════════════════════════════════════════
 
 
-class PaymentService:
+class PaymentClient:
     """
     Payment processing service.
 
     Provides charge() for debits and refund() for refunds. In production
-    this would talk to a payment gateway. In tests, use AsyncMock(spec=PaymentService).
+    this would talk to a payment gateway. In tests, use AsyncMock(spec=PaymentClient).
 
     refund() is used by @compensate handlers to undo a successful charge
     when a later aspect fails.
@@ -173,7 +172,7 @@ class PaymentService:
         Returns:
             Unique transaction identifier.
         """
-        raise NotImplementedError("PaymentService.charge() is not implemented")
+        raise NotImplementedError("PaymentClient.charge() is not implemented")
 
     async def refund(self, txn_id: str) -> bool:
         """
@@ -189,15 +188,26 @@ class PaymentService:
         Returns:
             True if the refund succeeded.
         """
-        raise NotImplementedError("PaymentService.refund() is not implemented")
+        raise NotImplementedError("PaymentClient.refund() is not implemented")
 
 
 @meta(description="Payment service resource of the orders domain", domain=OrdersDomain)
-class PaymentServiceResource(ExternalServiceResource[PaymentService]):
-    """Resource manager wrapping :class:`PaymentService` for ``@depends`` / mocks."""
+class PaymentGateway(BaseGateway):
+    """The gateway to the payment service: its methods are what the domain asks of it."""
+
+    def __init__(self, client: PaymentClient) -> None:
+        self._client = client
+
+    async def charge(self, amount: float, currency: str) -> str:
+        """Charge funds and return a transaction id."""
+        return await self._client.charge(amount, currency)
+
+    async def refund(self, txn_id: str) -> bool:
+        """Refund a transaction by id."""
+        return await self._client.refund(txn_id)
 
 
-class NotificationService:
+class NotificationClient:
     """
     Notification service.
 
@@ -216,20 +226,27 @@ class NotificationService:
         Returns:
             True if the send succeeded.
         """
-        raise NotImplementedError("NotificationService.send() is not implemented")
+        raise NotImplementedError("NotificationClient.send() is not implemented")
 
 
 @meta(description="Notification service resource of the orders domain", domain=OrdersDomain)
-class NotificationServiceResource(ExternalServiceResource[NotificationService]):
-    """Resource manager wrapping :class:`NotificationService` for ``@depends`` / mocks."""
+class NotificationGateway(BaseGateway):
+    """The gateway to the notification service: its methods are what the domain asks of it."""
+
+    def __init__(self, client: NotificationClient) -> None:
+        self._client = client
+
+    async def send(self, user_id: str, message: str) -> bool:
+        """Send a notification to a user."""
+        return await self._client.send(user_id, message)
 
 
-def default_payment_service_resource() -> PaymentServiceResource:
-    return PaymentServiceResource(PaymentService())
+def default_payment_gateway() -> PaymentGateway:
+    return PaymentGateway(PaymentClient())
 
 
-def default_notification_service_resource() -> NotificationServiceResource:
-    return NotificationServiceResource(NotificationService())
+def default_notification_gateway() -> NotificationGateway:
+    return NotificationGateway(NotificationClient())
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -351,13 +368,13 @@ class SimpleAction(BaseAction["SimpleAction.Params", "SimpleAction.Result"]):
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles(ManagerRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payment processing service",
 )
 @depends(
-    NotificationServiceResource,
-    factory=default_notification_service_resource,
+    NotificationGateway,
+    factory=default_notification_gateway,
     description="Notification service",
 )
 @depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
@@ -408,15 +425,15 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         connections: Connections,
     ) -> dict:
         """
-        Charge funds via PaymentService.
+        Charge funds via PaymentClient.
 
-        Resolves PaymentService from box, calls charge() with amount and
+        Resolves PaymentClient from box, calls charge() with amount and
         currency from params, stores returned txn_id in state.
 
         Returns:
             dict with key txn_id — transaction identifier.
         """
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
@@ -452,14 +469,14 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         """
         Build the final Result from state.
 
-        Resolves NotificationService and notifies the user that the order
+        Resolves NotificationClient and notifies the user that the order
         was created. Assembles Result from txn_id and total produced by
         regular aspects.
 
         Returns:
             FullAction.Result with order_id, txn_id, total, status.
         """
-        notification = (await box.resolve(NotificationServiceResource)).service
+        notification = await box.resolve(NotificationGateway)
         await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(

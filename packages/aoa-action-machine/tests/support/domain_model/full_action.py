@@ -7,9 +7,9 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 The richest Action in the test domain: two regular aspects with checkers,
-one summary aspect, two service dependencies (``PaymentServiceResource``, ``NotificationServiceResource``),
+one summary aspect, two service dependencies (``PaymentGateway``, ``NotificationGateway``),
 ``@depends(OrdersDbManager)`` and ``@connection(OrdersDbManager)`` — **class references**, same
-pattern as ``@depends(PaymentServiceResource, factory=...)``; graph merges to one ``resource_manager`` node. Role "manager".
+pattern as ``@depends(PaymentGateway, factory=...)``; graph merges to one ``resource_manager`` node. Role "manager".
 
 Exercises role checks, connection validation, dependency resolution via
 await box.resolve(), per-aspect checkers, and building the result from state.
@@ -19,7 +19,7 @@ ASPECT PIPELINE
 ═══════════════════════════════════════════════════════════════════════════════
 
     1. process_payment (regular)
-       - Resolves ``PaymentServiceResource`` via ``await box.resolve()`` (``.service`` for the client).
+       - Resolves ``PaymentGateway`` via ``await box.resolve()`` (``.service`` for the client).
        - Calls payment.charge(amount, currency).
        - Writes txn_id to state.
        - Checker: result_string("txn_id", required=True, min_length=1).
@@ -30,7 +30,7 @@ ASPECT PIPELINE
        - Checker: result_float("total", required=True, min_value=0.0).
 
     3. build_result (summary)
-       - Resolves NotificationService via await box.resolve().
+       - Resolves NotificationClient via await box.resolve().
        - Sends a notification to the user.
        - Builds Result from state (txn_id, total).
 
@@ -40,21 +40,21 @@ USAGE IN TESTS
 
 - Role tests: only "manager" passes; "user" gets AuthorizationError.
 - Connection tests: "db" required; wrong/missing keys fail.
-- Depends tests: PaymentService and NotificationService are mocked.
+- Depends tests: PaymentClient and NotificationClient are mocked.
 - Checker tests: txn_id (string), total (float).
 - run_aspect tests: process_payment and calc_total individually.
 - run_summary tests: state with txn_id and total → Result.
 - Rollup tests: rollup passed through resolve and connections.
 
-    mock_payment = AsyncMock(spec=PaymentService)
+    mock_payment = AsyncMock(spec=PaymentClient)
     mock_payment.charge.return_value = "TXN-001"
-    mock_notification = AsyncMock(spec=NotificationService)
+    mock_notification = AsyncMock(spec=NotificationClient)
     mock_db = AsyncMock(spec=OrdersDbManager)
 
     bench = TestBench(
         mocks={
-            PaymentServiceResource: PaymentServiceResource(mock_payment),
-            NotificationServiceResource: NotificationServiceResource(mock_notification),
+            PaymentGateway: PaymentGateway(mock_payment),
+            NotificationGateway: NotificationGateway(mock_notification),
         },
     ).with_user(user_id="mgr_1", roles=(ManagerRole,))
 
@@ -87,10 +87,10 @@ from aoa.action_machine.runtime.tools_box import ToolsBox
 from .domains import OrdersDomain
 from .roles import ManagerRole
 from .services import (
-    NotificationServiceResource,
-    PaymentServiceResource,
-    default_notification_service_resource,
-    default_payment_service_resource,
+    NotificationGateway,
+    PaymentGateway,
+    default_notification_gateway,
+    default_payment_gateway,
 )
 from .test_db_manager import OrdersDbManager
 
@@ -98,13 +98,13 @@ from .test_db_manager import OrdersDbManager
 @meta(description="Create order with payment and notification", domain=OrdersDomain)
 @check_roles(ManagerRole)
 @depends(
-    PaymentServiceResource,
-    factory=default_payment_service_resource,
+    PaymentGateway,
+    factory=default_payment_gateway,
     description="Payment processing service",
 )
 @depends(
-    NotificationServiceResource,
-    factory=default_notification_service_resource,
+    NotificationGateway,
+    factory=default_notification_gateway,
     description="Notification service",
 )
 @depends(OrdersDbManager, description="DB resource (class — same graph node as @connection)")
@@ -155,15 +155,15 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         connections: Connections,
     ) -> dict:
         """
-        Charge funds via PaymentService.
+        Charge funds via PaymentClient.
 
-        Resolves PaymentService from box, calls charge() with amount and
+        Resolves PaymentClient from box, calls charge() with amount and
         currency from params, stores returned txn_id in state.
 
         Returns:
             dict with key txn_id — transaction identifier.
         """
-        payment = (await box.resolve(PaymentServiceResource)).service
+        payment = await box.resolve(PaymentGateway)
         txn_id = await payment.charge(params.amount, params.currency)
         return {"txn_id": txn_id}
 
@@ -199,14 +199,14 @@ class FullAction(BaseAction["FullAction.Params", "FullAction.Result"]):
         """
         Build the final Result from state.
 
-        Resolves NotificationService and notifies the user that the order
+        Resolves NotificationClient and notifies the user that the order
         was created. Assembles Result from txn_id and total produced by
         regular aspects.
 
         Returns:
             FullAction.Result with order_id, txn_id, total, status.
         """
-        notification = (await box.resolve(NotificationServiceResource)).service
+        notification = await box.resolve(NotificationGateway)
         await notification.send(params.user_id, f"Order created: {state['txn_id']}")
 
         return FullAction.Result(

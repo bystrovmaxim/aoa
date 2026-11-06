@@ -9,10 +9,10 @@ from aoa.action_machine.runtime.action_product_machine import ActionProductMachi
 
 from .depends_mode_host_action import DependsModeHostAction
 from .ping_action import PingAction
-from .services import PaymentServiceResource
+from .services import PaymentGateway
 
 PING_CLS = PingAction
-PAYMENT_CLS = PaymentServiceResource
+PAYMENT_CLS = PaymentGateway
 
 
 def test_resource_depend_edge_wire_json_omits_mode_key() -> None:
@@ -20,7 +20,7 @@ def test_resource_depend_edge_wire_json_omits_mode_key() -> None:
     machine = ActionProductMachine(loggers=[])
     host_id = machine.get_action_node_by_id(DependsModeHostAction).node_id
     edges = DependsGraphEdge.get_dependency_edges(DependsModeHostAction)
-    payment_edge = next(e for e in edges if e.target_node_id.rsplit(".", 1)[-1] == "PaymentServiceResource")
+    payment_edge = next(e for e in edges if e.target_node_id.rsplit(".", 1)[-1] == "PaymentGateway")
     result = payment_edge.to_dict(source_id=host_id)
     assert "mode" not in result["properties"]
 

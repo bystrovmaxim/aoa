@@ -60,8 +60,8 @@ TestBench prepares mocks through ``_prepare_mock()`` using these rules
 3. ``unittest.mock.Mock`` -> as is (mock object for ``box.resolve()``).
    Includes ``Mock``, ``MagicMock``, ``AsyncMock`` and subclasses.
    Critical rule: ``AsyncMock(spec=PaymentClient)`` is keyed by the declared
-   ``@depends`` resource class (e.g. ``PaymentServiceResource``) so
-   ``box.resolve(PaymentServiceResource)`` returns the mock or wrapper.
+   ``@depends`` resource class (e.g. ``PaymentGateway``) so
+   ``box.resolve(PaymentGateway)`` returns the mock.
 4. ``BaseResult`` -> wrapped in ``MockAction(result=value)``.
 5. ``callable`` -> wrapped in ``MockAction(side_effect=value)``.
 6. anything else -> as is (for ``box.resolve()``).
@@ -125,7 +125,7 @@ Each fluent method returns a NEW ``TestBench`` instance:
 
     from aoa.action_machine.testing import StubTesterRole
 
-    bench = TestBench(mocks={PaymentServiceResource: mock})
+    bench = TestBench(mocks={PaymentGateway: mock})
     admin_bench = bench.with_user(user_id="admin", roles=(StubTesterRole,))
     # bench and admin_bench are different objects.
     # bench is unchanged after with_user call.
@@ -358,21 +358,17 @@ def _prepare_all_mocks(mocks: dict[type, Any]) -> dict[type, Any]:
 
 def _reset_mock_tree(value: Any) -> None:
     """
-    Clear call history on unittest mocks, including doubles held on resources.
+    Clear call history on unittest mocks, including doubles held by a resource.
 
-    Handles: bare ``Mock`` / ``AsyncMock``, ``ExternalServiceResource.service``,
-    and ``WrapperExternalServiceResource`` chains (``_inner``).
+    Handles a bare ``Mock`` / ``AsyncMock`` passed as a resource, and every mock a
+    resource keeps in its own attributes — a gateway built around a mock client.
     """
     if isinstance(value, Mock):
         value.reset_mock()
         return
-    service = getattr(value, "service", None)
-    if isinstance(service, Mock):
-        service.reset_mock()
-        return
-    inner = getattr(value, "_inner", None)
-    if inner is not None:
-        _reset_mock_tree(inner)
+    for held in getattr(value, "__dict__", {}).values():
+        if isinstance(held, Mock):
+            held.reset_mock()
 
 
 def _reset_all_mocks(mocks: dict[type, Any] | None) -> None:

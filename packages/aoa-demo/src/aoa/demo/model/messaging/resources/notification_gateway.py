@@ -1,14 +1,13 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/resources/notification_gateway.py
-"""Notification client stub for ``@depends`` and ``connections`` resource manager."""
+"""Notification service: a stub client and the gateway the domain reaches it through."""
 
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import BaseController
-from aoa.action_machine.resources.external_service import ExternalServiceResource
+from aoa.action_machine.resources import BaseGateway
 from aoa.demo.model.data_sources.notification_gateway_data_source import NotificationGatewayDataSource
 from aoa.demo.model.messaging.domain import MessagingDomain
 
 
-class NotificationGateway:
+class NotificationClient:
     def __init__(self, channel: str = "default") -> None:
         self.channel = channel
 
@@ -17,8 +16,15 @@ class NotificationGateway:
 
 
 @meta(
-    description="Notification gateway client for aspects/connections (stub)",
+    description="Notification service gateway (stub)",
     domain=MessagingDomain,
 )
-class NotificationGatewayResource(ExternalServiceResource[NotificationGateway], BaseController[NotificationGatewayDataSource]):
-    pass
+class NotificationGateway(BaseGateway[NotificationGatewayDataSource]):
+    """The gateway to the notification service: its methods are what the domain asks of it."""
+
+    def __init__(self, client: NotificationClient) -> None:
+        self._client = client
+
+    async def send(self, message: str) -> None:
+        """Ask the notification service: send."""
+        return await self._client.send(message)

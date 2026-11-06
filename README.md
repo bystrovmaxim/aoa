@@ -610,8 +610,8 @@ In AOA an `Action` holds no state and receives everything external only through 
 
 ```python
 # Fragment: its imports are left out.
-gateway = AsyncMock(spec=PaymentService)
-gateway.charge.side_effect = ValueError("payment declined: limit exceeded")
+client = AsyncMock(spec=PaymentClient)
+client.charge.side_effect = ValueError("payment declined: limit exceeded")
 
 bench = (
     TestBench()
@@ -619,7 +619,7 @@ bench = (
     .with_request(trace_id="trace-001", request_path="/api/orders")
     .with_runtime(hostname="prod-node-3", service_name="order-service")
     .with_mocks({
-        PaymentServiceResource: PaymentServiceResource(gateway),
+        PaymentGateway: PaymentGateway(client),
         GetClientInfoAction: ClientInfo(client_id="clt-001", name="Ivan Petrov"),
     })
 )

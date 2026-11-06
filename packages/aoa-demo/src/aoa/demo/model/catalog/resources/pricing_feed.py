@@ -1,8 +1,8 @@
 # packages/aoa-demo/src/aoa/demo/model/catalog/resources/pricing_feed.py
-"""Pricing feed stub for ``@depends`` and ``connections`` resource manager."""
+"""Pricing feed: a stub client and the gateway the domain reaches it through."""
 
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources.external_service import ExternalServiceResource
+from aoa.action_machine.resources import BaseGateway
 from aoa.demo.model.catalog.domain import CatalogDomain
 
 
@@ -12,8 +12,15 @@ class PricingFeedClient:
 
 
 @meta(
-    description="Pricing feed client for aspects/connections (stub)",
+    description="Pricing feed gateway (stub)",
     domain=CatalogDomain,
 )
-class PricingFeedClientResource(ExternalServiceResource[PricingFeedClient]):
-    pass
+class PricingFeedGateway(BaseGateway):
+    """The gateway to the pricing feed: its methods are what the domain asks of it."""
+
+    def __init__(self, client: PricingFeedClient) -> None:
+        self._client = client
+
+    async def list_price(self, sku: str) -> float:
+        """Ask the pricing feed: list price."""
+        return await self._client.list_price(sku)

@@ -44,10 +44,10 @@ mock_inventory.unreserve() -> True
 FIXTURES
 ═══════════════════════════════════════════════════════════════════════════════
 
-mock_payment       — ``AsyncMock(spec=PaymentService)``, charge -> "TXN-TEST-001",
+mock_payment       — ``AsyncMock(spec=PaymentClient)``, charge -> "TXN-TEST-001",
                      refund -> True.
-mock_notification  — ``AsyncMock(spec=NotificationService)``, send -> True.
-mock_inventory     — ``AsyncMock(spec=InventoryService)``, reserve -> "RES-TEST-001",
+mock_notification  — ``AsyncMock(spec=NotificationClient)``, send -> True.
+mock_inventory     — ``AsyncMock(spec=InventoryClient)``, reserve -> "RES-TEST-001",
                      unreserve -> True.
 mock_db            — ``AsyncMock(spec=OrdersDbManager)``.
 
@@ -67,27 +67,27 @@ from aoa.action_machine.testing import TestBench
 from ..support.domain_model import OrdersDbManager
 from ..support.domain_model.roles import AdminRole, ManagerRole
 from ..support.domain_model.services import (
-    InventoryService,
-    InventoryServiceResource,
-    NotificationService,
-    NotificationServiceResource,
-    PaymentService,
-    PaymentServiceResource,
+    InventoryClient,
+    InventoryGateway,
+    NotificationClient,
+    NotificationGateway,
+    PaymentClient,
+    PaymentGateway,
 )
 
 
 @pytest.fixture
 def mock_payment() -> AsyncMock:
     """
-    ``PaymentService`` mock with default behavior.
+    ``PaymentClient`` mock with default behavior.
 
     ``charge()`` returns ``"TXN-TEST-001"`` — satisfies
     ``result_string("txn_id", required=True, min_length=1)``.
 
     ``refund()`` returns ``True`` — compensators call it on payment rollback.
-    ``refund`` exists on ``PaymentService``, so ``AsyncMock(spec=...)`` exposes it.
+    ``refund`` exists on ``PaymentClient``, so ``AsyncMock(spec=...)`` exposes it.
     """
-    mock = AsyncMock(spec=PaymentService)
+    mock = AsyncMock(spec=PaymentClient)
     mock.charge.return_value = "TXN-TEST-001"
     mock.refund.return_value = True
     return mock
@@ -96,11 +96,11 @@ def mock_payment() -> AsyncMock:
 @pytest.fixture
 def mock_notification() -> AsyncMock:
     """
-    ``NotificationService`` mock with default behavior.
+    ``NotificationClient`` mock with default behavior.
 
     ``send()`` returns ``True`` (notification considered sent).
     """
-    mock = AsyncMock(spec=NotificationService)
+    mock = AsyncMock(spec=NotificationClient)
     mock.send.return_value = True
     return mock
 
@@ -108,14 +108,14 @@ def mock_notification() -> AsyncMock:
 @pytest.fixture
 def mock_inventory() -> AsyncMock:
     """
-    ``InventoryService`` mock with default behavior.
+    ``InventoryClient`` mock with default behavior.
 
     ``reserve()`` returns ``"RES-TEST-001"`` — satisfies
     ``result_string("reservation_id", required=True, min_length=1)``.
 
     ``unreserve()`` returns ``True`` — compensators call it when undoing a reservation.
     """
-    mock = AsyncMock(spec=InventoryService)
+    mock = AsyncMock(spec=InventoryClient)
     mock.reserve.return_value = "RES-TEST-001"
     mock.unreserve.return_value = True
     return mock
@@ -147,15 +147,15 @@ def bench(
     mock_notification: AsyncMock,
 ) -> TestBench:
     """
-    ``TestBench`` with ``PaymentService`` and ``NotificationService`` mocks.
+    ``TestBench`` with ``PaymentClient`` and ``NotificationClient`` mocks.
 
     Default user: ``user_id="test_user"``, ``roles=(StubTesterRole,)``.
     For role-specific actions use ``manager_bench`` or ``admin_bench``.
     """
     return TestBench(
         mocks={
-            PaymentServiceResource: PaymentServiceResource(mock_payment),
-            NotificationServiceResource: NotificationServiceResource(mock_notification),
+            PaymentGateway: PaymentGateway(mock_payment),
+            NotificationGateway: NotificationGateway(mock_notification),
         },
         log_coordinator=AsyncMock(),
     )
@@ -167,7 +167,7 @@ def compensate_bench(
     mock_inventory: AsyncMock,
 ) -> TestBench:
     """
-    ``TestBench`` with ``PaymentService`` and ``InventoryService`` mocks.
+    ``TestBench`` with ``PaymentClient`` and ``InventoryClient`` mocks.
 
     Intended for compensation (saga) tests. Includes both services used by
     ``CompensatedOrderAction``, ``CompensateAndOnErrorAction``, and
@@ -178,8 +178,8 @@ def compensate_bench(
     """
     return TestBench(
         mocks={
-            PaymentServiceResource: PaymentServiceResource(mock_payment),
-            InventoryServiceResource: InventoryServiceResource(mock_inventory),
+            PaymentGateway: PaymentGateway(mock_payment),
+            InventoryGateway: InventoryGateway(mock_inventory),
         },
         log_coordinator=AsyncMock(),
     )

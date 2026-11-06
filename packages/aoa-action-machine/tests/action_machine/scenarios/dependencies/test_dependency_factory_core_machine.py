@@ -46,7 +46,7 @@ Inspection:
     - get_all_classes() — list of all registered classes.
 
 Integration with the domain model:
-    - Factory built from FullAction scratch includes PaymentService and NotificationService.
+    - Factory built from FullAction scratch includes PaymentClient and NotificationClient.
 """
 
 import pytest
@@ -59,9 +59,9 @@ from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
 from ....support.domain_model import (
     FullAction,
-    NotificationServiceResource,
+    NotificationGateway,
     OrdersDbManager,
-    PaymentServiceResource,
+    PaymentGateway,
     PingAction,
 )
 from ....support.domain_model.domains import TestDomain
@@ -444,16 +444,16 @@ class TestDomainIntegration:
 
     def test_full_action_factory_has_dependencies(self) -> None:
         """
-        Factory for FullAction includes PaymentService and NotificationService.
+        Factory for FullAction includes PaymentClient and NotificationClient.
 
-        FullAction declares ``@depends`` on ``PaymentServiceResource``,
-        ``NotificationServiceResource``, and ``OrdersDbManager``.
+        FullAction declares ``@depends`` on ``PaymentGateway``,
+        ``NotificationGateway``, and ``OrdersDbManager``.
         """
         factory = _dependency_factory_from_class(FullAction)
 
         # Act & Assert — services and resource manager type registered
-        assert factory.has(PaymentServiceResource)
-        assert factory.has(NotificationServiceResource)
+        assert factory.has(PaymentGateway)
+        assert factory.has(NotificationGateway)
         assert factory.has(OrdersDbManager)
 
     def test_ping_action_factory_is_empty(self) -> None:
@@ -467,14 +467,14 @@ class TestDomainIntegration:
 
     async def test_factory_creates_payment_service(self) -> None:
         """
-        await factory.resolve(PaymentServiceResource) creates a PaymentServiceResource.
+        await factory.resolve(PaymentGateway) creates a PaymentGateway.
 
         Real resolve via default factory from ``@depends``, no mocks.
         """
         factory = _dependency_factory_from_class(FullAction)
 
         # Act — resolve real service
-        service = await factory.resolve(PaymentServiceResource)
+        service = await factory.resolve(PaymentGateway)
 
         # Assert — instance created
-        assert isinstance(service, PaymentServiceResource)
+        assert isinstance(service, PaymentGateway)

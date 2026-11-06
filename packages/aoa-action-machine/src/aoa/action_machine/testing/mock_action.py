@@ -67,11 +67,11 @@ EXAMPLES
     result = mock.run(OrderParams(user_id="u42"))
     assert result.order_id == "ORD-u42"
 
-    # In TestBench (mock keys are @depends resource classes, e.g. ExternalServiceResource):
+    # In TestBench (mock keys are @depends classes, e.g. a gateway):
     bench = TestBench(mocks={
-        PaymentServiceResource: MockAction(result=PayResult(txn_id="TXN-1")),
+        PaymentGateway: MockAction(result=PayResult(txn_id="TXN-1")),
     })
-    # ``PaymentServiceResource`` here is your app's ``ExternalServiceResource`` subclass.
+    # ``PaymentGateway`` here is your app's ``BaseGateway`` subclass.
 """
 
 from collections.abc import Callable

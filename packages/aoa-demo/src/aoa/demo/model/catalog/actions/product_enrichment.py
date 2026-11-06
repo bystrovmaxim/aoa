@@ -23,21 +23,21 @@ from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.resources import CatalogObjectStore, CatalogSearchSidecar
-from aoa.demo.model.catalog.resources.index_sync import IndexSyncClient, IndexSyncClientResource
-from aoa.demo.model.catalog.resources.pricing_feed import PricingFeedClient, PricingFeedClientResource
+from aoa.demo.model.catalog.resources.index_sync import IndexSyncClient, IndexSyncGateway
+from aoa.demo.model.catalog.resources.pricing_feed import PricingFeedClient, PricingFeedGateway
 from aoa.demo.model.roles import EditorRole
 
 
 @meta(description="Enrich catalog SKU with full interchange graph (catalog demo)", domain=CatalogDomain)
 @check_roles(EditorRole)
 @depends(
-    IndexSyncClientResource,
-    factory=lambda: IndexSyncClientResource(IndexSyncClient()),
+    IndexSyncGateway,
+    factory=lambda: IndexSyncGateway(IndexSyncClient()),
     description="Search index",
 )
 @depends(
-    PricingFeedClientResource,
-    factory=lambda: PricingFeedClientResource(PricingFeedClient()),
+    PricingFeedGateway,
+    factory=lambda: PricingFeedGateway(PricingFeedClient()),
     description="Pricing feed",
 )
 @connection(CatalogSearchSidecar, key="search", description="Search sidecar")
@@ -82,10 +82,10 @@ class ProductEnrichmentAction(
         box: ToolsBox,
         connections: Connections,
     ) -> dict[str, Any]:
-        pricing = await box.resolve(PricingFeedClientResource)
-        price = await pricing.service.list_price(state.normalized_sku)  # type: ignore[attr-defined]
-        indexer = await box.resolve(IndexSyncClientResource)
-        doc_id = await indexer.service.upsert_document(
+        pricing = await box.resolve(PricingFeedGateway)
+        price = await pricing.list_price(state.normalized_sku)  # type: ignore[attr-defined]
+        indexer = await box.resolve(IndexSyncGateway)
+        doc_id = await indexer.upsert_document(
             state.normalized_sku,  # type: ignore[attr-defined]
             {"sku": state.normalized_sku, "locale": params.locale},  # type: ignore[attr-defined]
         )
@@ -102,8 +102,8 @@ class ProductEnrichmentAction(
         error: Exception,
     ) -> None:
         if state_after is not None:
-            indexer = await box.resolve(IndexSyncClientResource)
-            await indexer.service.upsert_document(state_after.doc_id, {"tombstone": "1"})  # type: ignore[attr-defined]
+            indexer = await box.resolve(IndexSyncGateway)
+            await indexer.upsert_document(state_after.doc_id, {"tombstone": "1"})  # type: ignore[attr-defined]
 
     @on_error(ValueError, description="SKU validation failed")
     @context_requires(Ctx.User.user_id, Ctx.Request.trace_id)

@@ -66,6 +66,39 @@ connection from it, while the transaction stays the resource's own
 graph a data source hangs on the application, as a domain does, and each resource that
 names it has a `resource_data_source` edge to it.
 
+## A gateway has its own methods
+
+A gateway reaches someone else's service. It is given the service's client when it is built,
+keeps it private, and has one method for each thing the domain asks of the service; an aspect
+calls those methods and never holds the raw client:
+
+```python
+# Fragment: `PaymentClient` is the provider's client; `BillingDomain` is defined around it.
+@meta(description="Payment provider", domain=BillingDomain)
+class PaymentGateway(BaseGateway):
+    def __init__(self, client: PaymentClient) -> None:
+        self._client = client
+
+    async def charge(self, amount: float) -> str:
+        return await self._client.charge(amount)
+
+    async def refund(self, txn_id: str) -> None:
+        await self._client.refund(txn_id)
+
+
+@depends(PaymentGateway, factory=lambda: PaymentGateway(PaymentClient()))
+class SettleInvoiceAction(BaseAction["SettleInvoiceAction.Params", "SettleInvoiceAction.Result"]):
+    @regular_aspect("Capture the payment")
+    async def capture_aspect(self, params, state, box, connections):
+        gateway = await box.resolve(PaymentGateway)
+        return {"txn": await gateway.charge(params.amount)}
+```
+
+A test substitutes the gateway around a mock client — `TestBench(mocks={PaymentGateway:
+PaymentGateway(AsyncMock(spec=PaymentClient))})` — and the bench resets that client's calls
+between runs. A gateway holds no transaction: a nested action gets the same gateway, and a
+rollup run refuses it, because a call already made to a service cannot be taken back.
+
 ## The resource stores; the action decides
 
 The following complete example is deliberately sequential and in memory. It
