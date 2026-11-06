@@ -5,11 +5,12 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
+from aoa.demo.model.data_sources.shop_data_source import ShopDataSource
 from aoa.demo.model.inventory.domain import InventoryDomain
 
 
 @meta(description="Stores the inventory model (stub)", domain=InventoryDomain)
-class InventoryStorage(BaseStorage):
+class InventoryStorage(BaseStorage[ShopDataSource]):
     """Hold the inventory domain's entities; the demo never opens it."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:

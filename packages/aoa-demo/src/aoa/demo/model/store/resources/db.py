@@ -1,11 +1,12 @@
 # packages/aoa-demo/src/aoa/demo/model/store/resources/db.py
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
+from aoa.demo.model.data_sources.shop_data_source import ShopDataSource
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @meta(description="Primary relational store (stub)", domain=StoreDomain)
-class StorefrontDatabase(SqlResource):
+class StorefrontDatabase(SqlResource[ShopDataSource]):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

@@ -2,7 +2,7 @@
 
 One phase = one commit, referencing (#476).
 
-- [ ] T001 Phase 1: `aoa.demo.model.data_sources` with the three data sources; the six resources name them; the package first in the graph build's module list
+- [x] T001 Phase 1: `aoa.demo.model.data_sources` with the three data sources; the six resources name them; the package first in the graph build's module list
 - [ ] T002 Phase 2: the three relations, with descriptions
 - [ ] T003 Phase 3: rebuild the graph files; raise the demo's version
 - [ ] T004 Phase 4: the closing check run (CI)
