@@ -94,6 +94,7 @@ ARCHITECTURE / DATA FLOW
 from abc import ABC, abstractmethod
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.resources.base_data_source import TDataSource_co
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
@@ -101,7 +102,7 @@ from aoa.action_machine.resources.sql.wrapper_sql_resource import WrapperSqlReso
 
 
 @exclude_graph_model
-class SqlResource(BaseStorage, ProtocolSqlResource, ABC):
+class SqlResource(BaseStorage[TDataSource_co], ProtocolSqlResource, ABC):
     """
     Abstract base class for transaction-capable SQL connection managers.
     """

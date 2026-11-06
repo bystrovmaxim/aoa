@@ -46,6 +46,8 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any
 
+from typing_extensions import TypeVar
+
 from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.meta.meta_intent import MetaIntent
@@ -69,3 +71,7 @@ class BaseDataSource(ABC, MetaIntent):
         super().__init_subclass__(**kwargs)
         if not cls.__name__.endswith(DATA_SOURCE_SUFFIX):
             raise NamingSuffixError(f"{cls.__name__}: a data source class name ends in '{DATA_SOURCE_SUFFIX}'.")
+
+
+TDataSource_co = TypeVar("TDataSource_co", bound=BaseDataSource, default=BaseDataSource, covariant=True)
+"""The data source a resource names; a resource that names none leaves it at its default."""

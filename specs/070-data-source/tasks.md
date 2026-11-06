@@ -11,8 +11,8 @@ One phase = one commit, referencing (#475). After each phase only that phase's t
 
 ## Phase 2: Resources name their data source
 
-- [ ] T003 `resolve_data_source`, the bound and uniqueness checks in `BaseResource.__init_subclass__`; the hierarchy made generic; `_require_data_source`
-- [ ] T004 `ResourceDataSourceGraphEdge` on `ResourceGraphNode`; tests
+- [x] T003 `resolve_data_source`, the bound and uniqueness checks in `BaseResource.__init_subclass__`; the hierarchy made generic; `_require_data_source`
+- [x] T004 `ResourceDataSourceGraphEdge` on `ResourceGraphNode`; tests
 
 ## Phase 3: PostgresDataSource
 

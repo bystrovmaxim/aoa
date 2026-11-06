@@ -32,11 +32,11 @@ from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResol
 from aoa.action_machine.resources.base_data_source import BaseDataSource
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
-TDataSource = TypeVar("TDataSource", bound=BaseDataSource)
+TDataSourceClass = TypeVar("TDataSourceClass", bound=BaseDataSource)
 
 
 @dataclass(init=False, frozen=True)
-class DataSourceGraphNode(BaseGraphNode[type[TDataSource]]):
+class DataSourceGraphNode(BaseGraphNode[type[TDataSourceClass]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseDataSource`` class.
@@ -48,7 +48,7 @@ class DataSourceGraphNode(BaseGraphNode[type[TDataSource]]):
     NODE_TYPE: ClassVar[str] = "DataSource"
     application: ApplicationGraphEdge = field(init=False, repr=False, compare=False)
 
-    def __init__(self, data_source_cls: type[TDataSource]) -> None:
+    def __init__(self, data_source_cls: type[TDataSourceClass]) -> None:
         super().__init__(
             node_id=TypeIntrospection.full_qualname(data_source_cls),
             node_type=DataSourceGraphNode.NODE_TYPE,

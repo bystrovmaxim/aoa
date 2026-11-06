@@ -61,6 +61,7 @@ dependencies = [
     { name = "jsonschema" },
     { name = "pydantic" },
     { name = "simpleeval" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -85,6 +86,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'jwt'", specifier = ">=2.8,<3" },
     { name = "simpleeval", specifier = ">=1.0,<2.0" },
+    { name = "typing-extensions", specifier = ">=4.12" },
 ]
 provides-extras = ["postgres", "jwt"]
 

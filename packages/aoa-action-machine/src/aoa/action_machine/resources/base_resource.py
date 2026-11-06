@@ -61,24 +61,59 @@ ARCHITECTURE / DATA FLOW
 """
 
 from abc import ABC, abstractmethod
+from typing import Any, Generic
 
+from aoa.action_machine.exceptions.data_source_declaration_error import DataSourceDeclarationError
 from aoa.action_machine.exceptions.rollup_not_supported_error import RollupNotSupportedError
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.depends.depends_eligible import DependsEligible
 from aoa.action_machine.intents.meta.meta_intent import MetaIntent
+from aoa.action_machine.resources.base_data_source import BaseDataSource, TDataSource_co
+from aoa.action_machine.resources.data_source_resolver import check_data_source_arguments, resolve_data_source
 
 
 @exclude_graph_model
-class BaseResource(ABC, MetaIntent, DependsEligible):
+class BaseResource(ABC, MetaIntent, DependsEligible, Generic[TDataSource_co]):
     """
     AI-CORE-BEGIN
         ROLE: Root of all managed long-lived dependencies.
-        CONTRACT: Injected via DI; lives longer than a single call.
-        INVARIANTS: Three subtypes separated by lifecycle ownership.
+        CONTRACT: Injected via DI; lives longer than a single call. May name one data source as its type argument (``TDataSource_co``).
+        INVARIANTS: Three subtypes separated by lifecycle ownership; at most one data source, of the kind its base needs.
     AI-CORE-END
 
     Base abstract contract for all resource manager implementations.
+
+    A resource may name the data source it shares with other resources as the type
+    argument of its base — ``class OrdersResource(PostgresResource[ShopDataSource])`` —
+    and gets an instance of it when it is built. A resource without one works on its own.
     """
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Refuse a data source of the wrong kind, and a second data source, when the class is created."""
+        super().__init_subclass__(**kwargs)
+        check_data_source_arguments(cls)
+
+    @classmethod
+    def data_source_type(cls) -> type[BaseDataSource] | None:
+        """Return the data source this resource names, or ``None`` when it works on its own."""
+        return resolve_data_source(cls)
+
+    @classmethod
+    def _check_data_source(cls, data_source: BaseDataSource | None) -> None:
+        """
+        Refuse a data source this resource does not name, or the absence of the one it does.
+
+        Raises:
+            DataSourceDeclarationError: naming the resource, the class it declares and what was given.
+        """
+        declared = cls.data_source_type()
+        if declared is None and data_source is not None:
+            raise DataSourceDeclarationError(
+                f"{cls.__name__} names no data source, so it takes none; got {type(data_source).__name__}."
+            )
+        if declared is not None and not isinstance(data_source, declared):
+            given = "none" if data_source is None else type(data_source).__name__
+            raise DataSourceDeclarationError(f"{cls.__name__} works through {declared.__name__}: pass data_source= of that class; got {given}.")
 
     async def check_rollup_support(self) -> bool:
         """

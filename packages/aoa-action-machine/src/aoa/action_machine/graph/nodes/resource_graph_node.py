@@ -33,6 +33,7 @@ from typing import Any, ClassVar, TypeVar
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
 from aoa.action_machine.graph.edges.domain_graph_edge import DomainGraphEdge
+from aoa.action_machine.graph.edges.resource_data_source_graph_edge import ResourceDataSourceGraphEdge
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -45,13 +46,14 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseResource`` host class.
-    CONTRACT: ``properties["description"]`` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; :attr:`domain` is the ``AGGREGATION`` edge to :class:`~aoa.action_machine.graph.nodes.domain_graph_node.DomainGraphNode` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
+    CONTRACT: :attr:`data_source` is the ``resource_data_source`` edge to the data source the resource names, or ``None``; ``properties["description"]`` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; :attr:`domain` is the ``AGGREGATION`` edge to :class:`~aoa.action_machine.graph.nodes.domain_graph_node.DomainGraphNode` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
     FAILURES: :exc:`~aoa.action_machine.exceptions.MissingMetaError` from ``resolve_description`` / ``resolve_domain_type`` when ``@meta`` scratch is absent or invalid.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Resource"
     domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
+    data_source: ResourceDataSourceGraphEdge | None = field(init=False, repr=False, compare=False)
 
     def __init__(self, resource_cls: type[TResource]) -> None:
         super().__init__(
@@ -62,6 +64,8 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
             node_obj=resource_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(resource_cls, self))
+        data_source_cls = resource_cls.data_source_type()
+        object.__setattr__(self, "data_source", None if data_source_cls is None else ResourceDataSourceGraphEdge(data_source_cls))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -74,5 +78,5 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
         }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return resource relationship edges materialized in the explicit edge field."""
-        return [self.domain]
+        """Return the domain edge, then the ``resource_data_source`` edge when the resource names a data source."""
+        return [self.domain] if self.data_source is None else [self.domain, self.data_source]

@@ -363,6 +363,9 @@ external = ["V107"]
 # ``runtime/__init__.py`` — stdlib import block only; isort order is intentional.
 # Отложенные импорты после ``BaseAction`` — отдельный блок (см. комментарий в файле).
 "packages/aoa-action-machine/src/aoa/action_machine/model/base_action.py" = ["I001"]
+# ``base_resource.py`` — the data source parameter has a default (a resource that names none), and
+# Python 3.12, the oldest version this repository supports, has no type-parameter syntax for a default.
+"packages/aoa-action-machine/src/aoa/action_machine/resources/base_resource.py" = ["UP046"]
 "packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_fastapi_service.py" = ["E402"]
 "packages/aoa-demo/src/aoa/demo/fastapi_mcp_services/app_mcp_service.py" = ["E402"]
 "**/*.ipynb" = ["F404", "E402", "F401", "RUF005", "F841"]
