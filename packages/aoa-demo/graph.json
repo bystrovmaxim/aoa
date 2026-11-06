@@ -18256,6 +18256,23 @@
       "type": "entity_relation"
     },
     {
+      "id": "aoa.demo.model.billing.entities.chargeback_ticket.ChargebackTicketCoreEntity|entity_relation|order",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The customer order the disputed payment paid for: an order of the shop database, a ticket of the billing warehouse",
+        "field_name": "order",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.billing.entities.chargeback_ticket.ChargebackTicketCoreEntity",
+      "target_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.billing.entities.chargeback_ticket.ChargebackTicketCoreEntity|entity_relation|tax_remit_advice",
       "is_dag": false,
       "properties": {
@@ -56450,6 +56467,24 @@
       "type": "resource_data_source"
     },
     {
+      "id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway|domain|aoa.demo.model.store.store_domain.StoreDomain",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway",
+      "target_id": "aoa.demo.model.store.store_domain.StoreDomain",
+      "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway|resource_data_source|aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway",
+      "target_id": "aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.store.resources.db.StorefrontDatabase|domain|aoa.demo.model.store.store_domain.StoreDomain",
       "is_dag": true,
       "properties": {},
@@ -94074,6 +94109,14 @@
       "label": "StorefrontSessionCache",
       "properties": {
         "description": "Session cache (stub)"
+      },
+      "type": "Resource"
+    },
+    {
+      "id": "aoa.demo.model.store.resources.card_gateway.StorefrontCardGateway",
+      "label": "StorefrontCardGateway",
+      "properties": {
+        "description": "Card network gateway of the storefront (stub)"
       },
       "type": "Resource"
     },
