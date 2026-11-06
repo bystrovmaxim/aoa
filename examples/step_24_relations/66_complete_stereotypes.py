@@ -25,6 +25,7 @@ from aoa.action_machine.graph.validators.entity_inverse_validator import validat
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class KindDomain(BaseDomain):
@@ -34,8 +35,13 @@ class KindDomain(BaseDomain):
     description = "Complete relationship fields"
 
 
+@meta(description="Where KindStorage keeps its rows")
+class KindDataSource(InMemoryDataSource):
+    """The store KindStorage works with."""
+
+
 @meta(description="Stores the kind entities", domain=KindDomain)
-class KindStorage(BaseStorage):
+class KindStorage(BaseStorage[KindDataSource]):
     """Hold the kind entities."""
 
 

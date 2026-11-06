@@ -6,10 +6,11 @@ from __future__ import annotations
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
 from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
+from aoa.demo.model.data_sources.access_cascade_data_source import AccessCascadeDataSource
 
 
 @meta(description="Stores the access cascade model (stub)", domain=AccessCascadeDomain)
-class AccessCascadeStorage(BaseStorage):
+class AccessCascadeStorage(BaseStorage[AccessCascadeDataSource]):
     """Hold the access cascade domain's entities; the demo never opens it."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:

@@ -5,11 +5,12 @@ from __future__ import annotations
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
+from aoa.demo.model.data_sources.logistics_mesh_data_source import LogisticsMeshDataSource
 from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
 
 
 @meta(description="Stores the logistics mesh model (stub)", domain=LogisticsMeshDomain)
-class LogisticsMeshStorage(BaseStorage):
+class LogisticsMeshStorage(BaseStorage[LogisticsMeshDataSource]):
     """Hold the logistics mesh domain's entities; the demo never opens it."""
 
     def get_wrapper_class(self) -> type[BaseResource] | None:

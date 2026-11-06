@@ -27,6 +27,7 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class SpecializationDomain(BaseDomain):
@@ -36,8 +37,13 @@ class SpecializationDomain(BaseDomain):
     description = "Specialization"
 
 
+@meta(description="Where SpecializationStorage keeps its rows")
+class SpecializationDataSource(InMemoryDataSource):
+    """The store SpecializationStorage works with."""
+
+
 @meta(description="Stores the specialization entities", domain=SpecializationDomain)
-class SpecializationStorage(BaseStorage):
+class SpecializationStorage(BaseStorage[SpecializationDataSource]):
     """Hold the specialization entities."""
 
 

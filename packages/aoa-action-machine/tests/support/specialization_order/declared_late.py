@@ -27,6 +27,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -37,8 +38,13 @@ class LateOrderDomain(BaseDomain):
     description = "A part declared after the kinds"
 
 
+@meta(description="Where LateOrderStorage keeps its rows")
+class LateOrderDataSource(InMemoryDataSource):
+    """The store LateOrderStorage works with."""
+
+
 @meta(description="Stores the late order entities", domain=LateOrderDomain)
-class LateOrderStorage(BaseStorage):
+class LateOrderStorage(BaseStorage[LateOrderDataSource]):
     """Hold the late order entities."""
 
 

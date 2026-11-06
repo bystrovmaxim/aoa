@@ -45,8 +45,15 @@ _IMPORTS = textwrap.dedent(
         description = "Specialization"
 
 
+    from aoa.action_machine.resources import InMemoryDataSource
+
+    @meta(description="Where SpecStorage keeps its rows")
+    class SpecDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the spec entities", domain=SpecDomain)
-    class SpecStorage(BaseStorage):
+    class SpecStorage(BaseStorage[SpecDataSource]):
         pass
     """
 )

@@ -23,23 +23,19 @@ pip install "aoa-action-machine[postgres]"
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresResource
 
-# One connection owned by this resource, no pool:
-db = PostgresResource({"dsn": "postgresql://user:password@localhost/shop"})
-
-# Alternatively, a resource that works through a data source and its pool:
 @meta(description="Main shop database")
-class ShopDataSource(PostgresDataSource): ...
+class ShopDataSource(PostgresDataSource): ...  # opened at startup: ShopDataSource("postgresql://…", min_size=1, max_size=10)
 
 class OrdersResource(PostgresResource[ShopDataSource]): ...
 
 db = OrdersResource(data_source=shop)
 ```
 
-These are alternative construction forms. Supply exactly one source. A resource
-that names a data source as its type argument takes `data_source=` and an instance
-of that class; a resource that names none takes connection parameters. A pool lives
-only in a data source: several resources of one database share it, and entities of
-those resources may relate to each other. `data_source` and `rollup` are
+A PostgreSQL resource has one construction form. It names its data source as its type
+argument and takes `data_source=` with an instance of that class. Connection parameters
+and the pool live only in the data source: the application opens it once, and every
+resource of that database borrows from it. A resource that names no data source, or is
+given connection parameters, is refused. `data_source` and `rollup` are
 keyword-only arguments. Construction is synchronous and does not
 connect; `await db.open()` takes the connection. `await db.close()` releases it.
 
@@ -321,9 +317,9 @@ HandleError caused by TimeoutError
 
 The data source's acquire_timeout bounds waiting for a free pool connection. PostgresResource wraps the pool failure in HandleError and preserves its cause. The pool’s size and the wait duration are different settings.
 
-## A resource can own its connection without a pool
+## Connection parameters live in the data source
 
-The direct form calls asyncpg.connect in open and the connection’s close in cleanup. Replace only connect so the example needs no database.
+A PostgreSQL resource takes only its data source. The data source keeps the connection parameters and creates the pool from them when it opens. Replace only create_pool so the example needs no database.
 
 [Python](../../examples/extensions/postgresql/08_owned_connection.py) · [Notebook](../../examples/extensions/postgresql/08_owned_connection.ipynb)
 
@@ -331,30 +327,31 @@ The following is the body of `main()` from the standalone example; the linked fi
 
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
-connection = RecordingConnection(1)
-connect = AsyncMock(return_value=connection)
-with patch("aoa.action_machine.resources.postgres.postgres_resource.asyncpg.connect", connect):
-    db = PostgresResource({"dsn": "postgresql://example.invalid/demo"})
-    await db.open()
-    await db.close()
-connect.assert_awaited_once_with(dsn="postgresql://example.invalid/demo")
-assert connection.closed
-print("connect calls:", connect.await_count)
-print("physical connection closed:", connection.closed)
+pool = RecordingPool()
+create_pool = AsyncMock(return_value=pool)
+with patch("aoa.action_machine.resources.postgres.postgres_data_source.asyncpg.create_pool", create_pool):
+    async with ExampleDataSource("postgresql://example.invalid/demo", min_size=1, max_size=1) as source:
+        db = ExampleResource(data_source=source)
+        await db.open()
+        await db.close()
+create_pool.assert_awaited_once_with("postgresql://example.invalid/demo", min_size=1, max_size=1)
+assert pool.closed
+print("create_pool calls:", create_pool.await_count)
+print("pool closed with its data source:", pool.closed)
 ```
 
 Observed output:
 
 ```text
-connect calls: 1
-physical connection closed: True
+create_pool calls: 1
+pool closed with its data source: True
 ```
 
-No network call occurred in this teaching example. In an application, supplying real connection parameters opens a dedicated connection for that resource. Cleanup closes it instead of returning it to a pool.
+No network call occurred in this teaching example. In an application, the data source creates one pool from its connection parameters when the application opens it, and every resource that names it borrows a connection from that pool. Closing the data source closes the pool.
 
-## Choose exactly one connection source
+## A PostgreSQL resource takes no connection parameters
 
-A resource cannot both work through a data source and own its connection. Choose one source.
+Connection parameters live only in a data source. A resource given them is refused.
 
 [Python](../../examples/extensions/postgresql/09_both_sources.py) · [Notebook](../../examples/extensions/postgresql/09_both_sources.ipynb)
 
@@ -364,8 +361,8 @@ The following is the body of `main()` from the standalone example; the linked fi
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
     ExampleResource({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
-except ConnectionValidationError:
-    print("ConnectionValidationError")
+except TypeError:
+    print("TypeError")
 else:
     raise AssertionError("Invalid construction was accepted")
 ```
@@ -373,14 +370,14 @@ else:
 Observed output:
 
 ```text
-ConnectionValidationError
+TypeError
 ```
 
-A resource cannot both work through a data source and own its connection. Choose one source. The check happens during construction, before open and before any database access.
+Connection parameters live only in a data source: a PostgreSQL resource takes its data source and nothing else. The check happens during construction, before open and before any database access.
 
-## Choose exactly one connection source
+## A PostgreSQL resource names its data source
 
-The resource has no implicit default pool or connection settings. Supply one source.
+A resource that names no data source is refused, even when it is given one: the class says which database it works with.
 
 [Python](../../examples/extensions/postgresql/10_no_source.py) · [Notebook](../../examples/extensions/postgresql/10_no_source.ipynb)
 
@@ -389,9 +386,9 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: the body of `main()` of the linked example, which holds every definition.
 try:
-    PostgresResource()
-except ConnectionValidationError:
-    print("ConnectionValidationError")
+    PostgresResource(data_source=ExampleDataSource(pool=RecordingPool()))
+except DataSourceDeclarationError:
+    print("DataSourceDeclarationError")
 else:
     raise AssertionError("Invalid construction was accepted")
 ```
@@ -399,10 +396,10 @@ else:
 Observed output:
 
 ```text
-ConnectionValidationError
+DataSourceDeclarationError
 ```
 
-The resource has no implicit default pool or connection settings. Supply one source. The check happens during construction, before open and before any database access.
+A PostgreSQL resource names its data source as the type argument of its base, `PostgresResource[<Name>DataSource]`, so the model knows which database it works with. The check happens during construction, before open and before any database access.
 
 ## Open and close can be called again safely
 
@@ -794,13 +791,12 @@ cleanup. Change `PerCallConnection(factory=make_resource)` to
 If the factory used to return one global PostgreSQL resource, move resource
 construction into the factory and keep only the data source global to the application.
 
-A resource that was given `pool=` now names a data source: declare a
-`PostgresDataSource` subclass, open it at startup over the same pool or DSN, derive
-the resource from `PostgresResource[YourDataSource]` and build it with
+A resource that was given `pool=` or connection parameters now names a data source:
+declare a `PostgresDataSource` subclass, open it at startup over the same pool or DSN,
+derive the resource from `PostgresResource[YourDataSource]` and build it with
 `data_source=`. Move an `acquire_timeout` from the resource to the data source.
 
-Replace a positional rollup argument with `rollup=True`. Choose either
-`PostgresResource(connection_params, rollup=True)` or
+Replace a positional rollup argument with `rollup=True`:
 `OrdersResource(data_source=shop, rollup=True)`. Avoid reaching through a resource to close
 its private connection: call close on the resource you own. Nested actions must not
 call it; their wrapper will refuse.

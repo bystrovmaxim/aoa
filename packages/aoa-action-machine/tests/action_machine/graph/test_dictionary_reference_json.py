@@ -21,6 +21,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -31,8 +32,13 @@ class DatedShopDomain(BaseDomain):
     description = "Dated shop"
 
 
+@meta(description="Where DatedShopStorage keeps its rows")
+class DatedShopDataSource(InMemoryDataSource):
+    """The store DatedShopStorage works with."""
+
+
 @meta(description="Stores the dated shop entities", domain=DatedShopDomain)
-class DatedShopStorage(BaseStorage):
+class DatedShopStorage(BaseStorage[DatedShopDataSource]):
     """Hold the dated shop entities."""
 
 

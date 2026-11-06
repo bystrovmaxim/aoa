@@ -1,6 +1,6 @@
-"""Choose exactly one connection source.
+"""A PostgreSQL resource takes no connection parameters.
 
-A resource cannot both borrow and own its connection. Choose one source.
+Connection parameters live only in a data source. A resource given them is refused.
 
 Run: uv run python examples/extensions/postgresql/09_both_sources.py
 """
@@ -59,9 +59,6 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-from aoa.action_machine.exceptions import ConnectionValidationError
-
-
 class ExampleDataSource(PostgresDataSource):
     """The database of this example: it hands out the recording pool's connections."""
 
@@ -74,8 +71,8 @@ async def main():
     """Run this case and verify its observable result."""
     try:
         ExampleResource({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
-    except ConnectionValidationError:
-        print("ConnectionValidationError")
+    except TypeError:
+        print("TypeError")
     else:
         raise AssertionError("Invalid construction was accepted")
 

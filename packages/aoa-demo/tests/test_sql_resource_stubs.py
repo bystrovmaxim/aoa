@@ -18,7 +18,7 @@ ARCHITECTURE / DATA FLOW
     SqlResource (contract: open/begin/commit/rollback/close)
         │  close() has a concrete harmless body
         ├── catalog:   CatalogSearchSidecar, CatalogObjectStore
-        ├── messaging: MessagingDeadLetterStore, OutboxPrimaryDatabase
+        ├── messaging: OutboxPrimaryDatabase
         ├── billing:   BillingWarehouse, BillingReadReplica
         └── store:     StorefrontDatabase, StorefrontSessionCache
 
@@ -33,7 +33,6 @@ from aoa.demo.model.billing.resources.read_replica import BillingReadReplica
 from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
 from aoa.demo.model.catalog.resources.object_store import CatalogObjectStore
 from aoa.demo.model.catalog.resources.search_sidecar import CatalogSearchSidecar
-from aoa.demo.model.messaging.resources.dlq_store import MessagingDeadLetterStore
 from aoa.demo.model.messaging.resources.outbox_primary import OutboxPrimaryDatabase
 from aoa.demo.model.store.resources.cache import StorefrontSessionCache
 from aoa.demo.model.store.resources.db import StorefrontDatabase
@@ -41,7 +40,6 @@ from aoa.demo.model.store.resources.db import StorefrontDatabase
 STUBS: list[type] = [
     CatalogSearchSidecar,
     CatalogObjectStore,
-    MessagingDeadLetterStore,
     OutboxPrimaryDatabase,
     BillingWarehouse,
     BillingReadReplica,

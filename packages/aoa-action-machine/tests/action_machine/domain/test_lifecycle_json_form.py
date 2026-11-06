@@ -22,6 +22,7 @@ from pydantic import Field, ValidationError
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseStateEntity, Lifecycle, value
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -32,8 +33,13 @@ class _LifecycleFormsDomain(BaseDomain):
     description = "Entities for the lifecycle JSON form tests"
 
 
+@meta(description="Where _LifecycleFormsStorage keeps its rows")
+class _LifecycleFormsDataSource(InMemoryDataSource):
+    """The store _LifecycleFormsStorage works with."""
+
+
 @meta(description="Stores the lifecycle forms entities", domain=_LifecycleFormsDomain)
-class _LifecycleFormsStorage(BaseStorage):
+class _LifecycleFormsStorage(BaseStorage[_LifecycleFormsDataSource]):
     """Hold the lifecycle forms entities."""
 
 

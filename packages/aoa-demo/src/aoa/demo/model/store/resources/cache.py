@@ -1,11 +1,12 @@
 # packages/aoa-demo/src/aoa/demo/model/store/resources/cache.py
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
+from aoa.demo.model.data_sources.session_cache_data_source import SessionCacheDataSource
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @meta(description="Session cache (stub)", domain=StoreDomain)
-class StorefrontSessionCache(SqlResource):
+class StorefrontSessionCache(SqlResource[SessionCacheDataSource]):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

@@ -28,6 +28,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -38,8 +39,13 @@ class _ProjectionDomain(BaseDomain):
     description = "Entities for the projection tests"
 
 
+@meta(description="Where _ProjectionStorage keeps its rows")
+class _ProjectionDataSource(InMemoryDataSource):
+    """The store _ProjectionStorage works with."""
+
+
 @meta(description="Stores the projection entities", domain=_ProjectionDomain)
-class _ProjectionStorage(BaseStorage):
+class _ProjectionStorage(BaseStorage[_ProjectionDataSource]):
     """Hold the projection entities."""
 
 

@@ -42,12 +42,13 @@ from typing import Any
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
+from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
 
 from ..domain import IdentityDomain
 
 
 @meta(description="Identity store: read a person, record a login", domain=IdentityDomain)
-class IdentityStoreBase(SqlResource):
+class IdentityStoreBase(SqlResource[IdentityDataSource]):
     """
     AI-CORE-BEGIN
         ROLE: The identity domain's storage semantics, independent of any driver.

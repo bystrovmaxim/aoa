@@ -24,6 +24,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.auth",
         f"{_AM}.context",
         f"{_AM}.domain",
+        f"{_AM}.graph",  # exclude_graph_model: the demo's implementations of a model resource stay out of the graph (issue #479)
         f"{_AM}.graph.core.debug_node_graph_coordinator",
         f"{_AM}.graph.core.exceptions",
         f"{_AM}.graph.core.node_graph_coordinator",

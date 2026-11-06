@@ -30,6 +30,7 @@ _IMPORTS = textwrap.dedent(
         value,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
     from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
@@ -41,8 +42,13 @@ _IMPORTS = textwrap.dedent(
         description = "Migration"
 
 
+    @meta(description="Where MigrationStorage keeps its rows")
+    class MigrationDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the migration entities", domain=MigrationDomain)
-    class MigrationStorage(BaseStorage):
+    class MigrationStorage(BaseStorage[MigrationDataSource]):
         pass
     """
 )

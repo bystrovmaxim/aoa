@@ -85,7 +85,8 @@ class BaseResource(ABC, MetaIntent, DependsEligible, Generic[TDataSource_co]):
 
     A resource may name the data source it shares with other resources as the type
     argument of its base — ``class OrdersResource(PostgresResource[ShopDataSource])`` —
-    and gets an instance of it when it is built. A resource without one works on its own.
+    and gets an instance of it when it is built. A resource that stores an entity names one;
+    a resource that stores nothing may name none.
     """
 
     def __init_subclass__(cls, **kwargs: Any) -> None:

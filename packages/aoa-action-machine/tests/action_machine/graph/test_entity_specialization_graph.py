@@ -61,6 +61,7 @@ from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordi
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -70,8 +71,13 @@ class _GDomain(BaseDomain):
     description = "g"
 
 
+@meta(description="Where _GStorage keeps its rows")
+class _GDataSource(InMemoryDataSource):
+    """The store _GStorage works with."""
+
+
 @meta(description="Stores the g entities", domain=_GDomain)
-class _GStorage(BaseStorage):
+class _GStorage(BaseStorage[_GDataSource]):
     """Hold the g entities."""
 
 

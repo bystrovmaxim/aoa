@@ -86,12 +86,13 @@ jobs:
         if: failure()
         run: cat archive/logs/check-all.txt || true
 
-      # The demo's graph file is current, checked by graph-builder's own action, from the Maxitor release
-      # this repository takes from PyPI.
+      # The demo's graph file is current, checked by graph-builder's own action from gnomon, at the commit that
+      # merged Maxitor 3.22.0 (protocol 1.8), with graph-builder from that same commit — the command of
+      # GRAPH_BUILDER in scripts/check_run.py.
       - name: Graph files are current (graph-builder action)
-        uses: bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@maxitor-v3.18.0
+        uses: bystrovmaxim/gnomon/packages/maxitor/tools/graph-builder@9ecc198834cc7df462a729f751ddf4870874cc35
         with:
-          graph-builder: uv run --extra dev graph-builder
+          graph-builder: uvx --from git+https://github.com/bystrovmaxim/gnomon@9ecc198834cc7df462a729f751ddf4870874cc35#subdirectory=packages/maxitor graph-builder
 
       # The graph files (graph-builder.toml) must be what the code builds: the check above only
       # reads them. The developer runs `graph-builder write` locally and commits the files with the

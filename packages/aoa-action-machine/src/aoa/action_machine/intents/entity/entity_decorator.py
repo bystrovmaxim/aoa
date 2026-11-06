@@ -66,14 +66,18 @@ EXAMPLE
     from aoa.action_machine.domain import BaseCoreEntity, BaseDomain
     from aoa.action_machine.intents.entity.entity_decorator import entity
     from aoa.action_machine.intents.meta import meta
-    from aoa.action_machine.resources.base_storage import BaseStorage
+    from aoa.action_machine.resources import BaseStorage, InMemoryDataSource
 
     class ShopDomain(BaseDomain):
         name = "shop"
         description = "E-commerce shop"
 
+    @meta(description="Where the shop's rows live")
+    class ShopDataSource(InMemoryDataSource):
+        \"\"\"The store the shop database works with.\"\"\"
+
     @meta(description="Stores the shop model", domain=ShopDomain)
-    class ShopDatabase(BaseStorage):
+    class ShopDatabase(BaseStorage[ShopDataSource]):
         \"\"\"Hold the shop's entities.\"\"\"
 
     @entity(description="Customer order", resource=ShopDatabase)

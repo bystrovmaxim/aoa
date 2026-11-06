@@ -25,6 +25,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -36,8 +37,13 @@ class GraphDomain(BaseDomain):
     description = "Graph association"
 
 
+@meta(description="Where GraphStorage keeps its rows")
+class GraphDataSource(InMemoryDataSource):
+    """The store GraphStorage works with."""
+
+
 @meta(description="Stores the graph entities", domain=GraphDomain)
-class GraphStorage(BaseStorage):
+class GraphStorage(BaseStorage[GraphDataSource]):
     """Hold the graph entities."""
 
 

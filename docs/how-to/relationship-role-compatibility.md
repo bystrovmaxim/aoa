@@ -25,6 +25,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class PartsDomain(BaseDomain):
@@ -33,8 +34,13 @@ class PartsDomain(BaseDomain):
     description = "Owners and parts"
 
 
+@meta(description="Where PartsStorage keeps its rows")
+class PartsDataSource(InMemoryDataSource):
+    """The store PartsStorage works with."""
+
+
 @meta(description="Stores the parts entities", domain=PartsDomain)
-class PartsStorage(BaseStorage):
+class PartsStorage(BaseStorage[PartsDataSource]):
     """Hold the parts entities."""
 
 

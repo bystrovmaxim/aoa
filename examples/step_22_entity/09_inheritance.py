@@ -15,6 +15,7 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -24,8 +25,13 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
+@meta(description="Where ShopStorage keeps its rows")
+class ShopDataSource(InMemoryDataSource):
+    """The store ShopStorage works with."""
+
+
 @meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage):
+class ShopStorage(BaseStorage[ShopDataSource]):
     """Hold the shop entities."""
 
 

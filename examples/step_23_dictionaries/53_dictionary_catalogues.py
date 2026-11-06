@@ -16,6 +16,7 @@ from aoa.action_machine.graph.validators.entity_field_validator import validate_
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class Shop53Domain(BaseDomain):
@@ -25,8 +26,13 @@ class Shop53Domain(BaseDomain):
     description = "Shop model"
 
 
+@meta(description="Where Shop53Storage keeps its rows")
+class Shop53DataSource(InMemoryDataSource):
+    """The store Shop53Storage works with."""
+
+
 @meta(description="Stores the shop53 entities", domain=Shop53Domain)
-class Shop53Storage(BaseStorage):
+class Shop53Storage(BaseStorage[Shop53DataSource]):
     """Hold the shop53 entities."""
 
 
@@ -59,8 +65,13 @@ class Shop54Domain(BaseDomain):
     description = "Shop model"
 
 
+@meta(description="Where Shop54Storage keeps its rows")
+class Shop54DataSource(InMemoryDataSource):
+    """The store Shop54Storage works with."""
+
+
 @meta(description="Stores the shop54 entities", domain=Shop54Domain)
-class Shop54Storage(BaseStorage):
+class Shop54Storage(BaseStorage[Shop54DataSource]):
     """Hold the shop54 entities."""
 
 

@@ -63,6 +63,7 @@ from aoa.action_machine.graph.validators.entity_specialization_validator import 
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -71,8 +72,13 @@ class SweepDomain(BaseDomain):
     description = "sweep"
 
 
+@meta(description="Where SweepStorage keeps its rows")
+class SweepDataSource(InMemoryDataSource):
+    """The store SweepStorage works with."""
+
+
 @meta(description="Stores the sweep entities", domain=SweepDomain)
-class SweepStorage(BaseStorage):
+class SweepStorage(BaseStorage[SweepDataSource]):
     """Hold the sweep entities."""
 
 

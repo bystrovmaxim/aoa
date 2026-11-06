@@ -831,6 +831,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.access_cascade.resources.storage.AccessCascadeStorage|resource_data_source|aoa.demo.model.data_sources.access_cascade_data_source.AccessCascadeDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.access_cascade.resources.storage.AccessCascadeStorage",
+      "target_id": "aoa.demo.model.data_sources.access_cascade_data_source.AccessCascadeDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.access_cascade.roles.cascade_application_roles.CascadeLineLeadRole|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -6036,6 +6045,15 @@
       "source_id": "aoa.demo.model.analytics.resources.storage.AnalyticsStorage",
       "target_id": "aoa.demo.model.analytics.domain.AnalyticsDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.analytics.resources.storage.AnalyticsStorage|resource_data_source|aoa.demo.model.data_sources.analytics_data_source.AnalyticsDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.analytics.resources.storage.AnalyticsStorage",
+      "target_id": "aoa.demo.model.data_sources.analytics_data_source.AnalyticsDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.assurance_portfolio.domain.AssurancePortfolioDomain|application|aoa.action_machine.application.application.Application",
@@ -12281,6 +12299,15 @@
       "source_id": "aoa.demo.model.assurance_portfolio.resources.storage.AssurancePortfolioStorage",
       "target_id": "aoa.demo.model.assurance_portfolio.domain.AssurancePortfolioDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.assurance_portfolio.resources.storage.AssurancePortfolioStorage|resource_data_source|aoa.demo.model.data_sources.assurance_portfolio_data_source.AssurancePortfolioDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.assurance_portfolio.resources.storage.AssurancePortfolioStorage",
+      "target_id": "aoa.demo.model.data_sources.assurance_portfolio_data_source.AssurancePortfolioDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params|field|aoa.demo.model.billing.actions.credit_memo_preview.CreditMemoPreviewAction.Params:invoice_id",
@@ -18945,6 +18972,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.billing.resources.card_network_gateway.CardNetworkGateway|resource_data_source|aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.billing.resources.card_network_gateway.CardNetworkGateway",
+      "target_id": "aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.billing.resources.ledger_archive.LedgerArchiveServiceResource|domain|aoa.demo.model.billing.domain.BillingDomain",
       "is_dag": true,
       "properties": {},
@@ -18988,6 +19024,15 @@
       "source_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
       "target_id": "aoa.demo.model.billing.domain.BillingDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse|resource_data_source|aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.billing.resources.warehouse.BillingWarehouse",
+      "target_id": "aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.catalog.actions.browse.BrowseCatalogAction.Params|field|aoa.demo.model.catalog.actions.browse.BrowseCatalogAction.Params:query",
@@ -23409,6 +23454,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar|resource_data_source|aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog.resources.search_sidecar.CatalogSearchSidecar",
+      "target_id": "aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.catalog.review_moderator_role.ReviewModeratorRole|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -23880,6 +23934,15 @@
       "source_id": "aoa.demo.model.catalog_custody.resources.storage.CatalogCustodyStorage",
       "target_id": "aoa.demo.model.catalog_custody.catalog_custody_domain.CatalogCustodyDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.catalog_custody.resources.storage.CatalogCustodyStorage|resource_data_source|aoa.demo.model.data_sources.catalog_custody_data_source.CatalogCustodyDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.catalog_custody.resources.storage.CatalogCustodyStorage",
+      "target_id": "aoa.demo.model.data_sources.catalog_custody_data_source.CatalogCustodyDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.clinical_supply.domain.ClinicalSupplyDomain|application|aoa.action_machine.application.application.Application",
@@ -27005,11 +27068,119 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.clinical_supply.resources.storage.ClinicalSupplyStorage|resource_data_source|aoa.demo.model.data_sources.clinical_supply_data_source.ClinicalSupplyDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.clinical_supply.resources.storage.ClinicalSupplyStorage",
+      "target_id": "aoa.demo.model.data_sources.clinical_supply_data_source.ClinicalSupplyDataSource",
+      "type": "resource_data_source"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.access_cascade_data_source.AccessCascadeDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.access_cascade_data_source.AccessCascadeDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.analytics_data_source.AnalyticsDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.analytics_data_source.AnalyticsDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.assurance_portfolio_data_source.AssurancePortfolioDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.assurance_portfolio_data_source.AssurancePortfolioDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.catalog_custody_data_source.CatalogCustodyDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.catalog_custody_data_source.CatalogCustodyDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
       "id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.clinical_supply_data_source.ClinicalSupplyDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.clinical_supply_data_source.ClinicalSupplyDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.entity_projection_demo_data_source.EntityProjectionDemoDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.entity_projection_demo_data_source.EntityProjectionDemoDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.generalization_shapes_data_source.GeneralizationShapesDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.generalization_shapes_data_source.GeneralizationShapesDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.logistics_mesh_data_source.LogisticsMeshDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.logistics_mesh_data_source.LogisticsMeshDataSource",
       "target_id": "aoa.action_machine.application.application.Application",
       "type": "application"
     },
@@ -27023,11 +27194,47 @@
       "type": "application"
     },
     {
+      "id": "aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.settlement_desks_data_source.SettlementDesksDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.settlement_desks_data_source.SettlementDesksDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
       "id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.telemetry_pipeline_data_source.TelemetryPipelineDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.data_sources.telemetry_pipeline_data_source.TelemetryPipelineDataSource",
       "target_id": "aoa.action_machine.application.application.Application",
       "type": "application"
     },
@@ -27448,6 +27655,15 @@
       "source_id": "aoa.demo.model.entity_projection_demo.resources.storage.EntityProjectionDemoStorage",
       "target_id": "aoa.demo.model.entity_projection_demo.domain.EntityProjectionDemoDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.entity_projection_demo.resources.storage.EntityProjectionDemoStorage|resource_data_source|aoa.demo.model.data_sources.entity_projection_demo_data_source.EntityProjectionDemoDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.entity_projection_demo.resources.storage.EntityProjectionDemoStorage",
+      "target_id": "aoa.demo.model.data_sources.entity_projection_demo_data_source.EntityProjectionDemoDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.generalization_shapes.actions.generalization_actions.GeneralizationFirstChildAction|@check_roles|aoa.action_machine.auth.guest_role.GuestRole",
@@ -27883,6 +28099,15 @@
       "source_id": "aoa.demo.model.generalization_shapes.resources.storage.GeneralizationShapesStorage",
       "target_id": "aoa.demo.model.generalization_shapes.generalization_shapes_domain.GeneralizationShapesDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.generalization_shapes.resources.storage.GeneralizationShapesStorage|resource_data_source|aoa.demo.model.data_sources.generalization_shapes_data_source.GeneralizationShapesDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.generalization_shapes.resources.storage.GeneralizationShapesStorage",
+      "target_id": "aoa.demo.model.data_sources.generalization_shapes_data_source.GeneralizationShapesDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.identity.domain.IdentityDomain|application|aoa.action_machine.application.application.Application",
@@ -29523,6 +29748,15 @@
       "type": "lifecycle"
     },
     {
+      "id": "aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource|application|aoa.action_machine.application.application.Application",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
+      "target_id": "aoa.action_machine.application.application.Application",
+      "type": "application"
+    },
+    {
       "id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase|domain|aoa.demo.model.identity.domain.IdentityDomain",
       "is_dag": true,
       "properties": {},
@@ -29530,6 +29764,15 @@
       "source_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
       "target_id": "aoa.demo.model.identity.domain.IdentityDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase|resource_data_source|aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
+      "target_id": "aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.inventory.domain.InventoryDomain|application|aoa.action_machine.application.application.Application",
@@ -32913,6 +33156,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.logistics_mesh.resources.storage.LogisticsMeshStorage|resource_data_source|aoa.demo.model.data_sources.logistics_mesh_data_source.LogisticsMeshDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.logistics_mesh.resources.storage.LogisticsMeshStorage",
+      "target_id": "aoa.demo.model.data_sources.logistics_mesh_data_source.LogisticsMeshDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.logistics_mesh.yard_operations_specialist_role.YardOperationsSpecialistRole|application|aoa.action_machine.application.application.Application",
       "is_dag": true,
       "properties": {},
@@ -33111,18 +33363,6 @@
       "source_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
       "target_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction:dispatch_compensate",
       "type": "@compensate"
-    },
-    {
-      "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@connection|aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
-      "is_dag": true,
-      "properties": {
-        "description": "DLQ store",
-        "key": "dlq"
-      },
-      "relationship": "Association",
-      "source_id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction",
-      "target_id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
-      "type": "@connection"
     },
     {
       "id": "aoa.demo.model.messaging.actions.publish_transactional.PublishTransactionalOutboxAction|@connection|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
@@ -35777,12 +36017,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_mesh_courier_replay.MsgCourierReplayCorrelateCoreEntity|entity_resource|aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
+      "id": "aoa.demo.model.messaging.entities.msg_mesh_courier_replay.MsgCourierReplayCorrelateCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_mesh_courier_replay.MsgCourierReplayCorrelateCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
       "type": "entity_resource"
     },
     {
@@ -36446,12 +36686,12 @@
       "type": "entity_relation"
     },
     {
-      "id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity|entity_resource|aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
+      "id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity|entity_resource|aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
       "is_dag": true,
       "properties": {},
       "relationship": "Aggregation",
       "source_id": "aoa.demo.model.messaging.entities.msg_replay_ticket.ReplayTicketCoreEntity",
-      "target_id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
+      "target_id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase",
       "type": "entity_resource"
     },
     {
@@ -37237,24 +37477,6 @@
       "type": "lifecycle"
     },
     {
-      "id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore|domain|aoa.demo.model.messaging.domain.MessagingDomain",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
-      "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
-      "type": "domain"
-    },
-    {
-      "id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore|resource_data_source|aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
-      "is_dag": true,
-      "properties": {},
-      "relationship": "Aggregation",
-      "source_id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
-      "target_id": "aoa.demo.model.data_sources.messaging_data_source.MessagingDataSource",
-      "type": "resource_data_source"
-    },
-    {
       "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource|domain|aoa.demo.model.messaging.domain.MessagingDomain",
       "is_dag": true,
       "properties": {},
@@ -37262,6 +37484,15 @@
       "source_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
       "target_id": "aoa.demo.model.messaging.domain.MessagingDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource|resource_data_source|aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
+      "target_id": "aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.messaging.resources.outbox_primary.OutboxPrimaryDatabase|domain|aoa.demo.model.messaging.domain.MessagingDomain",
@@ -37786,6 +38017,15 @@
       "source_id": "aoa.demo.model.settlement_desks.resources.storage.SettlementDesksStorage",
       "target_id": "aoa.demo.model.settlement_desks.settlement_desks_domain.SettlementDesksDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.settlement_desks.resources.storage.SettlementDesksStorage|resource_data_source|aoa.demo.model.data_sources.settlement_desks_data_source.SettlementDesksDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.settlement_desks.resources.storage.SettlementDesksStorage",
+      "target_id": "aoa.demo.model.data_sources.settlement_desks_data_source.SettlementDesksDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.settlement_desks.settlement_desks_domain.SettlementDesksDomain|application|aoa.action_machine.application.application.Application",
@@ -56201,6 +56441,15 @@
       "type": "domain"
     },
     {
+      "id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache|resource_data_source|aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.store.resources.cache.StorefrontSessionCache",
+      "target_id": "aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
+      "type": "resource_data_source"
+    },
+    {
       "id": "aoa.demo.model.store.resources.db.StorefrontDatabase|domain|aoa.demo.model.store.store_domain.StoreDomain",
       "is_dag": true,
       "properties": {},
@@ -58511,6 +58760,15 @@
       "source_id": "aoa.demo.model.telemetry_pipeline.resources.storage.TelemetryPipelineStorage",
       "target_id": "aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPipelineDomain",
       "type": "domain"
+    },
+    {
+      "id": "aoa.demo.model.telemetry_pipeline.resources.storage.TelemetryPipelineStorage|resource_data_source|aoa.demo.model.data_sources.telemetry_pipeline_data_source.TelemetryPipelineDataSource",
+      "is_dag": true,
+      "properties": {},
+      "relationship": "Aggregation",
+      "source_id": "aoa.demo.model.telemetry_pipeline.resources.storage.TelemetryPipelineStorage",
+      "target_id": "aoa.demo.model.data_sources.telemetry_pipeline_data_source.TelemetryPipelineDataSource",
+      "type": "resource_data_source"
     },
     {
       "id": "aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain.TelemetryPipelineDomain|application|aoa.action_machine.application.application.Application",
@@ -76760,10 +77018,98 @@
       "type": "Resource"
     },
     {
+      "id": "aoa.demo.model.data_sources.access_cascade_data_source.AccessCascadeDataSource",
+      "label": "AccessCascadeDataSource",
+      "properties": {
+        "description": "The access cascade store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.analytics_data_source.AnalyticsDataSource",
+      "label": "AnalyticsDataSource",
+      "properties": {
+        "description": "The analytics store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.assurance_portfolio_data_source.AssurancePortfolioDataSource",
+      "label": "AssurancePortfolioDataSource",
+      "properties": {
+        "description": "The assurance portfolio store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.billing_warehouse_data_source.BillingWarehouseDataSource",
+      "label": "BillingWarehouseDataSource",
+      "properties": {
+        "description": "The billing warehouse database"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.card_network_data_source.CardNetworkDataSource",
+      "label": "CardNetworkDataSource",
+      "properties": {
+        "description": "The card network service"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.catalog_custody_data_source.CatalogCustodyDataSource",
+      "label": "CatalogCustodyDataSource",
+      "properties": {
+        "description": "The catalog custody store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
       "id": "aoa.demo.model.data_sources.catalog_data_source.CatalogDataSource",
       "label": "CatalogDataSource",
       "properties": {
         "description": "The catalog object database"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.catalog_search_data_source.CatalogSearchDataSource",
+      "label": "CatalogSearchDataSource",
+      "properties": {
+        "description": "The catalog search index"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.clinical_supply_data_source.ClinicalSupplyDataSource",
+      "label": "ClinicalSupplyDataSource",
+      "properties": {
+        "description": "The clinical supply store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.entity_projection_demo_data_source.EntityProjectionDemoDataSource",
+      "label": "EntityProjectionDemoDataSource",
+      "properties": {
+        "description": "The entity projection demo store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.generalization_shapes_data_source.GeneralizationShapesDataSource",
+      "label": "GeneralizationShapesDataSource",
+      "properties": {
+        "description": "The generalization shapes store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.logistics_mesh_data_source.LogisticsMeshDataSource",
+      "label": "LogisticsMeshDataSource",
+      "properties": {
+        "description": "The logistics mesh store, kept in memory"
       },
       "type": "DataSource"
     },
@@ -76776,10 +77122,42 @@
       "type": "DataSource"
     },
     {
+      "id": "aoa.demo.model.data_sources.notification_gateway_data_source.NotificationGatewayDataSource",
+      "label": "NotificationGatewayDataSource",
+      "properties": {
+        "description": "The notification service"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.session_cache_data_source.SessionCacheDataSource",
+      "label": "SessionCacheDataSource",
+      "properties": {
+        "description": "The storefront session cache"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.settlement_desks_data_source.SettlementDesksDataSource",
+      "label": "SettlementDesksDataSource",
+      "properties": {
+        "description": "The settlement desks store, kept in memory"
+      },
+      "type": "DataSource"
+    },
+    {
       "id": "aoa.demo.model.data_sources.shop_data_source.ShopDataSource",
       "label": "ShopDataSource",
       "properties": {
         "description": "The shop database — storefront, support desk and inventory"
+      },
+      "type": "DataSource"
+    },
+    {
+      "id": "aoa.demo.model.data_sources.telemetry_pipeline_data_source.TelemetryPipelineDataSource",
+      "label": "TelemetryPipelineDataSource",
+      "properties": {
+        "description": "The telemetry pipeline store, kept in memory"
       },
       "type": "DataSource"
     },
@@ -78362,6 +78740,14 @@
         "primary_key_hint": false
       },
       "type": "EntityField"
+    },
+    {
+      "id": "aoa.demo.model.identity.resources.identity_data_source.IdentityDataSource",
+      "label": "IdentityDataSource",
+      "properties": {
+        "description": "The identity database"
+      },
+      "type": "DataSource"
     },
     {
       "id": "aoa.demo.model.identity.resources.identity_store_base.IdentityStoreBase",
@@ -83528,14 +83914,6 @@
         "primary_key_hint": false
       },
       "type": "EntityField"
-    },
-    {
-      "id": "aoa.demo.model.messaging.resources.dlq_store.MessagingDeadLetterStore",
-      "label": "MessagingDeadLetterStore",
-      "properties": {
-        "description": "Dead-letter queue store (stub)"
-      },
-      "type": "Resource"
     },
     {
       "id": "aoa.demo.model.messaging.resources.notification_gateway.NotificationGatewayResource",
@@ -95233,5 +95611,5 @@
       "type": "Domain"
     }
   ],
-  "schema_version": "1.7"
+  "schema_version": "1.8"
 }

@@ -29,6 +29,7 @@ _IMPORTS = textwrap.dedent(
         NoInverse,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
+    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
     from aoa.action_machine.intents.entity import entity
@@ -39,8 +40,13 @@ _IMPORTS = textwrap.dedent(
         description = "Inverse"
 
 
+    @meta(description="Where InvStorage keeps its rows")
+    class InvDataSource(InMemoryDataSource):
+        pass
+
+
     @meta(description="Stores the inv entities", domain=InvDomain)
-    class InvStorage(BaseStorage):
+    class InvStorage(BaseStorage[InvDataSource]):
         pass
 
 

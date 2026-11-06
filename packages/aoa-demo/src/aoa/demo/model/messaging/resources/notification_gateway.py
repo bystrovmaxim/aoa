@@ -2,7 +2,9 @@
 """Notification client stub for ``@depends`` and ``connections`` resource manager."""
 
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import BaseController
 from aoa.action_machine.resources.external_service import ExternalServiceResource
+from aoa.demo.model.data_sources.notification_gateway_data_source import NotificationGatewayDataSource
 from aoa.demo.model.messaging.domain import MessagingDomain
 
 
@@ -18,5 +20,5 @@ class NotificationGateway:
     description="Notification gateway client for aspects/connections (stub)",
     domain=MessagingDomain,
 )
-class NotificationGatewayResource(ExternalServiceResource[NotificationGateway]):
+class NotificationGatewayResource(ExternalServiceResource[NotificationGateway], BaseController[NotificationGatewayDataSource]):
     pass

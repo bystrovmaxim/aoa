@@ -33,6 +33,7 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -43,8 +44,13 @@ class _ProtocolsDomain(BaseDomain):
     description = "Entities for the relation container protocol tests"
 
 
+@meta(description="Where _ProtocolsStorage keeps its rows")
+class _ProtocolsDataSource(InMemoryDataSource):
+    """The store _ProtocolsStorage works with."""
+
+
 @meta(description="Stores the protocols entities", domain=_ProtocolsDomain)
-class _ProtocolsStorage(BaseStorage):
+class _ProtocolsStorage(BaseStorage[_ProtocolsDataSource]):
     """Hold the protocols entities."""
 
 

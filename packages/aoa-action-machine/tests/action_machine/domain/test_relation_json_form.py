@@ -35,6 +35,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 U1 = "00000000-0000-0000-0000-000000000001"
@@ -48,8 +49,13 @@ class _FormsDomain(BaseDomain):
     description = "Entities for the relation JSON form tests"
 
 
+@meta(description="Where _FormsStorage keeps its rows")
+class _FormsDataSource(InMemoryDataSource):
+    """The store _FormsStorage works with."""
+
+
 @meta(description="Stores the forms entities", domain=_FormsDomain)
-class _FormsStorage(BaseStorage):
+class _FormsStorage(BaseStorage[_FormsDataSource]):
     """Hold the forms entities."""
 
 

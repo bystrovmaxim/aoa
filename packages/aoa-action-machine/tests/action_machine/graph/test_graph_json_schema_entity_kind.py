@@ -36,6 +36,7 @@ from aoa.action_machine.graph.graph_json_schema import GRAPH_JSON_SCHEMA
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 _VALIDATOR = Draft202012Validator(GRAPH_JSON_SCHEMA)
@@ -48,15 +49,20 @@ class KindShopDomain(BaseDomain):
     description = "Kind shop"
 
 
+@meta(description="Where KindShopStorage keeps its rows")
+class KindShopDataSource(InMemoryDataSource):
+    """The store KindShopStorage works with."""
+
+
 @meta(description="Stores the kind shop entities", domain=KindShopDomain)
-class KindShopStorage(BaseStorage):
+class KindShopStorage(BaseStorage[KindShopDataSource]):
     """Hold the kind shop entities."""
 
 
 def _document(properties: dict[str, Any]) -> dict[str, Any]:
     """Return a one-node graph document for the given entity properties."""
     return {
-        "schema_version": "1.7",
+        "schema_version": "1.8",
         "nodes": [{"id": "shop.model.OrderEntity", "type": "Entity", "label": "OrderEntity", "properties": properties}],
         "edges": [],
     }
@@ -142,7 +148,7 @@ def test_each_aoa_kind_exports_its_word_and_name(entity_cls: type, word: str, la
     row = EntityGraphNode(entity_cls).to_dict()
     assert row["properties"]["entity_kind"] == word
     assert row["properties"]["entity_kind_label"] == label
-    _VALIDATOR.validate({"schema_version": "1.7", "nodes": [row], "edges": []})
+    _VALIDATOR.validate({"schema_version": "1.8", "nodes": [row], "edges": []})
 
 
 def test_a_user_kind_exports_its_own_word_and_name() -> None:
@@ -162,4 +168,4 @@ def test_a_user_kind_exports_its_own_word_and_name() -> None:
     row = EntityGraphNode(order).to_dict()
     assert row["properties"]["entity_kind"] == "aggregate"
     assert row["properties"]["entity_kind_label"] == "Aggregate"
-    _VALIDATOR.validate({"schema_version": "1.7", "nodes": [row], "edges": []})
+    _VALIDATOR.validate({"schema_version": "1.8", "nodes": [row], "edges": []})

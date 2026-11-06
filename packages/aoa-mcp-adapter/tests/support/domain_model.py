@@ -42,7 +42,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources.external_service.external_service_resource import ExternalServiceResource
@@ -74,8 +74,13 @@ class TestDomain(BaseDomain):
     description = "Shared test domain for @meta"
 
 
+@meta(description="Where TestStorage keeps its rows")
+class TestDataSource(InMemoryDataSource):
+    """The store TestStorage works with."""
+
+
 @meta(description="Stores the test entities", domain=TestDomain)
-class TestStorage(BaseStorage):
+class TestStorage(BaseStorage[TestDataSource]):
     """Hold the test entities."""
 
 

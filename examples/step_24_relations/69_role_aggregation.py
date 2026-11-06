@@ -22,6 +22,7 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class AggregationDomain(BaseDomain):
@@ -31,8 +32,13 @@ class AggregationDomain(BaseDomain):
     description = "Aggregation"
 
 
+@meta(description="Where AggregationStorage keeps its rows")
+class AggregationDataSource(InMemoryDataSource):
+    """The store AggregationStorage works with."""
+
+
 @meta(description="Stores the aggregation entities", domain=AggregationDomain)
-class AggregationStorage(BaseStorage):
+class AggregationStorage(BaseStorage[AggregationDataSource]):
     """Hold the aggregation entities."""
 
 

@@ -291,17 +291,18 @@ value can be written to the graph: the separate
 export failure. Dictionary reference serialization and status graph attributes are
 different contracts.
 
-## A lifecycle stays inside one data source
+## A lifecycle may be shared across databases
 
-A state type declares no resource of its own: it is stored with the entities whose `Lifecycle[...]` uses it. Entities inside one boundary — one data source, or one resource that names none — may share a state type; entities of two boundaries may not, because the statuses would then live in two places at once.
+A state type declares no resource of its own: it is stored with the entities whose `Lifecycle[...]` uses it. A lifecycle is a fact of the model, like a relation, so entities of any resources and data sources may share one state type, and each carries its own lifecycle.
 
 [Script](../../examples/step_25_lifecycle/23_lifecycle_across_resources.py) · [Notebook](../../examples/step_25_lifecycle/23_lifecycle_across_resources.ipynb)
 
 ```text
-EntityResourceError: OrderStateEntity is the state type of OrderCopyCoreEntity.lifecycle (StorefrontDatabase, no data source) and ReturnCoreEntity.lifecycle (SupportDatabase, no data source): a lifecycle stays inside one data source, or inside one resource when there is none.
+ReturnCoreEntity in SupportDatabase: Draft, Paid
+SalesOrderCoreEntity in StorefrontDatabase: Draft, Paid
 ```
 
-The order and its copy share `OrderStateEntity` inside `StorefrontDatabase`, which is allowed; the return in `SupportDatabase` is what the model refuses. Let both resources name the data source of the database they share, or give the second resource a state type of its own — the codes may be the same.
+The order in `StorefrontDatabase` and the return in `SupportDatabase` share `OrderStateEntity`; each has its own states in the graph.
 
 ## When invalid declarations fail
 

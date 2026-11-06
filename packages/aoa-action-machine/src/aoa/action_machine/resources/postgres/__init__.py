@@ -15,11 +15,11 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     App bootstrap (lifespan)
-         |  creates one pool for the process, from the same connection parameters
+         |  opens one data source per database: the connection parameters and the pool
          v
-    PostgresResource(pool=...)        or        PostgresResource({"dsn": ...})
-         |  open(): one connection borrowed          open(): its own connection
-         |  close(): returned, pool stays open       close(): the connection closed
+    OrdersResource(data_source=shop)        # class OrdersResource(PostgresResource[ShopDataSource])
+         |  open(): one connection borrowed from the data source
+         |  close(): returned, the pool stays open
          v
     ActionMachine resources used by actions
 
@@ -34,7 +34,7 @@ COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
 - ``PostgresDataSource``: the kind of data source of a PostgreSQL database — connection parameters and the pool several resources share.
-- ``PostgresResource``: resource manager for PostgreSQL connections. It holds at most one connection, only for its own unit of work: taken in ``open()`` from its data source or from the driver, given back in ``close()``.
+- ``PostgresResource``: resource manager for PostgreSQL connections. It always names its data source and holds at most one connection, only for its own unit of work: taken from the data source in ``open()``, given back in ``close()``.
 """
 try:
     import asyncpg  # noqa: F401

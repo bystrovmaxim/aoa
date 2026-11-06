@@ -135,6 +135,11 @@ _MODEL = textwrap.dedent(
         description = "Shop"
 
 
+    class SupportDomain(BaseDomain):
+        name = "support"
+        description = "Support"
+
+
     @meta(description="Main shop database")
     class ShopDataSource(BaseDataSource):
         pass
@@ -146,7 +151,7 @@ _MODEL = textwrap.dedent(
             return None
 
 
-    @meta(description="Support", domain=ShopDomain)
+    @meta(description="Support", domain=SupportDomain)
     class SupportResource(BaseStorage[ShopDataSource]):
         def get_wrapper_class(self):
             return None
@@ -164,7 +169,7 @@ _MODEL = textwrap.dedent(
 
 
 def test_the_graph_has_an_edge_from_each_resource_that_names_a_data_source() -> None:
-    """Two ``resource_data_source`` edges to ``ShopDataSource``; none from the resource without one; valid against 1.7."""
+    """Two ``resource_data_source`` edges to ``ShopDataSource``; none from the resource without one; valid against 1.8."""
     result = run_isolated_model(_MODEL)
     assert result.returncode == 0, result.stderr
     graph = json.loads(result.stdout)

@@ -16,6 +16,7 @@ from aoa.action_machine.graph.validators.entity_inverse_validator import validat
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class DirectionDomain(BaseDomain):
@@ -25,8 +26,13 @@ class DirectionDomain(BaseDomain):
     description = "Reciprocal directions"
 
 
+@meta(description="Where DirectionStorage keeps its rows")
+class DirectionDataSource(InMemoryDataSource):
+    """The store DirectionStorage works with."""
+
+
 @meta(description="Stores the direction entities", domain=DirectionDomain)
-class DirectionStorage(BaseStorage):
+class DirectionStorage(BaseStorage[DirectionDataSource]):
     """Hold the direction entities."""
 
 

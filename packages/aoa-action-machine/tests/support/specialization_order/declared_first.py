@@ -26,6 +26,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -36,8 +37,13 @@ class FirstOrderDomain(BaseDomain):
     description = "A part declared before the kinds"
 
 
+@meta(description="Where FirstOrderStorage keeps its rows")
+class FirstOrderDataSource(InMemoryDataSource):
+    """The store FirstOrderStorage works with."""
+
+
 @meta(description="Stores the first order entities", domain=FirstOrderDomain)
-class FirstOrderStorage(BaseStorage):
+class FirstOrderStorage(BaseStorage[FirstOrderDataSource]):
     """Hold the first order entities."""
 
 

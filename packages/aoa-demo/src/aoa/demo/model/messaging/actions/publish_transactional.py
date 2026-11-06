@@ -22,7 +22,7 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.messaging.domain import MessagingDomain
-from aoa.demo.model.messaging.resources import MessagingDeadLetterStore, OutboxPrimaryDatabase
+from aoa.demo.model.messaging.resources import OutboxPrimaryDatabase
 from aoa.demo.model.messaging.resources.notification_gateway import NotificationGateway, NotificationGatewayResource
 from aoa.demo.model.messaging.resources.smtp_transport import SmtpTransportStub, SmtpTransportStubResource
 from aoa.demo.model.messaging.resources.webhook_fanout import WebhookFanoutStub, WebhookFanoutStubResource
@@ -47,7 +47,6 @@ from aoa.demo.model.roles import EditorRole
     description="Webhook fan-out",
 )
 @connection(OutboxPrimaryDatabase, key="outbox_db", description="Outbox primary")
-@connection(MessagingDeadLetterStore, key="dlq", description="DLQ store")
 class PublishTransactionalOutboxAction(
     BaseAction["PublishTransactionalOutboxAction.Params", "PublishTransactionalOutboxAction.Result"],
 ):

@@ -1,8 +1,8 @@
 """Relate entities of two resources that share one database.
 
-A resource is often a part of a database. When two resources name one data source, the
-database they share, a relation between their entities is an ordinary join, and the model
-accepts it. A resource that names no data source keeps its relations to itself.
+A resource is often a part of a database. Two domains reach one database each through a
+resource of its own, and both resources name the data source they share; a relation between
+their entities is part of the model like any other.
 
 Run: uv run python examples/step_24_relations/75_relation_inside_one_data_source.py
 """
@@ -27,6 +27,13 @@ class StoreDomain(BaseDomain):
     description = "Store"
 
 
+class SupportDomain(BaseDomain):
+    """Group the support desk declarations."""
+
+    name = "support"
+    description = "Support"
+
+
 @meta(description="Main shop database")
 class ShopDataSource(BaseDataSource):
     """The one database the orders and the support tickets live in."""
@@ -41,7 +48,7 @@ class OrdersStorage(BaseStorage[ShopDataSource]):
         return None
 
 
-@meta(description="Support desk", domain=StoreDomain)
+@meta(description="Support desk", domain=SupportDomain)
 class SupportStorage(BaseStorage[ShopDataSource]):
     """The part of the shop database that keeps support tickets."""
 

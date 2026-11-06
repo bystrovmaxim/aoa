@@ -13,6 +13,7 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
+from aoa.action_machine.resources import InMemoryDataSource
 
 
 class AssociationDomain(BaseDomain):
@@ -22,8 +23,13 @@ class AssociationDomain(BaseDomain):
     description = "Plain associations"
 
 
+@meta(description="Where AssociationStorage keeps its rows")
+class AssociationDataSource(InMemoryDataSource):
+    """The store AssociationStorage works with."""
+
+
 @meta(description="Stores the association entities", domain=AssociationDomain)
-class AssociationStorage(BaseStorage):
+class AssociationStorage(BaseStorage[AssociationDataSource]):
     """Hold the association entities."""
 
 

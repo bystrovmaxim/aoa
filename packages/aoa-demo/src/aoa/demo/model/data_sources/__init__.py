@@ -1,13 +1,13 @@
 # packages/aoa-demo/src/aoa/demo/model/data_sources/__init__.py
 """
-The demo's databases: each is a data source several of its resources share.
+The demo's stores: every resource that stores an entity names one of these data sources.
 
 ``ShopDataSource`` is one database of three domains — the storefront, the support desk and
-inventory — so a support ticket relates to the order and the customer it is about.
-``MessagingDataSource`` holds the outbox and the dead-letter queue of one domain, so a replay
-ticket relates to the message it replays. ``CatalogDataSource`` is a database with one
-resource. Every other demo resource names no data source and keeps its relations to itself.
-A data source belongs to no domain; in the graph it hangs on the application.
+inventory — each reaching it through one resource of its own. ``MessagingDataSource`` holds
+the outbox and the dead-letter queue, kept by the one resource of the messaging domain. The
+rest are a store each: a database of its own (catalog search, the billing warehouse, the
+session cache), an external service (the card network, the notification gateway) or a store
+kept in memory. A data source belongs to no domain; in the graph it hangs on the application.
 """
 
 from aoa.demo.model.data_sources.catalog_data_source import CatalogDataSource

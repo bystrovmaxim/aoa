@@ -19,6 +19,7 @@ from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseEnumEntity
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
+from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -29,8 +30,13 @@ class CoreSchemaShopDomain(BaseDomain):
     description = "Core schema shop"
 
 
+@meta(description="Where CoreSchemaShopStorage keeps its rows")
+class CoreSchemaShopDataSource(InMemoryDataSource):
+    """The store CoreSchemaShopStorage works with."""
+
+
 @meta(description="Stores the core schema shop entities", domain=CoreSchemaShopDomain)
-class CoreSchemaShopStorage(BaseStorage):
+class CoreSchemaShopStorage(BaseStorage[CoreSchemaShopDataSource]):
     """Hold the core schema shop entities."""
 
 

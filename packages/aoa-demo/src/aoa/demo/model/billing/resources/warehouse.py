@@ -2,10 +2,11 @@
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlResource
 from aoa.demo.model.billing.domain import BillingDomain
+from aoa.demo.model.data_sources.billing_warehouse_data_source import BillingWarehouseDataSource
 
 
 @meta(description="Billing warehouse connection (stub)", domain=BillingDomain)
-class BillingWarehouse(SqlResource):
+class BillingWarehouse(SqlResource[BillingWarehouseDataSource]):
     def __init__(self, rollup: bool = False) -> None:
         super().__init__(rollup=rollup)
 

@@ -116,7 +116,7 @@ _MODEL = textwrap.dedent(
 
 
 def test_the_graph_shows_a_data_source_on_the_application() -> None:
-    """One ``DataSource`` node with its description, one ``application`` edge, valid against schema 1.7."""
+    """One ``DataSource`` node with its description, one ``application`` edge, valid against schema 1.8."""
     result = run_isolated_model(_MODEL)
     assert result.returncode == 0, result.stderr
     graph = json.loads(result.stdout)

@@ -32,7 +32,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_event import BaseEvent
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections
+from aoa.action_machine.resources import Connections, InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -58,8 +58,13 @@ class StoreDomain(BaseDomain):
     description = "Storefront operations"
 
 
+@meta(description="Where StoreStorage keeps its rows")
+class StoreDataSource(InMemoryDataSource):
+    """The store StoreStorage works with."""
+
+
 @meta(description="Stores the store entities", domain=StoreDomain)
-class StoreStorage(BaseStorage):
+class StoreStorage(BaseStorage[StoreDataSource]):
     """Hold the store entities."""
 
 
