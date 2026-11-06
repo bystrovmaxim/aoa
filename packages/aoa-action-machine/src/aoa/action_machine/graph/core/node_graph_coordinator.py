@@ -85,50 +85,23 @@ from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNod
 from aoa.action_machine.graph.core.edge_id_rule import EDGE_SEPARATOR
 from aoa.action_machine.graph.core.exceptions import DuplicateEdgeError, DuplicateNodeError, InvalidGraphError
 from aoa.action_machine.graph.edge_identity import EDGE_ID_RULES, edge_id
-from aoa.action_machine.graph.edges.entity_graph_edge import EntityGraphEdge
-from aoa.action_machine.graph.edges.entity_reference_graph_edge import EntityReferenceGraphEdge
 from aoa.action_machine.graph.edges.entity_resource_graph_edge import EntityResourceGraphEdge
-from aoa.action_machine.graph.edges.entity_specialization_graph_edge import EntitySpecializationGraphEdge
-from aoa.action_machine.graph.edges.parent_entity_graph_edge import ParentEntityGraphEdge
 from aoa.action_machine.graph.edges.resource_data_source_graph_edge import ResourceDataSourceGraphEdge
 from aoa.action_machine.graph.nodes.application_graph_node import ApplicationGraphNode
 from aoa.action_machine.graph.nodes.data_source_graph_node import DataSourceGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.graph.nodes.resource_graph_node import ResourceGraphNode
-from aoa.action_machine.graph.nodes.state_graph_node import StateGraphNode
 from aoa.action_machine.graph.validators import (
     cache_tags_validator,
     emits_vocabulary_validator,
     entity_field_validator,
     entity_inverse_validator,
-    entity_resource_validator,
     entity_role_compatibility_validator,
     entity_specialization_validator,
     json_form_validator,
     resource_domain_validator,
 )
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
-
-# The rule every link between two entities keeps.
-_BOUNDARY_RULE = "a relation stays inside one data source, or inside one resource when there is none."
-
-# Links between two entities that must stay inside one boundary, by edge name.
-_ENTITY_LINK_EDGES: frozenset[str] = frozenset(
-    {
-        EntityGraphEdge.EDGE_TYPE,
-        EntityReferenceGraphEdge.EDGE_NAME,
-        EntitySpecializationGraphEdge.EDGE_NAME,
-        ParentEntityGraphEdge.EDGE_NAME,
-    }
-)
-# State node types; each carries the ``lifecycle_class_id`` of the axis it belongs to.
-_STATE_NODE_TYPES: frozenset[str] = frozenset(
-    {
-        StateGraphNode.NODE_TYPE_STATE_INITIAL,
-        StateGraphNode.NODE_TYPE_STATE_INTERMEDIATE,
-        StateGraphNode.NODE_TYPE_STATE_FINAL,
-    }
-)
 
 _BUILD_REQUIRED_MSG = "This NodeGraphCoordinator operation is only available after a successful build()."
 
@@ -201,11 +174,8 @@ class NodeGraphCoordinator(BaseCoordinator):
                 not a string or contains ``|``, an entity without exactly one ``entity_resource``
                 edge, a resource with more than one ``resource_data_source`` edge or one that ends
                 elsewhere than at a data source, a data source without exactly one ``application``
-                edge or without a resource, or a link between entities, or a lifecycle's states,
-                across two boundaries (a data source, or a resource without one).
+                edge or without a resource.
             DuplicateEdgeError: two edges get the same edge id.
-            EntityResourceError: a relation, an inverse side, a specialization, a generalization, a
-                dictionary field or a shared state type joins entities of two boundaries.
             RoleCompatibilityError: two endpoints of one relationship declare roles the
                 role-pair matrix refuses (an ownership/ownership pair, or a
                 specialization/generalization endpoint paired with an ordinary role).
@@ -225,7 +195,6 @@ class NodeGraphCoordinator(BaseCoordinator):
         # ``__subclasses__()`` keeps listing a dead class, such as one refused at declaration, until it is collected.
         gc.collect()
         entity_field_validator.validate_entity_fields()
-        entity_resource_validator.validate_entity_resources()
         entity_inverse_validator.validate_entity_inverses()
         entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)
@@ -479,15 +448,13 @@ class NodeGraphCoordinator(BaseCoordinator):
                 seen[key] = described
 
     @staticmethod
-    def _data_source_boundaries(nodes: dict[str, BaseGraphNode[Any]]) -> dict[str, str]:
+    def _validate_data_source_edges(nodes: dict[str, BaseGraphNode[Any]]) -> None:
         """
-        Return the boundary of each resource node: its data source, or the resource itself.
-
-        Refuses a resource with more than one ``resource_data_source`` edge or one that ends
+        Refuse a resource with more than one ``resource_data_source`` edge or one that ends
         elsewhere than at a data source, and a data source without exactly one ``application``
         edge to the application or without a resource.
         """
-        boundary: dict[str, str] = {}
+        used: set[str] = set()
         for node_id, node in nodes.items():
             if node.node_type != ResourceGraphNode.NODE_TYPE:
                 continue
@@ -497,8 +464,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             for target in targets:
                 if getattr(nodes.get(target), "node_type", None) != DataSourceGraphNode.NODE_TYPE:
                     raise InvalidGraphError(f"Resource {node_id} has a resource_data_source edge to {target}, which is not a data source.")
-            boundary[node_id] = targets[0] if targets else node_id
-        used = set(boundary.values())
+            used.update(targets)
         for node_id, node in nodes.items():
             if node.node_type != DataSourceGraphNode.NODE_TYPE:
                 continue
@@ -507,16 +473,14 @@ class NodeGraphCoordinator(BaseCoordinator):
                 raise InvalidGraphError(f"Data source {node_id} has {len(applications)} application edges; a data source has exactly one, to the application.")
             if node_id not in used:
                 raise InvalidGraphError(f"Data source {node_id} has no resource; a data source is shared by at least one.")
-        return boundary
 
     def _validate_entity_resource_edges(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
         """
-        Refuse an entity without exactly one ``entity_resource`` edge and any link across two boundaries.
+        Refuse an entity without exactly one ``entity_resource`` edge, and every data source rule a schema cannot check.
 
-        The boundary of an entity is the data source of its resource, or the resource itself when it has none.
+        A link between entities is a fact of the logical model and joins entities of any resources and data sources.
         """
-        boundary_of_resource = self._data_source_boundaries(nodes)
-        boundary_of: dict[str, str] = {}
+        self._validate_data_source_edges(nodes)
         for node_id, node in nodes.items():
             if node.node_type != EntityGraphNode.NODE_TYPE:
                 continue
@@ -524,31 +488,6 @@ class NodeGraphCoordinator(BaseCoordinator):
             if len(targets) != 1:
                 raise InvalidGraphError(
                     f"Entity {node_id} has {len(targets)} entity_resource edges; an entity has exactly one."
-                )
-            boundary_of[node_id] = boundary_of_resource.get(targets[0], targets[0])
-        for node_id, node in nodes.items():
-            if node_id not in boundary_of:
-                continue
-            for edge in node.get_all_edges():
-                if edge.edge_name not in _ENTITY_LINK_EDGES or edge.target_node_id not in boundary_of:
-                    continue
-                if boundary_of[edge.target_node_id] != boundary_of[node_id]:
-                    key = edge_id(edge.to_dict(source_id=node_id))
-                    raise InvalidGraphError(
-                        f"Edge {key} joins {node_id} ({boundary_of[node_id]}) and {edge.target_node_id} "
-                        f"({boundary_of[edge.target_node_id]}): {_BOUNDARY_RULE}"
-                    )
-        lifecycle_host: dict[str, str] = {}
-        for node_id, node in nodes.items():
-            lifecycle_id = node.properties.get("lifecycle_class_id") if node.node_type in _STATE_NODE_TYPES else None
-            host = node_id.split(":", 1)[0]
-            if not isinstance(lifecycle_id, str) or host not in boundary_of:
-                continue
-            first = lifecycle_host.setdefault(lifecycle_id, host)
-            if boundary_of[first] != boundary_of[host]:
-                raise InvalidGraphError(
-                    f"Lifecycle {lifecycle_id} has states on {first} ({boundary_of[first]}) and {host} "
-                    f"({boundary_of[host]}): a lifecycle stays inside one data source, or inside one resource when there is none."
                 )
 
     def _validate_dag_acyclicity(

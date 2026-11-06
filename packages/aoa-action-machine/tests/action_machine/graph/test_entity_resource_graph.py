@@ -4,10 +4,9 @@ Tests for the ``entity_resource`` edge and the graph build's resource rules (pro
 
 A built graph carries one ``entity_resource`` edge from every entity to its resource and an
 entity ``domain`` edge to that resource's domain, and validates against schema 1.7. The graph
-build refuses, before a graph is indexed, an entity without exactly one such edge and every
-link — relation, dictionary reference, specialization, generalization, lifecycle states —
-whose two entities have different resources. Those refusals are driven with hand-built nodes,
-because the class-level pass refuses the same models earlier.
+build refuses, before a graph is indexed, an entity without exactly one such edge, and lets
+every link — relation, dictionary reference, specialization, generalization, lifecycle states —
+join entities of two resources. Both are driven with hand-built nodes.
 """
 
 from __future__ import annotations
@@ -194,28 +193,19 @@ def test_case_2_5_an_entity_with_two_edges_is_refused() -> None:
 
 
 @pytest.mark.parametrize("edge_type", ["entity_relation", "entity_reference", "entity_specialization", "parent_entity"])
-def test_case_2_5_a_link_across_resources_is_refused(edge_type: str) -> None:
-    """Every link kind between entities of two resources is refused, naming both ends and resources."""
+def test_a_link_across_resources_builds(edge_type: str) -> None:
+    """Every link kind between entities of two resources builds: a relation knows no store."""
     ticket = _stored("e.Ticket", "r.SupportDatabase", _Link(edge_type, "e.Order"))
-    with pytest.raises(InvalidGraphError) as error:
-        _build(_stored("e.Order", "r.StorefrontDatabase"), ticket)
-    assert str(error.value).endswith(
-        "joins e.Ticket (r.SupportDatabase) and e.Order (r.StorefrontDatabase): a relation stays inside one data source, or inside one resource when there is none."
-    )
+    _build(_stored("e.Order", "r.StorefrontDatabase"), ticket)
 
 
-def test_case_2_5_lifecycle_states_across_resources_are_refused() -> None:
-    """States of one lifecycle on entities of two resources are refused."""
+def test_lifecycle_states_across_resources_build() -> None:
+    """States of one lifecycle on entities of two resources build."""
     states = [
         _Node("e.Order:lifecycle:lifecycle:draft", "StateInitial", properties={"lifecycle_class_id": "l.OrderLifecycle"}),
         _Node("e.Ticket:lifecycle:lifecycle:draft", "StateInitial", properties={"lifecycle_class_id": "l.OrderLifecycle"}),
     ]
-    with pytest.raises(InvalidGraphError) as error:
-        _build(_stored("e.Order", "r.StorefrontDatabase"), _stored("e.Ticket", "r.SupportDatabase"), *states)
-    assert str(error.value) == (
-        "Lifecycle l.OrderLifecycle has states on e.Order (r.StorefrontDatabase) and e.Ticket (r.SupportDatabase): "
-        "a lifecycle stays inside one data source, or inside one resource when there is none."
-    )
+    _build(_stored("e.Order", "r.StorefrontDatabase"), _stored("e.Ticket", "r.SupportDatabase"), *states)
 
 
 def test_links_inside_one_resource_build() -> None:

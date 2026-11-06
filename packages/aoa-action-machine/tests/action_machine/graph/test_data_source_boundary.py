@@ -1,12 +1,10 @@
 # tests/action_machine/graph/test_data_source_boundary.py
 """
-Relations follow the boundary: the data source a resource names, or the resource without one.
+Relations know no store; the graph build checks every data source rule a schema cannot.
 
-Models are declared and built in a fresh interpreter: two resources on one data source
-relate their entities; across two data sources, or between a resource with a data source
-and one without, the model build refuses. The graph build then checks again, before it
-writes a graph, every data source rule a schema cannot: driven with hand-built nodes,
-because the class-level passes refuse the same models earlier.
+Models are declared and built in a fresh interpreter: two resources relate their entities
+whether they share a data source or not. The graph build checks, before it writes a graph,
+every data source rule a schema cannot: driven with hand-built nodes.
 """
 
 from __future__ import annotations
@@ -24,8 +22,6 @@ from aoa.action_machine.graph.core.exceptions import InvalidGraphError
 from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordinator
 
 from ...support.isolated_entity_models import run_isolated_model
-
-_RULE = "a relation stays inside one data source, or inside one resource when there is none."
 
 
 def _model(support_base: str) -> str:
@@ -100,19 +96,11 @@ def test_two_resources_of_one_data_source_relate_their_entities() -> None:
     assert result.stdout.strip() == "BUILT True"
 
 
-@pytest.mark.parametrize(
-    ("support_base", "named"),
-    [("BaseStorage[BillingDataSource]", "SupportResource, BillingDataSource"), ("BaseStorage", "SupportResource, no data source")],
-    ids=["another data source", "no data source"],
-)
-def test_a_relation_outside_one_data_source_is_refused(support_base: str, named: str) -> None:
-    """Across two data sources, or to a resource without one, the model build refuses, naming both boundaries."""
-    result = run_isolated_model(_model(support_base))
+def test_two_resources_of_two_data_sources_relate_their_entities() -> None:
+    """Support on ``BillingDataSource``: the model builds across the two data sources, and the relation is in the graph."""
+    result = run_isolated_model(_model("BaseStorage[BillingDataSource]"))
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == (
-        f"REFUSE SupportTicketCoreEntity.order relates SupportTicketCoreEntity ({named}) "
-        f"to SalesOrderCoreEntity (OrdersResource, ShopDataSource): {_RULE}"
-    )
+    assert result.stdout.strip() == "BUILT True"
 
 
 # ── Hand-built nodes: the graph build's own data source rules ────────────────────────────
@@ -210,14 +198,11 @@ def test_a_data_source_without_a_resource_is_refused() -> None:
     assert str(error.value) == "Data source d.Shop has no resource; a data source is shared by at least one."
 
 
-def test_the_graph_build_refuses_a_link_across_data_sources() -> None:
-    """A link the class-level pass would have refused is refused again before a graph is written."""
+def test_the_graph_build_lets_a_link_across_data_sources_through() -> None:
+    """A link between entities of two data sources is a fact of the logical model."""
     ticket = _Node("e.Ticket", "Entity", [_Link("entity_resource", "r.Support"), _Link("entity_relation", "e.Order")])
     order = _Node("e.Order", "Entity", [_Link("entity_resource", "r.Orders")])
-    nodes = (_source("d.Shop"), _source("d.Billing"), _resource("r.Orders", "d.Shop"), _resource("r.Support", "d.Billing"), ticket, order)
-    with pytest.raises(InvalidGraphError) as error:
-        _build(*nodes)
-    assert str(error.value) == f"Edge e.Ticket|entity_relation|link joins e.Ticket (d.Billing) and e.Order (d.Shop): {_RULE}"
+    _build(_source("d.Shop"), _source("d.Billing"), _resource("r.Orders", "d.Shop"), _resource("r.Support", "d.Billing"), ticket, order)
 
 
 def test_the_graph_build_lets_a_link_inside_one_data_source_through() -> None:

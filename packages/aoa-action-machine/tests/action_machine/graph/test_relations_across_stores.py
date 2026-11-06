@@ -1,21 +1,25 @@
-# tests/action_machine/graph/test_entity_resource_validator.py
+# tests/action_machine/graph/test_relations_across_stores.py
 """
-Tests for ``validate_entity_resources`` — every link between entities stays inside one boundary: the data source, or the resource without one.
+A link between entities is a fact of the logical model: it joins entities of any resources and data sources.
 
-Case 2.4 of issue #469 for every link kind: association, aggregation and composition on
-either side, an inverse side, a specialization, a generalization, a dictionary field and a
-state type shared through ``Lifecycle[...]``. Each model is built in a fresh interpreter so
-a refused declaration never joins the shared model.
+Every link kind is declared between an entity of ``StorefrontDatabase`` (``StorefrontDataSource``) and one of
+``SupportDatabase`` (``SupportDataSource``) — association, aggregation and composition from either side, an
+inverse side, a specialization, a generalization, a dictionary field and a state type shared through
+``Lifecycle[...]`` — and the model and its graph build with the link in them. Each model is built in a fresh
+interpreter so a declaration never joins the shared model.
 """
 
 from __future__ import annotations
 
 import textwrap
 
+import pytest
+
 from ...support.isolated_entity_models import run_isolated_model
 
 _IMPORTS = textwrap.dedent(
     """
+    import json
     from typing import Annotated
 
     from pydantic import Field
@@ -32,8 +36,6 @@ _IMPORTS = textwrap.dedent(
         BaseStateEntity,
         Classifier,
         CompositeMany,
-        CompositeOne,
-        EntityResourceError,
         Generalization,
         Inverse,
         Lifecycle,
@@ -41,10 +43,10 @@ _IMPORTS = textwrap.dedent(
         Specialization,
         value,
     )
-    from aoa.action_machine.graph.validators.entity_resource_validator import validate_entity_resources
+    from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
     from aoa.action_machine.intents.entity import entity
     from aoa.action_machine.intents.meta import meta
-    from aoa.action_machine.resources.base_storage import BaseStorage
+    from aoa.action_machine.resources import BaseDataSource, BaseStorage
 
 
     class StoreDomain(BaseDomain):
@@ -52,28 +54,47 @@ _IMPORTS = textwrap.dedent(
         description = "Store"
 
 
+    class SupportDomain(BaseDomain):
+        name = "support"
+        description = "Support"
+
+
+    @meta(description="Storefront database")
+    class StorefrontDataSource(BaseDataSource):
+        pass
+
+
+    @meta(description="Support desk database")
+    class SupportDataSource(BaseDataSource):
+        pass
+
+
     @meta(description="Primary relational store", domain=StoreDomain)
-    class StorefrontDatabase(BaseStorage):
-        pass
+    class StorefrontDatabase(BaseStorage[StorefrontDataSource]):
+        def get_wrapper_class(self):
+            return None
 
 
-    @meta(description="Support desk store", domain=StoreDomain)
-    class SupportDatabase(BaseStorage):
-        pass
+    @meta(description="Support desk store", domain=SupportDomain)
+    class SupportDatabase(BaseStorage[SupportDataSource]):
+        def get_wrapper_class(self):
+            return None
 
 
-    def probe(*classes):
-        try:
-            validate_entity_resources(list(classes))
-            print("ACCEPT")
-        except EntityResourceError as exc:
-            print("REFUSE " + str(exc))
+    def edges(edge_type):
+        graph = json.loads(create_node_graph_coordinator().to_json())
+        found = sorted(
+            f"{edge['source_id'].rsplit('.', 1)[-1]}->{edge['target_id'].rsplit('.', 1)[-1]}"
+            for edge in graph["edges"]
+            if edge["type"] == edge_type
+        )
+        print(" ".join(found))
     """
 )
 
 
 def _run(body: str) -> str:
-    """Run one model in a fresh interpreter and return what it printed."""
+    """Build one model and its graph in a fresh interpreter and return what it printed."""
     result = run_isolated_model(_IMPORTS + "\n" + textwrap.dedent(body))
     assert result.returncode == 0, result.stderr
     return result.stdout.strip()
@@ -86,8 +107,8 @@ _ORDER = """
 """
 
 
-def test_case_2_4_an_association_across_resources_is_refused() -> None:
-    """2.4: the message names the field, both entities and both resources."""
+def test_an_association_across_data_sources_builds() -> None:
+    """A ticket of the support desk points at an order of the storefront: the graph has the relation."""
     out = _run(
         _ORDER
         + """
@@ -97,30 +118,10 @@ def test_case_2_4_an_association_across_resources_is_refused() -> None:
         order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
 
     SupportTicketCoreEntity.model_rebuild()
-    probe(SalesOrderCoreEntity, SupportTicketCoreEntity)
+    edges("entity_relation")
     """
     )
-    assert out == (
-        "REFUSE SupportTicketCoreEntity.order relates SupportTicketCoreEntity (SupportDatabase, no data source) "
-        "to SalesOrderCoreEntity (StorefrontDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none."
-    )
-
-
-def test_the_same_association_inside_one_resource_is_accepted() -> None:
-    """The same link between two entities of one resource builds."""
-    out = _run(
-        _ORDER
-        + """
-    @entity(description="Support ticket", resource=StorefrontDatabase)
-    class SupportTicketCoreEntity(BaseCoreEntity):
-        id: str = Field(description="Ticket id")
-        order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
-
-    SupportTicketCoreEntity.model_rebuild()
-    probe(SalesOrderCoreEntity, SupportTicketCoreEntity)
-    """
-    )
-    assert out == "ACCEPT"
+    assert out == "SupportTicketCoreEntity->SalesOrderCoreEntity"
 
 
 _OWNERSHIP = """
@@ -129,52 +130,26 @@ _OWNERSHIP = """
         id: str = Field(description="Order id")
         lines: Annotated[{many}[SalesOrderLineDetailEntity], Inverse(field_name="order")] = Field(description="Lines")
 
-    @entity(description="Order line", resource={line_resource})
+    @entity(description="Order line", resource=SupportDatabase)
     class SalesOrderLineDetailEntity(BaseDetailEntity):
         id: str = Field(description="Line id")
-        order: Annotated[{one}[SalesOrderCoreEntity], Inverse(field_name="lines")] = Field(description="Order")
+        order: Annotated[AssociationOne[SalesOrderCoreEntity], Inverse(field_name="lines")] = Field(description="Order")
 
     SalesOrderCoreEntity.model_rebuild()
     SalesOrderLineDetailEntity.model_rebuild()
-    probe({first}, {second})
+    edges("entity_relation")
 """
 
 
-def _ownership(many: str, one: str, owner_first: bool) -> str:
-    """A two-sided ownership link whose line is stored by the support desk."""
-    first, second = ("SalesOrderCoreEntity", "SalesOrderLineDetailEntity")
-    if not owner_first:
-        first, second = second, first
-    return _run(
-        _OWNERSHIP.format(many=many, one=one, line_resource="SupportDatabase", first=first, second=second)
-    )
+@pytest.mark.parametrize("many", ["CompositeMany", "AggregateMany"])
+def test_an_ownership_with_its_inverse_side_across_data_sources_builds(many: str) -> None:
+    """A composition or an aggregation, both sides declared, joins the two data sources from either end."""
+    out = _run(_OWNERSHIP.format(many=many))
+    assert out == "SalesOrderCoreEntity->SalesOrderLineDetailEntity SalesOrderLineDetailEntity->SalesOrderCoreEntity"
 
 
-def test_a_composition_is_refused_from_the_owner_side() -> None:
-    """Composition, judged from the owner: the owner's field is named."""
-    out = _ownership("CompositeMany", "AssociationOne", owner_first=True)
-    assert out.startswith("REFUSE SalesOrderCoreEntity.lines relates SalesOrderCoreEntity (StorefrontDatabase, no data source) ")
-    assert out.endswith("to SalesOrderLineDetailEntity (SupportDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none.")
-
-
-def test_a_composition_is_refused_from_the_other_side() -> None:
-    """Composition, judged from the part: the part's field is named."""
-    out = _ownership("CompositeMany", "AssociationOne", owner_first=False)
-    assert out.startswith("REFUSE SalesOrderLineDetailEntity.order relates SalesOrderLineDetailEntity (SupportDatabase, no data source) ")
-
-
-def test_an_aggregation_is_refused_from_either_side() -> None:
-    """Aggregation, judged from each endpoint."""
-    assert _ownership("AggregateMany", "AssociationOne", owner_first=True).startswith(
-        "REFUSE SalesOrderCoreEntity.lines relates"
-    )
-    assert _ownership("AggregateMany", "AssociationOne", owner_first=False).startswith(
-        "REFUSE SalesOrderLineDetailEntity.order relates"
-    )
-
-
-def test_a_one_sided_aggregation_is_refused() -> None:
-    """An aggregation with no inverse is judged from its only side."""
+def test_a_one_sided_aggregation_across_data_sources_builds() -> None:
+    """An aggregation with no inverse joins the two data sources from its only side."""
     out = _run(
         _ORDER
         + """
@@ -184,10 +159,10 @@ def test_a_one_sided_aggregation_is_refused() -> None:
         order: Annotated[AggregateOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
 
     OrderNoteCoreEntity.model_rebuild()
-    probe(OrderNoteCoreEntity)
+    edges("entity_relation")
     """
     )
-    assert out.startswith("REFUSE OrderNoteCoreEntity.order relates OrderNoteCoreEntity (SupportDatabase, no data source) ")
+    assert out == "OrderNoteCoreEntity->SalesOrderCoreEntity"
 
 
 _SPECIALIZATION = """
@@ -217,28 +192,20 @@ _SPECIALIZATION = """
 """
 
 
-def test_a_specialization_across_resources_is_refused() -> None:
-    """The head's specialization field names an alternative of another resource."""
-    out = _run(_SPECIALIZATION + "    probe(CounterpartyCoreEntity)\n")
-    assert out == (
-        "REFUSE CounterpartyCoreEntity.details relates CounterpartyCoreEntity (StorefrontDatabase, no data source) "
-        "to OrganisationSpecEntity (SupportDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none."
-    )
+def test_a_specialization_across_data_sources_builds() -> None:
+    """The head names an alternative of the other data source."""
+    assert _run(_SPECIALIZATION + '    edges("entity_specialization")\n') == "CounterpartyCoreEntity->OrganisationSpecEntity"
 
 
-def test_a_generalization_across_resources_is_refused() -> None:
-    """The alternative's generalization field names a head of another resource."""
-    out = _run(_SPECIALIZATION + "    probe(OrganisationSpecEntity)\n")
-    assert out.startswith(
-        "REFUSE OrganisationSpecEntity.counterparty relates OrganisationSpecEntity (SupportDatabase, no data source) to "
-    )
+def test_a_generalization_across_data_sources_builds() -> None:
+    """The alternative names a head of the other data source."""
+    assert _run(_SPECIALIZATION + '    edges("parent_entity")\n') == "OrganisationSpecEntity->CounterpartyCoreEntity"
 
 
-def test_a_dictionary_field_across_resources_is_refused() -> None:
-    """A dictionary is an ordinary entity of its resource."""
+def test_a_dictionary_field_across_data_sources_builds() -> None:
+    """A dictionary of the support desk names the currency of a storefront invoice."""
     out = _run(
-        _ORDER
-        + """
+        """
     @entity(description="Currency", resource=SupportDatabase)
     class CurrencyEnumEntity(BaseEnumEntity):
         USD = value(code="USD", display_name="US dollar")
@@ -249,16 +216,16 @@ def test_a_dictionary_field_across_resources_is_refused() -> None:
         currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
     InvoiceCoreEntity.model_rebuild()
-    probe(InvoiceCoreEntity)
+    edges("entity_relation")
     """
     )
-    assert out == (
-        "REFUSE InvoiceCoreEntity.currency relates InvoiceCoreEntity (StorefrontDatabase, no data source) "
-        "to CurrencyEnumEntity (SupportDatabase, no data source): a relation stays inside one data source, or inside one resource when there is none."
-    )
+    assert out == "InvoiceCoreEntity->CurrencyEnumEntity"
 
 
-_LIFECYCLE = """
+def test_a_state_type_shared_across_data_sources_builds() -> None:
+    """An order and a return of two data sources share one state type: each carries its lifecycle."""
+    out = _run(
+        """
     class OrderStateEntity(BaseStateEntity):
         DRAFT = value(code="draft", display_name="Draft")
         PAID = value(code="paid", display_name="Paid")
@@ -275,42 +242,12 @@ _LIFECYCLE = """
         id: str = Field(description="Order id")
         lifecycle: OrderLifecycle = Field(description="Order status")
 
-    @entity(description="Return", resource={resource})
+    @entity(description="Return", resource=SupportDatabase)
     class ReturnCoreEntity(BaseCoreEntity):
         id: str = Field(description="Return id")
         lifecycle: OrderLifecycle = Field(description="Return status")
 
-    probe(SalesOrderCoreEntity, ReturnCoreEntity)
-"""
-
-
-def test_a_state_type_shared_across_resources_is_refused() -> None:
-    """A state type takes its resource from the entities that use it."""
-    out = _run(_LIFECYCLE.format(resource="SupportDatabase"))
-    assert out == (
-        "REFUSE OrderStateEntity is the state type of SalesOrderCoreEntity.lifecycle (StorefrontDatabase, no data source) "
-        "and ReturnCoreEntity.lifecycle (SupportDatabase, no data source): a lifecycle stays inside one data source, or inside one resource when there is none."
-    )
-
-
-def test_a_state_type_shared_inside_one_resource_is_accepted() -> None:
-    """Two entities of one resource share one state type."""
-    assert _run(_LIFECYCLE.format(resource="StorefrontDatabase")) == "ACCEPT"
-
-
-def test_a_self_relation_is_accepted() -> None:
-    """A tree has one resource on both ends."""
-    out = _run(
-        """
-    @entity(description="Category", resource=StorefrontDatabase)
-    class CategoryCoreEntity(BaseCoreEntity):
-        id: str = Field(description="Category id")
-        parent: Annotated[AssociationOne[CategoryCoreEntity] | None, NoInverse()] = Field(
-            default=None, description="Parent category"
-        )
-
-    CategoryCoreEntity.model_rebuild()
-    probe(CategoryCoreEntity)
+    edges("lifecycle")
     """
     )
-    assert out == "ACCEPT"
+    assert out == "ReturnCoreEntity->ReturnCoreEntity:lifecycle:lifecycle SalesOrderCoreEntity->SalesOrderCoreEntity:lifecycle:lifecycle"
