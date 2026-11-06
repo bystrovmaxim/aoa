@@ -1,5 +1,9 @@
 # Changelog
 
+## [2026-11-06] — The demo relates entities of two databases, and two domains share a service
+
+The demo now shows both sides of the logical data model. A chargeback ticket, kept in the billing warehouse, points at the customer order it disputes, kept in the shop database: a relation between entities of two databases, which the model accepts as a fact and leaves to the actions to read. And the card network is one external service of two domains: billing reaches it for the payment events it reports, the storefront to authorize a card, each through a resource of its own on one shared data source, so how the service's connection is shared is the data source's business alone. `aoa-demo` moves to 3.20.0, and [the demo's page](../packages/aoa-demo/README.md) lists its stores.
+
 ## [2026-11-06] — A relation knows no store, and every stored entity has one
 
 The model now has two axes. The logical one says what things are — domains, entities and the relations between them. The physical one says where they live — a resource and its data source. A relation is a fact of the logical model: it says two entities are related and promises no foreign key, no join and no shared transaction. So the rule that kept a relation inside one data source is gone: an association, an aggregation, a composition, an inverse side, a dictionary field, a specialization, a generalization and a shared lifecycle may join entities of any resources and any databases. How such a relation is read or kept consistent is the actions' business.

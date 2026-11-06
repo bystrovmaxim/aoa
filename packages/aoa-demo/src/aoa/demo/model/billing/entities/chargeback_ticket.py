@@ -11,6 +11,7 @@ from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDense
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
 from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceCoreEntity
 from aoa.demo.model.billing.resources.warehouse import BillingWarehouse
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 
 
 @entity(description="Chargeback case opened on payment-event", resource=BillingWarehouse)
@@ -24,6 +25,13 @@ class ChargebackTicketCoreEntity(BaseCoreEntity):
         NoInverse(),
     ] = Field(
         description="Associated interchange assessment economics slice"
+    )
+
+    order: Annotated[
+        AssociationOne[SalesOrderCoreEntity],
+        NoInverse(),
+    ] = Field(
+        description="The customer order the disputed payment paid for: an order of the shop database, a ticket of the billing warehouse"
     )
 
     tax_remit_advice: Annotated[

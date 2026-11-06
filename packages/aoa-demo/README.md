@@ -62,9 +62,10 @@ Every demo resource that stores an entity names a data source (`aoa.demo.model.d
 | `MessagingDataSource` | `OutboxPrimaryDatabase` (Messaging) | the outbox and the dead-letter queue, kept by the domain's one resource |
 | `CatalogDataSource`, `CatalogSearchDataSource` | `CatalogObjectStore`, `CatalogSearchSidecar` (Catalog) | one domain, two databases, one resource each |
 | `IdentityDataSource` | `IdentityStoreBase` (Identity) | the identity route's PostgreSQL pool, from the section above |
-| `CardNetworkDataSource`, `NotificationGatewayDataSource` | `CardNetworkGateway` (Billing), `NotificationGatewayResource` (Messaging) | external services |
+| `CardNetworkDataSource` | `CardNetworkGateway` (Billing), `StorefrontCardGateway` (Store) | one external service of two domains, one resource each: the data source alone decides how the service's connection is shared |
+| `NotificationGatewayDataSource` | `NotificationGatewayResource` (Messaging) | an external service |
 
-Each other domain keeps its rows in a store of its own: an in-memory data source, or a database (`BillingWarehouseDataSource`, `SessionCacheDataSource`). A relation is a fact of the model and joins entities of any stores. The graph shows each data source on the application, with a `resource_data_source` edge from each of its resources.
+Each other domain keeps its rows in a store of its own: an in-memory data source, or a database (`BillingWarehouseDataSource`, `SessionCacheDataSource`). A relation is a fact of the model and joins entities of any stores: a chargeback ticket of the billing warehouse points at the customer order of the shop database it disputes (`ChargebackTicketCoreEntity.order`), so in Maxitor a line leaves one data source's contour for another's. The graph shows each data source on the application, with a `resource_data_source` edge from each of its resources.
 
 ## Its graph history
 
