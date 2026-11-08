@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.billing.domain import BillingDomain
 
 
 class PaymentClient:
@@ -16,7 +15,6 @@ class PaymentClient:
 
 @meta(
     description="Payment provider gateway (stub)",
-    domain=BillingDomain,
 )
 class PaymentGateway(BaseGateway):
     """The gateway to the payment provider: its methods are what the domain asks of it."""

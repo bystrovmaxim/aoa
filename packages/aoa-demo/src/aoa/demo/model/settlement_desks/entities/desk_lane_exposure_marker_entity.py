@@ -10,10 +10,10 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity import ClearingInstructionRowDetailEntity
-from aoa.demo.model.settlement_desks.resources.storage import SettlementDesksStorage
+from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
 
 
-@entity(description="Desk-specific exposure marker keyed off clearing instruction slices", resource=SettlementDesksStorage)
+@entity(description="Desk-specific exposure marker keyed off clearing instruction slices", domain=SettlementDesksDomain)
 class DeskLaneExposureMarkerCoreEntity(BaseCoreEntity):
     marker_id: str = Field(description="Exposure marker surrogate key")
     venue_lane: str = Field(description="atlantic_wire | pac_settlement_hub | synthetic")
@@ -21,6 +21,4 @@ class DeskLaneExposureMarkerCoreEntity(BaseCoreEntity):
     instruction_anchor: Annotated[
         AssociationOne[ClearingInstructionRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Clearing instruction slice this marker amortises across"
-    )
+    ] = Field(description="Clearing instruction slice this marker amortises across")

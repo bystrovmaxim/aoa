@@ -25,7 +25,7 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 class _StoreDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -37,17 +37,22 @@ class _StoreDirectedCycleSketchStateEntity(BaseStateEntity):
     SETTLED = value(code="settled", display_name="Settled", sort_order=2)
 
 
-
 class _StoreDirectedCycleSketchLifecycle(Lifecycle[_StoreDirectedCycleSketchStateEntity]):
     """Statuses and links of the _StoreDirectedCycleSketchLifecycle axis."""
 
-
-    _template = Lifecycle().state(_StoreDirectedCycleSketchStateEntity.OPEN).to(_StoreDirectedCycleSketchStateEntity.SETTLED).initial().state(_StoreDirectedCycleSketchStateEntity.SETTLED).final()
+    _template = (
+        Lifecycle()
+        .state(_StoreDirectedCycleSketchStateEntity.OPEN)
+        .to(_StoreDirectedCycleSketchStateEntity.SETTLED)
+        .initial()
+        .state(_StoreDirectedCycleSketchStateEntity.SETTLED)
+        .final()
+    )
 
 
 @entity(
     description="Ping side of mutual FK skeleton (two-node interchange cycle demo)",
-    resource=StorefrontDatabaseStorage,
+    domain=StoreDomain,
 )
 class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ping row id")
@@ -62,9 +67,7 @@ class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
     pong_peer: Annotated[
         AssociationOne[StoreDirectedCyclePongCoreEntity],
         Inverse(StoreDirectedCyclePongCoreEntity, "ping_peer"),
-    ] = Field(
-        description="Points at pong counterpart; closes a 2-node cycle"
-    )
+    ] = Field(description="Points at pong counterpart; closes a 2-node cycle")
 
     storefront_customer_anchor: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
@@ -76,7 +79,7 @@ class StoreDirectedCyclePingCoreEntity(BaseCoreEntity):
 
 @entity(
     description="Pong side of mutual FK skeleton (two-node interchange cycle demo)",
-    resource=StorefrontDatabaseStorage,
+    domain=StoreDomain,
 )
 class StoreDirectedCyclePongCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pong row id")
@@ -91,9 +94,7 @@ class StoreDirectedCyclePongCoreEntity(BaseCoreEntity):
     ping_peer: Annotated[
         AssociationOne[StoreDirectedCyclePingCoreEntity],
         Inverse(StoreDirectedCyclePingCoreEntity, "pong_peer"),
-    ] = Field(
-        description="Points at ping counterpart; completes mutual reference"
-    )
+    ] = Field(description="Points at ping counterpart; completes mutual reference")
 
     storefront_order_anchor: Annotated[
         AssociationOne[SalesOrderCoreEntity],

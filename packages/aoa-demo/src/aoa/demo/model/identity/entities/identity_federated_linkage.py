@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
-from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Federated IdP linkage for a person and optional email credential factor", resource=IdentityStorage)
+@entity(description="Federated IdP linkage for a person and optional email credential factor", domain=IdentityDomain)
 class IdentityFederatedLinkageCoreEntity(BaseCoreEntity):
     id: str = Field(description="Linkage id")
     lifecycle: IdentityDenseLifecycle = Field(description="Federated linkage lifecycle")
@@ -27,16 +27,12 @@ class IdentityFederatedLinkageCoreEntity(BaseCoreEntity):
     email_factor: Annotated[
         AssociationOne[IdentityEmailFactorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream email credential row"
-    )
+    ] = Field(description="Upstream email credential row")
 
     person: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Federated account owner"
-    )
+    ] = Field(description="Federated account owner")
 
 
 IdentityFederatedLinkageCoreEntity.model_rebuild()

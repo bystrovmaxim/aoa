@@ -6,10 +6,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.storefront_session_lifecycle import StorefrontSessionLifecycle
-from aoa.demo.model.store.resources.storefront_session_cache_storage import StorefrontSessionCacheStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Per-order risk score snapshot", resource=StorefrontSessionCacheStorage)
+@entity(description="Per-order risk score snapshot", domain=StoreDomain)
 class OrderRiskScoreCoreEntity(BaseCoreEntity):
     id: str = Field(description="OrderRiskScoreCoreEntity id")
     lifecycle: StorefrontSessionLifecycle = Field(description="OrderRiskScoreCoreEntity lifecycle")

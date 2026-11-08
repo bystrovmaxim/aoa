@@ -3,10 +3,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-# The module, not the name: see ``entity_decorator`` — ``base_resource`` may still be loading.
-import aoa.action_machine.resources.base_resource as base_resource_module
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.exceptions.missing_entity_info_error import MissingEntityInfoError
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import (
@@ -17,17 +15,13 @@ from aoa.action_machine.intents.entity.entity_specialization_intent_resolver imp
     EntitySpecializationIntentResolver,
     gather_entity_specialization_intent_resolvers,
 )
-from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
-
-if TYPE_CHECKING:
-    from aoa.action_machine.resources.base_resource import BaseResource
 
 
 class EntityIntentResolver:
     """
     AI-CORE-BEGIN
     ROLE: Resolve class-level ``@entity`` declarations for graph model builders (parallel to ``MetaIntentResolver``).
-    CONTRACT: Reads ``_entity_info`` scratch; :meth:`resolve_description` requires a usable description; ``resource`` is required (:meth:`resolve_resource_type`) and the domain is the resource's ``@meta`` domain (:meth:`resolve_domain_type`). Entity→entity refs use :mod:`aoa.action_machine.intents.entity.entity_relation_intent_resolver` (:class:`~aoa.action_machine.intents.entity.entity_relation_intent_resolver.EntityRelationIntentResolver` rows).
+    CONTRACT: Reads ``_entity_info`` scratch; :meth:`resolve_description` requires a usable description and :meth:`resolve_domain_type` returns the domain the entity declares itself — never a resource's ``@meta``. Entity→entity refs use :mod:`aoa.action_machine.intents.entity.entity_relation_intent_resolver` (:class:`~aoa.action_machine.intents.entity.entity_relation_intent_resolver.EntityRelationIntentResolver` rows).
     INVARIANTS: Does not validate decorator grammar at decorator time — only interchange resolution semantics. Declared rules of a specialization are **read** here, never checked: the build validator owns that.
     FAILURES: :exc:`~aoa.action_machine.exceptions.MissingEntityInfoError` when a required resolved value is missing or invalid for the chosen API.
     AI-CORE-END
@@ -53,17 +47,12 @@ class EntityIntentResolver:
         return description.strip()
 
     @staticmethod
-    def resolve_resource_type(host_cls: type) -> type[BaseResource]:
-        """Return the ``BaseResource`` subclass ``@entity`` names, or raise :exc:`MissingEntityInfoError`."""
-        resource_cls = EntityIntentResolver.entity_info_dict(host_cls).get("resource")
-        if isinstance(resource_cls, type) and issubclass(resource_cls, base_resource_module.BaseResource):
-            return resource_cls
-        raise MissingEntityInfoError(host_cls, key="resource")
-
-    @staticmethod
     def resolve_domain_type(host_cls: type) -> type[BaseDomain]:
-        """Return the domain of the entity's resource, read from the resource's ``@meta``."""
-        return MetaIntentResolver.resolve_domain_type(EntityIntentResolver.resolve_resource_type(host_cls))
+        """Return the ``BaseDomain`` subclass the entity declares in its own ``_entity_info``."""
+        domain_cls = EntityIntentResolver.entity_info_dict(host_cls).get("domain")
+        if not isinstance(domain_cls, type) or not issubclass(domain_cls, BaseDomain):
+            raise MissingEntityInfoError(host_cls, key="domain")
+        return domain_cls
 
     @staticmethod
     def resolve_entity_relations(host_cls: type) -> list[EntityRelationIntentResolver]:

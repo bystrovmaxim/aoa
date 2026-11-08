@@ -28,7 +28,6 @@ from aoa.action_machine.domain.spec_entity import declared_value
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -39,18 +38,13 @@ class SpecShopDomain(BaseDomain):
     description = "Spec shop"
 
 
-@meta(description="Where SpecShopStorage keeps its rows")
-class SpecShopDataSource(InMemoryDataSource):
-    """The store SpecShopStorage works with."""
-
-
-@meta(description="Stores the spec shop entities", domain=SpecShopDomain)
-class SpecShopStorage(BaseStorage[SpecShopDataSource]):
+@meta(description="Stores the spec shop entities")
+class SpecShopStorage(BaseStorage):
     """Hold the spec shop entities."""
 
 
 @exclude_graph_model
-@entity(description="Edition kind", resource=SpecShopStorage)
+@entity(description="Edition kind", domain=SpecShopDomain)
 class SpecEditionKindEnumEntity(BaseEnumEntity):
     """A closed dictionary."""
 
@@ -59,7 +53,7 @@ class SpecEditionKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Record", resource=SpecShopStorage)
+@entity(description="Record", domain=SpecShopDomain)
 class SpecRecordCoreEntity(BaseCoreEntity):
     """The head of the axis."""
 
@@ -71,7 +65,7 @@ class SpecRecordCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="First press", resource=SpecShopStorage)
+@entity(description="First press", domain=SpecShopDomain)
 class SpecFirstPressSpecEntity(BaseSpecEntity):
     """Names the declared value it is."""
 
@@ -83,7 +77,7 @@ class SpecFirstPressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Repress", resource=SpecShopStorage)
+@entity(description="Repress", domain=SpecShopDomain)
 class SpecRepressSpecEntity(BaseSpecEntity):
     """Names the other declared value."""
 
@@ -95,7 +89,7 @@ class SpecRepressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Unmarked extension", resource=SpecShopStorage)
+@entity(description="Unmarked extension", domain=SpecShopDomain)
 class SpecUnmarkedSpecEntity(BaseSpecEntity):
     """Points back at its head without naming a value."""
 

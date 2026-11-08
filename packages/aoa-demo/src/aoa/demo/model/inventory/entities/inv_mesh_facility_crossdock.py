@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_crossdock_staging import CrossDockStagingCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
-from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
 @entity(
-    description="Associates upstream facility footprints with lateral cross-dock staging gates", resource=InventoryStorage
+    description="Associates upstream facility footprints with lateral cross-dock staging gates", domain=InventoryDomain
 )
 class InvFacilityCrossdockBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
@@ -29,16 +29,12 @@ class InvFacilityCrossdockBridgeCoreEntity(BaseCoreEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning facility artefact"
-    )
+    ] = Field(description="Owning facility artefact")
 
     crossdock_gate: Annotated[
         AssociationOne[CrossDockStagingCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Cross-dock staging gate anchor"
-    )
+    ] = Field(description="Cross-dock staging gate anchor")
 
 
 InvFacilityCrossdockBridgeCoreEntity.model_rebuild()

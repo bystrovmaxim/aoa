@@ -1,16 +1,15 @@
 # packages/aoa-demo/src/aoa/demo/model/billing/entities/payment_event_log.py
 """Minimal entity so the ``billing`` bounded context appears on the entity graph."""
 
-
 from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.payment_lifecycle import PaymentEventLifecycle
-from aoa.demo.model.billing.resources.card_network_gateway import CardNetworkGateway
 
 
-@entity(description="Append-only payment event (sample)", resource=CardNetworkGateway)
+@entity(description="Append-only payment event (sample)", domain=BillingDomain)
 class PaymentEventLogCoreEntity(BaseCoreEntity):
     id: str = Field(description="Event id")
     lifecycle: PaymentEventLifecycle = Field(description="Payment event lifecycle")

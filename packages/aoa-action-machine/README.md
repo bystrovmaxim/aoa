@@ -31,10 +31,10 @@ Import `value` from `aoa.action_machine.domain` and declare members inside their
 ```python
 from aoa.action_machine.domain import BaseEnumEntity, value
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -42,22 +42,18 @@ class ShopDomain(BaseDomain):
     description = "Shop catalogue"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Accepted currency", resource=ShopStorage)
+@entity(description="Accepted currency", domain=ShopDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Describe the accepted currency."""
 
     symbol: str
     EUR = value(code="eur", display_name="Euro", symbol="€")
+
+
+@meta(description="Stores the shop entities")
+@entities(CurrencyEnumEntity,)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 assert CurrencyEnumEntity.by_code("eur") is CurrencyEnumEntity.EUR

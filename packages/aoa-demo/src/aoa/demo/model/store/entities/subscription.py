@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 from aoa.demo.model.store.entities.subscription_lifecycle import SubscriptionLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="A customer's subscription to a box delivered every month", resource=StorefrontDatabaseStorage)
+@entity(description="A customer's subscription to a box delivered every month", domain=StoreDomain)
 class SubscriptionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Subscription id")
     lifecycle: SubscriptionLifecycle = Field(description="Subscription lifecycle")

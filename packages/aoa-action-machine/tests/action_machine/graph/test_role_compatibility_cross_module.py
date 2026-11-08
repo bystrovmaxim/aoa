@@ -23,7 +23,6 @@ _PREAMBLE = textwrap.dedent(
         validate_entity_role_compatibility,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
-    from aoa.action_machine.resources import InMemoryDataSource
     """
 )
 
@@ -70,25 +69,19 @@ def test_field_only_and_concrete_inverse_receive_the_same_check() -> None:
             description = "Cross 2"
 
 
-        from aoa.action_machine.resources import InMemoryDataSource
 
-        @meta(description="Where CrossStorage keeps its rows")
-        class CrossStorageDataSource(InMemoryDataSource):
+        @meta(description="Stores the cross entities")
+        class CrossStorage(BaseStorage):
             pass
 
-
-        @meta(description="Stores the cross entities", domain=CrossDomain)
-        class CrossStorage(BaseStorage[CrossStorageDataSource]):
-            pass
-
-        @entity(description="Offer", resource=CrossStorage)
+        @entity(description="Offer", domain=CrossDomain)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(RegionCoreEntity, "offer")] = Field(
                 description="Regions"
             )
 
-        @entity(description="Region", resource=CrossStorage)
+        @entity(description="Region", domain=CrossDomain)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(
@@ -118,21 +111,16 @@ def test_cross_module_ownership_pair_is_refused() -> None:
             description = "Cross 3"
 
 
-        @meta(description="Where CrossStorage keeps its rows")
-        class CrossDataSource(InMemoryDataSource):
+        @meta(description="Stores the cross entities")
+        class CrossStorage(BaseStorage):
             pass
 
-
-        @meta(description="Stores the cross entities", domain=CrossDomain)
-        class CrossStorage(BaseStorage[CrossDataSource]):
-            pass
-
-        @entity(description="A", resource=CrossStorage)
+        @entity(description="A", domain=CrossDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", resource=CrossStorage)
+        @entity(description="B", domain=CrossDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")

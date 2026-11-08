@@ -26,10 +26,10 @@ from aoa.action_machine.domain import (
     NoInverse,
     value,
 )
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseResult
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -40,17 +40,7 @@ class RoundTripDomain(BaseDomain):
     description = "Read-back model"
 
 
-@meta(description="Where RoundTripStorage keeps its rows")
-class RoundTripDataSource(InMemoryDataSource):
-    """The store RoundTripStorage works with."""
-
-
-@meta(description="Stores the round trip entities", domain=RoundTripDomain)
-class RoundTripStorage(BaseStorage[RoundTripDataSource]):
-    """Hold the round trip entities."""
-
-
-@entity(description="Customer", resource=RoundTripStorage)
+@entity(description="Customer", domain=RoundTripDomain)
 class RtCustomerCoreEntity(BaseCoreEntity):
     """A customer with a UUID id."""
 
@@ -59,7 +49,7 @@ class RtCustomerCoreEntity(BaseCoreEntity):
     email: str = Field(description="Email")
 
 
-@entity(description="Order line", resource=RoundTripStorage)
+@entity(description="Order line", domain=RoundTripDomain)
 class RtLineCoreEntity(BaseCoreEntity):
     """A line of an order."""
 
@@ -67,7 +57,7 @@ class RtLineCoreEntity(BaseCoreEntity):
     quantity: int = Field(ge=1, description="Quantity")
 
 
-@entity(description="Currency", resource=RoundTripStorage)
+@entity(description="Currency", domain=RoundTripDomain)
 class RtCurrencyEnumEntity(BaseEnumEntity):
     """A closed catalogue of currencies."""
 
@@ -76,7 +66,7 @@ class RtCurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Order status", resource=RoundTripStorage)
+@entity(description="Order status", domain=RoundTripDomain)
 class RtOrderStateEntity(BaseStateEntity):
     """The statuses of an order."""
 
@@ -97,7 +87,7 @@ class RtOrderLifecycle(Lifecycle[RtOrderStateEntity]):
     )
 
 
-@entity(description="Order", resource=RoundTripStorage)
+@entity(description="Order", domain=RoundTripDomain)
 class RtOrderCoreEntity(BaseCoreEntity):
     """An order with every kind of value."""
 
@@ -107,6 +97,12 @@ class RtOrderCoreEntity(BaseCoreEntity):
     lines: Annotated[AssociationMany[RtLineCoreEntity], NoInverse()] = Field(description="Lines")
     currency: Annotated[CompositeOne[RtCurrencyEnumEntity], NoInverse()] = Field(description="Currency")
     lifecycle: RtOrderLifecycle = Field(description="Lifecycle")
+
+
+@meta(description="Stores the round trip entities")
+@entities(RtCustomerCoreEntity, RtLineCoreEntity, RtOrderCoreEntity)
+class RoundTripStorage(BaseStorage):
+    """Hold the round trip entities; a dictionary member and a lifecycle state belong to the model, not a database."""
 
 
 ORDER_SUMMARY = {

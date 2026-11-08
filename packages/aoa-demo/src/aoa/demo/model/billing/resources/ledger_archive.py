@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.billing.domain import BillingDomain
 
 
 class LedgerArchiveClient:
@@ -13,7 +12,6 @@ class LedgerArchiveClient:
 
 @meta(
     description="Ledger archive gateway (stub)",
-    domain=BillingDomain,
 )
 class LedgerArchiveGateway(BaseGateway):
     """The gateway to the ledger archive: its methods are what the domain asks of it."""

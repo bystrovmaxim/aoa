@@ -22,10 +22,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
     AnalyticsCanonicalTelemetryRowDetailEntity,
 )
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
 class _AnDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -37,15 +37,20 @@ class _AnDirectedCycleSketchStateEntity(BaseStateEntity):
     SETTLED = value(code="settled", display_name="Settled", sort_order=2)
 
 
-
 class _AnDirectedCycleSketchLifecycle(Lifecycle[_AnDirectedCycleSketchStateEntity]):
     """Statuses and links of the _AnDirectedCycleSketchLifecycle axis."""
 
+    _template = (
+        Lifecycle()
+        .state(_AnDirectedCycleSketchStateEntity.OPEN)
+        .to(_AnDirectedCycleSketchStateEntity.SETTLED)
+        .initial()
+        .state(_AnDirectedCycleSketchStateEntity.SETTLED)
+        .final()
+    )
 
-    _template = Lifecycle().state(_AnDirectedCycleSketchStateEntity.OPEN).to(_AnDirectedCycleSketchStateEntity.SETTLED).initial().state(_AnDirectedCycleSketchStateEntity.SETTLED).final()
 
-
-@entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", resource=AnalyticsStorage)
+@entity(description="Analytics quad vertex A (\u2192B / \u2190D reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadACoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex A id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -59,19 +64,15 @@ class AnalyticsDirectedCycleQuadACoreEntity(BaseCoreEntity):
     follow_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadBCoreEntity, "back_from_a"),
-    ] = Field(
-        description="Perimeter A\u2192B"
-    )
+    ] = Field(description="Perimeter A\u2192B")
 
     back_from_d: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadDCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadDCoreEntity, "follow_a"),
-    ] = Field(
-        description="Closing hop D\u2192A pair"
-    )
+    ] = Field(description="Closing hop D\u2192A pair")
 
 
-@entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", resource=AnalyticsStorage)
+@entity(description="Analytics quad vertex B (\u2190A / \u2192C reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadBCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex B id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -85,26 +86,20 @@ class AnalyticsDirectedCycleQuadBCoreEntity(BaseCoreEntity):
     back_from_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadACoreEntity],
         Inverse(AnalyticsDirectedCycleQuadACoreEntity, "follow_b"),
-    ] = Field(
-        description="Reciprocal B\u2192A"
-    )
+    ] = Field(description="Reciprocal B\u2192A")
 
     follow_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadCCoreEntity, "back_from_b"),
-    ] = Field(
-        description="Perimeter B\u2192C"
-    )
+    ] = Field(description="Perimeter B\u2192C")
 
     anchor_canonical_telemetry_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Connects quad vertex B to canonical telemetry facet chain"
-    )
+    ] = Field(description="Connects quad vertex B to canonical telemetry facet chain")
 
 
-@entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", resource=AnalyticsStorage)
+@entity(description="Analytics quad vertex C (\u2190B / \u2192D reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadCCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex C id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -118,19 +113,15 @@ class AnalyticsDirectedCycleQuadCCoreEntity(BaseCoreEntity):
     back_from_b: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadBCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadBCoreEntity, "follow_c"),
-    ] = Field(
-        description="Reciprocal C\u2192B"
-    )
+    ] = Field(description="Reciprocal C\u2192B")
 
     follow_d: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadDCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadDCoreEntity, "back_from_c"),
-    ] = Field(
-        description="Perimeter C\u2192D"
-    )
+    ] = Field(description="Perimeter C\u2192D")
 
 
-@entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", resource=AnalyticsStorage)
+@entity(description="Analytics quad vertex D (\u2190C / \u2192A reciprocal)", domain=AnalyticsDomain)
 class AnalyticsDirectedCycleQuadDCoreEntity(BaseCoreEntity):
     id: str = Field(description="Vertex D id")
     lifecycle: _AnDirectedCycleSketchLifecycle = Field(description="Sketch lifecycle")
@@ -144,16 +135,12 @@ class AnalyticsDirectedCycleQuadDCoreEntity(BaseCoreEntity):
     back_from_c: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadCCoreEntity],
         Inverse(AnalyticsDirectedCycleQuadCCoreEntity, "follow_d"),
-    ] = Field(
-        description="Reciprocal D\u2192C"
-    )
+    ] = Field(description="Reciprocal D\u2192C")
 
     follow_a: Annotated[
         AssociationOne[AnalyticsDirectedCycleQuadACoreEntity],
         Inverse(AnalyticsDirectedCycleQuadACoreEntity, "back_from_d"),
-    ] = Field(
-        description="Perimeter D\u2192A"
-    )
+    ] = Field(description="Perimeter D\u2192A")
 
 
 AnalyticsDirectedCycleQuadACoreEntity.model_rebuild()

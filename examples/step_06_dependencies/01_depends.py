@@ -34,6 +34,7 @@ from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_float
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends import depends
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
@@ -56,7 +57,7 @@ class BillingDomain(BaseDomain):
 # stateless ones return None (no transaction proxy needed).
 # ---------------------------------------------------------------------------
 
-@meta(description="Stateless pricing service", domain=BillingDomain)
+@meta(description="Stateless pricing service")
 class PricingServiceGateway(BaseGateway):
     PRICES = {"sku-1": 8990.0, "sku-2": 490.0}
 
@@ -74,7 +75,8 @@ class PricingServiceGateway(BaseGateway):
 # commit()/rollback().
 # ---------------------------------------------------------------------------
 
-@meta(description="Append-only transaction ledger", domain=BillingDomain)
+@meta(description="Append-only transaction ledger")
+@entities()
 class LedgerStorage(BaseStorage):
     def __init__(self) -> None:
         self._rows: list[str] = []

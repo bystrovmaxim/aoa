@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Primary assurance workspace capsule (test_project analogue)", resource=AssurancePortfolioStorage)
+@entity(description="Primary assurance workspace capsule (test_project analogue)", domain=AssurancePortfolioDomain)
 class AssuranceWorkspaceProgramStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Workspace program id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Workspace lifecycle")

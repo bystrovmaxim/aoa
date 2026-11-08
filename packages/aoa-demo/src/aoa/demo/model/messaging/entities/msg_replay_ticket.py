@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dead_letter_lifecycle import MsgDeadLetterLifecycle
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Replay ticket hanging off watermark segment", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Replay ticket hanging off watermark segment", domain=MessagingDomain)
 class ReplayTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: MsgDeadLetterLifecycle = Field(description="Replay lifecycle")
@@ -26,7 +26,6 @@ class ReplayTicketCoreEntity(BaseCoreEntity):
     message: Annotated[AssociationOne[OutboxMessageCoreEntity], NoInverse()] = Field(
         description="The outbox message this ticket replays, kept in the same messaging database"
     )
-
 
 
 ReplayTicketCoreEntity.model_rebuild()

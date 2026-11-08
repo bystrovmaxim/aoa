@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/analytics/resources/__init__.py
-"""Resources placeholder."""
+"""The analytics model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
+
+__all__ = ["AnalyticsStorage"]

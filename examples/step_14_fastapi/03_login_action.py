@@ -30,6 +30,7 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
@@ -51,7 +52,8 @@ class AuthDomain(BaseDomain):
     description = "Login and token issuance"
 
 
-@meta(description="Transport to the user credential store.", domain=AuthDomain)
+@meta(description="Transport to the user credential store.")
+@entities()
 class UserStoreStorage(BaseStorage):
     """
     AI-CORE-BEGIN

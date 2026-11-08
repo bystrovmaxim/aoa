@@ -20,11 +20,17 @@ class MsgDeviceNoticeStateEntity(BaseStateEntity):
     DRAINED = value(code="drained", display_name="Drained", sort_order=3)
 
 
-
 class MsgDeviceNoticeLifecycle(Lifecycle[MsgDeviceNoticeStateEntity]):
     """queued → routed → drained."""
 
-
     _template = (
-        Lifecycle().state(MsgDeviceNoticeStateEntity.QUEUED).to(MsgDeviceNoticeStateEntity.ROUTED).initial().state(MsgDeviceNoticeStateEntity.ROUTED).to(MsgDeviceNoticeStateEntity.DRAINED).intermediate().state(MsgDeviceNoticeStateEntity.DRAINED).final()
+        Lifecycle()
+        .state(MsgDeviceNoticeStateEntity.QUEUED)
+        .to(MsgDeviceNoticeStateEntity.ROUTED)
+        .initial()
+        .state(MsgDeviceNoticeStateEntity.ROUTED)
+        .to(MsgDeviceNoticeStateEntity.DRAINED)
+        .intermediate()
+        .state(MsgDeviceNoticeStateEntity.DRAINED)
+        .final()
     )

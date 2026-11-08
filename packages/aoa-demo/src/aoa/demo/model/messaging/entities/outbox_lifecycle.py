@@ -20,10 +20,8 @@ class OutboxMessageStateEntity(BaseStateEntity):
     CONSUMED = value(code="consumed", display_name="Consumed", sort_order=3)
 
 
-
 class OutboxMessageLifecycle(Lifecycle[OutboxMessageStateEntity]):
     """Three states: pending → published → consumed."""
-
 
     _template = (
         Lifecycle()

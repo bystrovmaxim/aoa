@@ -20,10 +20,8 @@ class PaymentEventStateEntity(BaseStateEntity):
     ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
 
 
-
 class PaymentEventLifecycle(Lifecycle[PaymentEventStateEntity]):
     """Three states: recorded → settled → archived."""
-
 
     _template = (
         Lifecycle()

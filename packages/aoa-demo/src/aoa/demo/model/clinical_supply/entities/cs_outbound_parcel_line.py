@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_outbound_parcel_wave import ClinicalOutboundParcelWaveCoreEntity
-from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Line grain tying parcel wave with SKU issuance quantity (delivery string analogue)",
-    resource=ClinicalSupplyStorage,
+    domain=ClinicalSupplyDomain,
 )
 class ClinicalOutboundParcelLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Parcel line id")
@@ -30,16 +30,12 @@ class ClinicalOutboundParcelLineDetailEntity(BaseDetailEntity):
     parcel_wave: Annotated[
         AssociationOne[ClinicalOutboundParcelWaveCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent parcel wave"
-    )
+    ] = Field(description="Parent parcel wave")
 
     consumable_row: Annotated[
         AssociationOne[ClinicalConsumableSkuCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Issued SKU"
-    )
+    ] = Field(description="Issued SKU")
 
 
 ClinicalOutboundParcelLineDetailEntity.model_rebuild()

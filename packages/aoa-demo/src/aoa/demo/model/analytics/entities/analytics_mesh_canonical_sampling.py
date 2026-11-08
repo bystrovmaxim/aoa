@@ -7,17 +7,17 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
     AnalyticsCanonicalTelemetryRowDetailEntity,
 )
 from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
 @entity(
     description="Short-circuit between canonical telemetry egress and exploratory sampling subgraph",
-    resource=AnalyticsStorage,
+    domain=AnalyticsDomain,
 )
 class AnalyticsCanonicalSamplingCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
@@ -32,16 +32,12 @@ class AnalyticsCanonicalSamplingCorrelateCoreEntity(BaseCoreEntity):
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Canonical telemetry anchor"
-    )
+    ] = Field(description="Canonical telemetry anchor")
 
     sampling_policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Sampling workload anchor"
-    )
+    ] = Field(description="Sampling workload anchor")
 
 
 AnalyticsCanonicalSamplingCorrelateCoreEntity.model_rebuild()

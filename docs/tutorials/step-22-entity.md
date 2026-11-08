@@ -26,7 +26,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.intents.entities import entities
 
 
 class ShopDomain(BaseDomain):
@@ -36,22 +36,20 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     """Describe an order independently of its storage."""
 
     id: str = Field(description="Order identifier")
     total: float = Field(ge=0, description="Order total")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    OrderCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 order = build({"id": "ord-1", "total": 1500.0}, OrderCoreEntity)
@@ -64,45 +62,42 @@ OrderCoreEntity
 ord-1 1500.0
 ```
 
-There are two separate declarations here. `BaseCoreEntity` supplies the kind and requires the `CoreEntity` suffix. `@entity` supplies the description used by the domain model; `resource=ShopStorage` names the resource that stores the order, and the order takes its domain from that resource's `@meta`. Python creates the class before applying the decorator, so inheritance and suffix errors occur before `@entity` runs. Neither declaration creates a database table or retrieves data.
+There are three separate declarations here. `BaseCoreEntity` supplies the kind and requires the `CoreEntity` suffix. `@entity` supplies the description used by the domain model and the domain the order belongs to. `@entities` on `ShopStorage` names the entities the database holds — here, the order. Python creates the class before applying a decorator, so inheritance and suffix errors occur before `@entity` runs. None of the declarations creates a database table or retrieves data.
 
-## Store the entity in the resource that holds it
+## Name the domain of an entity
 
-An entity is a row kept somewhere: a table of a database, a key of a cache, a record a gateway reports. `@entity` names that place with `resource=`, and only that place. The entity has no domain of its own: it takes the domain the resource declares with `@meta(domain=...)`, so there is one source for it and nothing to compare.
+An entity is a domain object, and `@entity` names the domain it belongs to. It names no resource: a database may hold the entities of several domains, so the entity cannot take its domain from where it is stored. The database is the resource, and it lists the entities that lie in it with `@entities(...)` ([step 21](step-21-resource.md#a-resource-is-a-database)); the resource's domains are the domains of the entities it lists.
 
-[Script](../../examples/step_22_entity/29_stored_by_resource.py) · [Notebook](../../examples/step_22_entity/29_stored_by_resource.ipynb)
+[Script](../../examples/step_22_entity/29_entity_domain.py) · [Notebook](../../examples/step_22_entity/29_entity_domain.ipynb)
 
 ```text
-resource: StorefrontDatabase
 domain: StoreDomain
-schema_version: 1.6
+schema_version: 2.0
 domain: SalesOrderCoreEntity -> StoreDomain (Aggregation)
-entity_resource: SalesOrderCoreEntity -> StorefrontDatabase (Aggregation)
+resource_entity: StorefrontDatabaseStorage -> SalesOrderCoreEntity (Aggregation)
 ```
 
-The graph carries both facts: an `entity_resource` edge from the entity to its resource, and the entity's `domain` edge, which points at the resource's domain. Any kind of resource may store entities — a storage, a gateway or a controller — so a reader of the graph finds the data model of each one of them.
+The graph carries the entity's own `domain` link and, from the database that lists it, a `resource_entity` link. A resource has no `domain` link. Any kind of resource may list entities — a storage, a gateway or a controller — and one entity may be listed by two databases.
 
-The resource is required, and the domain is not a parameter any more:
+The domain is required, and `resource=` is not a parameter any more:
 
-[Script](../../examples/step_22_entity/30_resource_required.py) · [Notebook](../../examples/step_22_entity/30_resource_required.ipynb)
+[Script](../../examples/step_22_entity/30_domain_required.py) · [Notebook](../../examples/step_22_entity/30_domain_required.ipynb)
 
 ```text
-EntityDecoratorError: SalesOrderCoreEntity — @entity needs resource=: an entity is stored by a resource.
-TypeError: entity() got an unexpected keyword argument 'domain'
+EntityDecoratorError: @entity: domain is required (keyword-only). Pass a BaseDomain subclass, e.g. domain=OrdersDomain.
+TypeError: entity() got an unexpected keyword argument 'resource'
 ```
 
-`resource=` takes exactly one concrete resource. A domain or any other class that is not a resource, a kind base such as `BaseStorage` (the graph leaves the kind bases out, so the entity could not point at one), a resource that declares no domain, and several resources at once are each refused when the class is defined, with the entity named:
+`domain=` takes exactly one `BaseDomain` subclass. A declaration without one, and the removed `resource=` argument, are refused when the class is defined:
 
-[Script](../../examples/step_22_entity/31_resource_refusals.py) · [Notebook](../../examples/step_22_entity/31_resource_refusals.ipynb)
+[Script](../../examples/step_22_entity/31_domain_refusals.py) · [Notebook](../../examples/step_22_entity/31_domain_refusals.ipynb)
 
 ```text
-EntityDecoratorError: SalesOrderCoreEntity — @entity resource= must be a BaseResource subclass, got StoreDomain.
-EntityDecoratorError: SalesOrderCoreEntity — @entity resource= must be a concrete resource, got BaseStorage, which is excluded from the graph model.
-EntityDecoratorError: SalesOrderCoreEntity — @entity resource= UndeclaredDatabase declares no domain: decorate it with @meta(domain=...).
-EntityDecoratorError: SalesOrderCoreEntity — @entity takes one resource, got 2: StorefrontDatabase, StorefrontSessionCache.
+EntityDecoratorError: @entity: domain is required (keyword-only). Pass a BaseDomain subclass, e.g. domain=OrdersDomain.
+TypeError: entity() got an unexpected keyword argument 'resource'
 ```
 
-A subclass without an `@entity` of its own inherits its parent's declaration, resource included. Every entity has one resource, and its resource names a data source — the entity's physical place; relations between entities know no store: [step 24](step-24-relations.md#a-relation-joins-entities-of-any-data-sources) shows them.
+A subclass without an `@entity` of its own inherits its parent's declaration, domain included. Relations between entities know no store: [step 24](step-24-relations.md#a-relation-joins-entities-of-any-databases) shows them.
 
 ## Understand the six kinds
 
@@ -332,7 +327,9 @@ An entity may keep a value that belongs to the object rather than to its data �
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer order", resource=ShopStorage)
+
+
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(default=0.0, description="Total")

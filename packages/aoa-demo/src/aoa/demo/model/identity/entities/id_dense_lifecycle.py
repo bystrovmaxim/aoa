@@ -18,10 +18,8 @@ class IdentityDenseStateEntity(BaseStateEntity):
     DORMANT = value(code="dormant", display_name="Dormant", sort_order=3)
 
 
-
 class IdentityDenseLifecycle(Lifecycle[IdentityDenseStateEntity]):
     """registered → dormant."""
-
 
     _template = (
         Lifecycle()

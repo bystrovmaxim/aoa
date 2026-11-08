@@ -15,10 +15,10 @@ ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
     App bootstrap (lifespan)
-         |  opens one data source per database: the connection parameters and the pool
+         |  opens one pool per database: the connection parameters and the pool
          v
-    OrdersStorage(data_source=shop)        # class OrdersStorage(PostgresStorage[ShopDataSource])
-         |  open(): one connection borrowed from the data source
+    OrdersStorage(pool=shop)
+         |  open(): one connection borrowed from the pool
          |  close(): returned, the pool stays open
          v
     ActionMachine resources used by actions
@@ -33,8 +33,8 @@ INSTALLATION
 COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- ``PostgresDataSource``: the kind of data source of a PostgreSQL database — connection parameters and the pool several resources share.
-- ``PostgresStorage``: resource manager for PostgreSQL connections. It always names its data source and holds at most one connection, only for its own unit of work: taken from the data source in ``open()``, given back in ``close()``.
+- ``PostgresPool``: the connection source of a PostgreSQL database — connection parameters and the pool several resources share. A plain class: it is in neither the model nor the graph.
+- ``PostgresStorage``: resource manager for PostgreSQL connections. It takes exactly one of ``pool=`` and ``connection_params=`` and holds at most one connection, only for its own unit of work.
 """
 try:
     import asyncpg  # noqa: F401
@@ -43,7 +43,7 @@ except ImportError:
         "To use action_machine.resources.postgres, install the optional dependency: " "pip install aoa-run[postgres]"
     ) from None
 
-from aoa.action_machine.resources.postgres.postgres_data_source import PostgresDataSource
+from aoa.action_machine.resources.postgres.postgres_pool import PostgresPool
 from aoa.action_machine.resources.postgres.postgres_storage import PostgresStorage
 
-__all__ = ["PostgresDataSource", "PostgresStorage"]
+__all__ = ["PostgresPool", "PostgresStorage"]

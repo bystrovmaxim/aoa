@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Step-up fraud challenge", resource=StorefrontDatabaseStorage)
+@entity(description="Step-up fraud challenge", domain=StoreDomain)
 class FraudChallengeTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="FraudChallengeTicketCoreEntity id")
     lifecycle: SalesOrderLifecycle = Field(description="FraudChallengeTicketCoreEntity lifecycle")
@@ -26,9 +26,7 @@ class FraudChallengeTicketCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent sales order anchor"
-    )
+    ] = Field(description="Parent sales order anchor")
 
 
 FraudChallengeTicketCoreEntity.model_rebuild()

@@ -18,10 +18,8 @@ class InvDenseStateEntity(BaseStateEntity):
     DEPLETED = value(code="depleted", display_name="Depleted", sort_order=3)
 
 
-
 class InvDenseLifecycle(Lifecycle[InvDenseStateEntity]):
     """available → depleted."""
-
 
     _template = (
         Lifecycle()
@@ -46,10 +44,8 @@ class InvPipelineStateEntity(BaseStateEntity):
     ANCHORED = value(code="anchored", display_name="Anchored", sort_order=3)
 
 
-
 class InvPipelineLifecycle(Lifecycle[InvPipelineStateEntity]):
     """receipt → anchored."""
-
 
     _template = (
         Lifecycle()

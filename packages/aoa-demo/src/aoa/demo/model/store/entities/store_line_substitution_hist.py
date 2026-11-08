@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Substitution decision history stub", resource=StorefrontDatabaseStorage)
+@entity(description="Substitution decision history stub", domain=StoreDomain)
 class SubstitutionHistoryCoreEntity(BaseCoreEntity):
     id: str = Field(description="SubstitutionHistoryCoreEntity id")
     lifecycle: SalesOrderLineLifecycle = Field(description="SubstitutionHistoryCoreEntity lifecycle")
@@ -26,9 +26,7 @@ class SubstitutionHistoryCoreEntity(BaseCoreEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning order line anchor"
-    )
+    ] = Field(description="Owning order line anchor")
 
 
 SubstitutionHistoryCoreEntity.model_rebuild()

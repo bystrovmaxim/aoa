@@ -32,7 +32,6 @@ Domains appear in the ``NodeGraphCoordinator`` interchange graph as "domain" typ
 
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -43,13 +42,8 @@ class OrdersDomain(BaseDomain):
     description = "Domain for processing customer orders"
 
 
-@meta(description="Where OrdersStorage keeps its rows")
-class OrdersDataSource(InMemoryDataSource):
-    """The store OrdersStorage works with."""
-
-
-@meta(description="Stores the orders entities", domain=OrdersDomain)
-class OrdersStorage(BaseStorage[OrdersDataSource]):
+@meta(description="Stores the orders entities")
+class OrdersStorage(BaseStorage):
     """Hold the entities of OrdersDomain."""
 
 
@@ -67,11 +61,6 @@ class TestDomain(BaseDomain):
     description = "Shared test domain for @meta"
 
 
-@meta(description="Where TestStorage keeps its rows")
-class TestDataSource(InMemoryDataSource):
-    """The store TestStorage works with."""
-
-
-@meta(description="Stores the test entities", domain=TestDomain)
-class TestStorage(BaseStorage[TestDataSource]):
+@meta(description="Stores the test entities")
+class TestStorage(BaseStorage):
     """Hold the entities of TestDomain."""

@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
-from aoa.demo.model.support.resources.storage import SupportStorage
+from aoa.demo.model.support.support_domain import SupportDomain
 
 
-@entity(description="Sparse support-domain hub (minimal star topology)", resource=SupportStorage)
+@entity(description="Sparse support-domain hub (minimal star topology)", domain=SupportDomain)
 class SupportTicketAggregateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: SupportSparseLifecycle = Field(description="Ticket lifecycle")

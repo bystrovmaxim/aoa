@@ -30,8 +30,6 @@ from aoa.action_machine.resources import BaseController
 from aoa.action_machine.runtime.dependency_factory import DependencyFactory
 from aoa.action_machine.runtime.dependency_info import DependencyInfo
 
-from ....support.domain_model.domains import TestDomain
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper classes — intentionally simple, defined here for isolation.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -50,7 +48,7 @@ class _NoArgService:
     pass
 
 
-@meta(description="Fake resource manager for dependency factory tests", domain=TestDomain)
+@meta(description="Fake resource manager for dependency factory tests")
 class _FakeResourceController(BaseController):
     """A fake resource manager that supports rollup."""
 
@@ -62,7 +60,7 @@ class _FakeResourceController(BaseController):
         return True
 
 
-@meta(description="Unsupported resource manager for dependency factory tests", domain=TestDomain)
+@meta(description="Unsupported resource manager for dependency factory tests")
 class _UnsupportedController(BaseController):
     """A resource manager that does NOT support rollup."""
 

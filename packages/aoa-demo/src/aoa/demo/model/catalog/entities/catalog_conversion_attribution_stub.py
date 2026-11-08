@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_touch_moment import TouchMomentCoreEntity
-from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
-@entity(description="Conversion attribution stub chained from touch moment", resource=CatalogObjectStoreStorage)
+@entity(description="Conversion attribution stub chained from touch moment", domain=CatalogDomain)
 class ConversionAttributionStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Stub id")
     lifecycle: CatalogDenseLifecycle = Field(description="Conversion stub lifecycle")
@@ -26,9 +26,7 @@ class ConversionAttributionStubCoreEntity(BaseCoreEntity):
     touch: Annotated[
         AssociationOne[TouchMomentCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Last touch linkage"
-    )
+    ] = Field(description="Last touch linkage")
 
 
 ConversionAttributionStubCoreEntity.model_rebuild()

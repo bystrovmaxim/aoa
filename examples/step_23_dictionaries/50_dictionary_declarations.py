@@ -10,10 +10,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEn
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class Shop50Domain(BaseDomain):
@@ -23,17 +23,7 @@ class Shop50Domain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where Shop50Storage keeps its rows")
-class Shop50DataSource(InMemoryDataSource):
-    """The store Shop50Storage works with."""
-
-
-@meta(description="Stores the shop50 entities", domain=Shop50Domain)
-class Shop50Storage(BaseStorage[Shop50DataSource]):
-    """Hold the shop50 entities."""
-
-
-@entity(description="Regions the shop sells in", resource=Shop50Storage)
+@entity(description="Regions the shop sells in", domain=Shop50Domain)
 class Region50EnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
 
@@ -41,12 +31,21 @@ class Region50EnumEntity(BaseEnumEntity):
     US = value(code="us", display_name="United States")
 
 
-@entity(description="Offer", resource=Shop50Storage)
+@entity(description="Offer", domain=Shop50Domain)
 class Offer50CoreEntity(BaseCoreEntity):
     """Try to serve several regions from one field."""
 
     id: str = Field(description="Offer identifier")
     regions: tuple[Region50EnumEntity, ...] = Field(description="Regions served")
+
+
+@meta(description="Stores the shop50 entities")
+@entities(
+    Region50EnumEntity,
+    Offer50CoreEntity,
+)
+class Shop50Storage(BaseStorage):
+    """Hold the shop50 entities."""
 
 
 def case_50() -> None:
@@ -66,29 +65,28 @@ class Shop51Domain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where Shop51Storage keeps its rows")
-class Shop51DataSource(InMemoryDataSource):
-    """The store Shop51Storage works with."""
-
-
-@meta(description="Stores the shop51 entities", domain=Shop51Domain)
-class Shop51Storage(BaseStorage[Shop51DataSource]):
-    """Hold the shop51 entities."""
-
-
-@entity(description="Regions the shop sells in", resource=Shop51Storage)
+@entity(description="Regions the shop sells in", domain=Shop51Domain)
 class Region51EnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
 
     EU = value(code="eu", display_name="Europe")
 
 
-@entity(description="Offer", resource=Shop51Storage)
+@entity(description="Offer", domain=Shop51Domain)
 class Offer51CoreEntity(BaseCoreEntity):
     """Wrap a shared value in an association."""
 
     id: str = Field(description="Offer identifier")
     region: Annotated[AssociationOne[Region51EnumEntity], NoInverse()] = Field(description="Primary region")
+
+
+@meta(description="Stores the shop51 entities")
+@entities(
+    Region51EnumEntity,
+    Offer51CoreEntity,
+)
+class Shop51Storage(BaseStorage):
+    """Hold the shop51 entities."""
 
 
 def case_51() -> None:
@@ -106,29 +104,28 @@ class Shop52Domain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where Shop52Storage keeps its rows")
-class Shop52DataSource(InMemoryDataSource):
-    """The store Shop52Storage works with."""
-
-
-@meta(description="Stores the shop52 entities", domain=Shop52Domain)
-class Shop52Storage(BaseStorage[Shop52DataSource]):
-    """Hold the shop52 entities."""
-
-
-@entity(description="Regions the shop sells in", resource=Shop52Storage)
+@entity(description="Regions the shop sells in", domain=Shop52Domain)
 class Region52EnumEntity(BaseEnumEntity):
     """Declare the region vocabulary."""
 
     EU = value(code="eu", display_name="Europe")
 
 
-@entity(description="Offer", resource=Shop52Storage)
+@entity(description="Offer", domain=Shop52Domain)
 class Offer52CoreEntity(BaseCoreEntity):
     """Mark a reference as an embedded value."""
 
     id: str = Field(description="Offer identifier")
     region: Annotated[Region52EnumEntity, NoRelation("a value")] = Field(description="Primary region")
+
+
+@meta(description="Stores the shop52 entities")
+@entities(
+    Region52EnumEntity,
+    Offer52CoreEntity,
+)
+class Shop52Storage(BaseStorage):
+    """Hold the shop52 entities."""
 
 
 def case_52() -> None:

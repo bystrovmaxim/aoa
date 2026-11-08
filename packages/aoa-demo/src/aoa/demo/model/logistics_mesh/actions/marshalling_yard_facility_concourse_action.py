@@ -45,7 +45,9 @@ class MarshallingYardFacilityConcourseAction(
         synced: bool = Field(default=False, description="Orchestration sync acknowledgement")
 
     @summary_aspect("Marshalling concourse weave")
-    async def concourse_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: Connections) -> Result:
+    async def concourse_summary(
+        self, params: Params, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> Result:
         _ = (params, state, box, connections)
         await box.run(
             FacilityCorridorRelayThirdLegAction,

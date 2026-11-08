@@ -5,12 +5,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
-from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
 @entity(
-    description="Warehouse / facility hub for inventory locations and cross-dock operations", resource=InventoryStorage
+    description="Warehouse / facility hub for inventory locations and cross-dock operations", domain=InventoryDomain
 )
 class FacilityWarehouseCoreEntity(BaseCoreEntity):
     id: str = Field(description="Facility id")

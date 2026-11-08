@@ -116,34 +116,28 @@ _TARGETS = textwrap.dedent(
         description = "Field declaration rules"
 
 
-    from aoa.action_machine.resources import InMemoryDataSource
 
-    @meta(description="Where FieldRulesStorage keeps its rows")
-    class FieldRulesDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the field rules entities", domain=FieldRulesDomain)
-    class FieldRulesStorage(BaseStorage[FieldRulesDataSource]):
+    @meta(description="Stores the field rules entities")
+    class FieldRulesStorage(BaseStorage):
         pass
 
     @exclude_graph_model
-    @entity(description="Showcase", resource=FieldRulesStorage)
+    @entity(description="Showcase", domain=FieldRulesDomain)
     class ShowcaseCoreEntity(BaseCoreEntity):
         id: str = Field(description="Showcase identifier")
 
     @exclude_graph_model
-    @entity(description="Gallery", resource=FieldRulesStorage)
+    @entity(description="Gallery", domain=FieldRulesDomain)
     class GalleryCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
 
-    @entity(description="Dictionary", resource=FieldRulesStorage)
+    @entity(description="Dictionary", domain=FieldRulesDomain)
     class CurrencyEnumEntity(BaseEnumEntity):
         symbol: str = Field(description="Currency symbol")
         EUR = value(code="eur", display_name="Euro", symbol="€")
 
     @exclude_graph_model
-    @entity(description="Second dictionary", resource=FieldRulesStorage)
+    @entity(description="Second dictionary", domain=FieldRulesDomain)
     class CountryEnumEntity(BaseEnumEntity):
         EU = value(code="eu", display_name="Europe")
 
@@ -152,7 +146,7 @@ _TARGETS = textwrap.dedent(
         pass
 
     @exclude_graph_model
-    @entity(description="Hidden dictionary", resource=FieldRulesStorage)
+    @entity(description="Hidden dictionary", domain=FieldRulesDomain)
     class HiddenEnumEntity(BaseEnumEntity):
         USD = value(code="usd", display_name="US dollar")
 
@@ -163,7 +157,7 @@ _TARGETS = textwrap.dedent(
         pass
 
     @exclude_graph_model
-    @entity(description="Schema host", resource=FieldRulesStorage)
+    @entity(description="Schema host", domain=FieldRulesDomain)
     class HostParams(BaseSchema):
         order_id: str = Field(description="Order identifier")
     """
@@ -212,69 +206,69 @@ def _extras(out: str) -> dict[str, str]:
 
 _SHAPE_BODY = """
     @exclude_graph_model
-    @entity(description="Bare field", resource=FieldRulesStorage)
+    @entity(description="Bare field", domain=FieldRulesDomain)
     class BareCoreEntity(BaseCoreEntity):
         showcase: ShowcaseCoreEntity = Field(description="Player showcase")
 
     @exclude_graph_model
-    @entity(description="Optional bare field", resource=FieldRulesStorage)
+    @entity(description="Optional bare field", domain=FieldRulesDomain)
     class OptionalBareCoreEntity(BaseCoreEntity):
         showcase: ShowcaseCoreEntity | None = Field(default=None, description="Showcase")
 
     @exclude_graph_model
-    @entity(description="Bare Annotated field", resource=FieldRulesStorage)
+    @entity(description="Bare Annotated field", domain=FieldRulesDomain)
     class BareAnnotatedCoreEntity(BaseCoreEntity):
         showcase: Annotated[ShowcaseCoreEntity, NoInverse()] = Field(description="Showcase")
 
     @exclude_graph_model
-    @entity(description="List of entities", resource=FieldRulesStorage)
+    @entity(description="List of entities", domain=FieldRulesDomain)
     class ListCoreEntity(BaseCoreEntity):
         showcases: list[ShowcaseCoreEntity] = Field(default_factory=list, description="Showcases")
 
     @exclude_graph_model
-    @entity(description="Mapping of entities", resource=FieldRulesStorage)
+    @entity(description="Mapping of entities", domain=FieldRulesDomain)
     class DictCoreEntity(BaseCoreEntity):
         showcases: dict[str, ShowcaseCoreEntity] = Field(default_factory=dict, description="Showcases")
 
     @exclude_graph_model
-    @entity(description="Set of entities", resource=FieldRulesStorage)
+    @entity(description="Set of entities", domain=FieldRulesDomain)
     class SetCoreEntity(BaseCoreEntity):
         showcases: set[ShowcaseCoreEntity] = Field(default_factory=set, description="Showcases")
 
     @exclude_graph_model
-    @entity(description="Tuple of entities", resource=FieldRulesStorage)
+    @entity(description="Tuple of entities", domain=FieldRulesDomain)
     class TupleCoreEntity(BaseCoreEntity):
         showcases: tuple[ShowcaseCoreEntity, ...] = Field(default=(), description="Showcases")
 
     @exclude_graph_model
-    @entity(description="Union of entities", resource=FieldRulesStorage)
+    @entity(description="Union of entities", domain=FieldRulesDomain)
     class UnionCoreEntity(BaseCoreEntity):
         ref: ShowcaseCoreEntity | GalleryCoreEntity = Field(description="Union")
 
     @exclude_graph_model
-    @entity(description="Mixed collection", resource=FieldRulesStorage)
+    @entity(description="Mixed collection", domain=FieldRulesDomain)
     class MixedCollectionCoreEntity(BaseCoreEntity):
         ref: tuple[ShowcaseCoreEntity, GalleryCoreEntity] = Field(description="Mixed")
 
     @exclude_graph_model
-    @entity(description="Complete relation", resource=FieldRulesStorage)
+    @entity(description="Complete relation", domain=FieldRulesDomain)
     class RelationCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
             description="Player showcase"
         )
 
     @exclude_graph_model
-    @entity(description="Complete many relation", resource=FieldRulesStorage)
+    @entity(description="Complete many relation", domain=FieldRulesDomain)
     class ManyRelationCoreEntity(BaseCoreEntity):
         showcases: Annotated[AssociationMany[ShowcaseCoreEntity], NoInverse()] = Field(description="Showcases")
 
     @exclude_graph_model
-    @entity(description="Missing direction marker", resource=FieldRulesStorage)
+    @entity(description="Missing direction marker", domain=FieldRulesDomain)
     class MissingDirectionCoreEntity(BaseCoreEntity):
         showcase: AssociationOne[ShowcaseCoreEntity] = Field(description="Showcase")
 
     @exclude_graph_model
-    @entity(description="Duplicate direction markers", resource=FieldRulesStorage)
+    @entity(description="Duplicate direction markers", domain=FieldRulesDomain)
     class DuplicateDirectionCoreEntity(BaseCoreEntity):
         showcase: Annotated[
             AssociationOne[ShowcaseCoreEntity],
@@ -283,7 +277,7 @@ _SHAPE_BODY = """
         ] = Field(description="Showcase")
 
     @exclude_graph_model
-    @entity(description="Conflicting direction markers", resource=FieldRulesStorage)
+    @entity(description="Conflicting direction markers", domain=FieldRulesDomain)
     class ConflictingDirectionCoreEntity(BaseCoreEntity):
         showcase: Annotated[
             AssociationOne[ShowcaseCoreEntity],
@@ -292,14 +286,14 @@ _SHAPE_BODY = """
         ] = Field(description="Showcase")
 
     @exclude_graph_model
-    @entity(description="Embedded form", resource=FieldRulesStorage)
+    @entity(description="Embedded form", domain=FieldRulesDomain)
     class EmbeddedCoreEntity(BaseCoreEntity):
         showcase: Annotated[ShowcaseCoreEntity, NoRelation("embedded showcase snapshot")] = Field(
             description="Showcase snapshot stored as a value"
         )
 
     @exclude_graph_model
-    @entity(description="Marker with a relation", resource=FieldRulesStorage)
+    @entity(description="Marker with a relation", domain=FieldRulesDomain)
     class MarkerWithRelationCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoRelation("embedded showcase")] = Field(
             description="Showcase"
@@ -331,17 +325,17 @@ _SHAPE_BODY = """
 
 _STATE_BODY = """
     @exclude_graph_model
-    @entity(description="State field", resource=FieldRulesStorage)
+    @entity(description="State field", domain=FieldRulesDomain)
     class StateFieldCoreEntity(BaseCoreEntity):
         stage: DraftStateEntity = Field(description="Stage")
 
     @exclude_graph_model
-    @entity(description="State in a relation", resource=FieldRulesStorage)
+    @entity(description="State in a relation", domain=FieldRulesDomain)
     class StateRelationCoreEntity(BaseCoreEntity):
         stage: Annotated[AssociationOne[DraftStateEntity], NoInverse()] = Field(description="Stage")
 
     @exclude_graph_model
-    @entity(description="State with the marker", resource=FieldRulesStorage)
+    @entity(description="State with the marker", domain=FieldRulesDomain)
     class StateMarkerCoreEntity(BaseCoreEntity):
         stage: Annotated[DraftStateEntity, NoRelation("embedded stage snapshot")] = Field(description="Stage")
 
@@ -351,35 +345,35 @@ _STATE_BODY = """
 
 _DICTIONARY_BODY = """
     @exclude_graph_model
-    @entity(description="Bare dictionary", resource=FieldRulesStorage)
+    @entity(description="Bare dictionary", domain=FieldRulesDomain)
     class BareDictionaryCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         currency: CurrencyEnumEntity = Field(description="Required reference")
 
     @exclude_graph_model
-    @entity(description="Optional bare dictionary", resource=FieldRulesStorage)
+    @entity(description="Optional bare dictionary", domain=FieldRulesDomain)
     class OptionalBareDictionaryCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         currency: CurrencyEnumEntity | None = Field(default=None, description="Optional reference")
 
     @exclude_graph_model
-    @entity(description="Dictionary collection", resource=FieldRulesStorage)
+    @entity(description="Dictionary collection", domain=FieldRulesDomain)
     class DictionaryCollectionCoreEntity(BaseCoreEntity):
         currencies: list[CurrencyEnumEntity] = Field(default_factory=list, description="Currencies")
 
     @exclude_graph_model
-    @entity(description="Dictionary union", resource=FieldRulesStorage)
+    @entity(description="Dictionary union", domain=FieldRulesDomain)
     class DictionaryUnionCoreEntity(BaseCoreEntity):
         currency: CurrencyEnumEntity | CountryEnumEntity = Field(description="Union")
 
     @exclude_graph_model
-    @entity(description="Complete dictionary selection", resource=FieldRulesStorage)
+    @entity(description="Complete dictionary selection", domain=FieldRulesDomain)
     class DictionarySelectionCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Nullable dictionary selection", resource=FieldRulesStorage)
+    @entity(description="Nullable dictionary selection", domain=FieldRulesDomain)
     class NullableDictionarySelectionCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         currency: Annotated[AssociationOne[CurrencyEnumEntity] | None, NoInverse()] = Field(
@@ -387,44 +381,44 @@ _DICTIONARY_BODY = """
         )
 
     @exclude_graph_model
-    @entity(description="Many of a dictionary", resource=FieldRulesStorage)
+    @entity(description="Many of a dictionary", domain=FieldRulesDomain)
     class AssociationManyDictionaryCoreEntity(BaseCoreEntity):
         currency: Annotated[AssociationMany[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Composite of a dictionary", resource=FieldRulesStorage)
+    @entity(description="Composite of a dictionary", domain=FieldRulesDomain)
     class CompositeOneDictionaryCoreEntity(BaseCoreEntity):
         currency: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Generalization of a dictionary", resource=FieldRulesStorage)
+    @entity(description="Generalization of a dictionary", domain=FieldRulesDomain)
     class GeneralizationDictionaryCoreEntity(BaseCoreEntity):
         currency: Annotated[Generalization[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Empty catalogue", resource=FieldRulesStorage)
+    @entity(description="Empty catalogue", domain=FieldRulesDomain)
     class EmptyCatalogueCoreEntity(BaseCoreEntity):
         currency: Annotated[AssociationOne[EmptyEnumEntity], NoInverse()] = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Hidden dictionary reference", resource=FieldRulesStorage)
+    @entity(description="Hidden dictionary reference", domain=FieldRulesDomain)
     class HiddenDictionaryCoreEntity(BaseCoreEntity):
         currency: Annotated[AssociationOne[HiddenEnumEntity], NoInverse()] = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Spec dictionary host", resource=FieldRulesStorage)
+    @entity(description="Spec dictionary host", domain=FieldRulesDomain)
     class SpecDictionarySpecEntity(BaseSpecEntity):
         id: str = Field(description="Identifier")
         currency: CurrencyEnumEntity = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Assoc dictionary host", resource=FieldRulesStorage)
+    @entity(description="Assoc dictionary host", domain=FieldRulesDomain)
     class AssocDictionaryAssocEntity(BaseAssocEntity):
         id: str = Field(description="Identifier")
         currency: CurrencyEnumEntity = Field(description="Currency")
 
     @exclude_graph_model
-    @entity(description="Detail dictionary host", resource=FieldRulesStorage)
+    @entity(description="Detail dictionary host", domain=FieldRulesDomain)
     class DetailDictionaryDetailEntity(BaseDetailEntity):
         id: str = Field(description="Identifier")
         currency: CurrencyEnumEntity = Field(description="Currency")
@@ -450,29 +444,29 @@ _DICTIONARY_BODY = """
 
 _METADATA_BODY = """
     @exclude_graph_model
-    @entity(description="Required relation", resource=FieldRulesStorage)
+    @entity(description="Required relation", domain=FieldRulesDomain)
     class RequiredRelationCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="Required showcase")
 
     @exclude_graph_model
-    @entity(description="Nullable required relation", resource=FieldRulesStorage)
+    @entity(description="Nullable required relation", domain=FieldRulesDomain)
     class NullableRequiredCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(description="Nullable showcase")
 
     @exclude_graph_model
-    @entity(description="Omittable relation", resource=FieldRulesStorage)
+    @entity(description="Omittable relation", domain=FieldRulesDomain)
     class OmittableCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
             default=None, description="Omittable showcase"
         )
 
     @exclude_graph_model
-    @entity(description="Non-nullable default", resource=FieldRulesStorage)
+    @entity(description="Non-nullable default", domain=FieldRulesDomain)
     class NonNullableDefaultCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
 
     @exclude_graph_model
-    @entity(description="Prebuilt default", resource=FieldRulesStorage)
+    @entity(description="Prebuilt default", domain=FieldRulesDomain)
     class PrebuiltDefaultCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(
             default=AssociationOne(id="x"), description="Showcase"
@@ -485,51 +479,51 @@ _METADATA_BODY = """
         return None
 
     @exclude_graph_model
-    @entity(description="Factory default", resource=FieldRulesStorage)
+    @entity(description="Factory default", domain=FieldRulesDomain)
     class FactoryCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity] | None, NoInverse()] = Field(
             default_factory=_factory, description="Showcase"
         )
 
     @exclude_graph_model
-    @entity(description="Blank description", resource=FieldRulesStorage)
+    @entity(description="Blank description", domain=FieldRulesDomain)
     class BlankDescriptionCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(description="   ")
 
     @exclude_graph_model
-    @entity(description="Missing description", resource=FieldRulesStorage)
+    @entity(description="Missing description", domain=FieldRulesDomain)
     class MissingDescriptionCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field()
 
     @exclude_graph_model
-    @entity(description="Hidden edge", resource=FieldRulesStorage)
+    @entity(description="Hidden edge", domain=FieldRulesDomain)
     class HiddenEdgeCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), NoGraphEdge()] = Field()
 
     @exclude_graph_model
-    @entity(description="Inner syntax", resource=FieldRulesStorage)
+    @entity(description="Inner syntax", domain=FieldRulesDomain)
     class InnerSyntaxCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field()
 
     @exclude_graph_model
-    @entity(description="Both syntaxes", resource=FieldRulesStorage)
+    @entity(description="Both syntaxes", domain=FieldRulesDomain)
     class BothSyntaxesCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse(), Field(description="Inner showcase")] = Field(
             description="Outer showcase"
         )
 
     @exclude_graph_model
-    @entity(description="Relation base", resource=FieldRulesStorage)
+    @entity(description="Relation base", domain=FieldRulesDomain)
     class RelationBaseCoreEntity(BaseCoreEntity):
         showcase: Annotated[AssociationOne[ShowcaseCoreEntity], NoInverse()] = Field(default=None, description="Showcase")
 
     @exclude_graph_model
-    @entity(description="Inherited relation", resource=FieldRulesStorage)
+    @entity(description="Inherited relation", domain=FieldRulesDomain)
     class InheritedRelationCoreEntity(RelationBaseCoreEntity):
         id: str = Field(description="Identifier")
 
     @exclude_graph_model
-    @entity(description="Untouched forms", resource=FieldRulesStorage)
+    @entity(description="Untouched forms", domain=FieldRulesDomain)
     class OrdinaryCoreEntity(BaseCoreEntity):
         id: str = Field(description="Identifier")
         age: int | None = Field(default=None, description="Age")

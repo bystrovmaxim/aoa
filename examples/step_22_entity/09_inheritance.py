@@ -12,10 +12,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -23,16 +23,6 @@ class ShopDomain(BaseDomain):
 
     name = "shop"
     description = "Shop model"
-
-
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
 
 
 @exclude_graph_model
@@ -47,13 +37,21 @@ class BaseDocumentCoreEntity(BaseCoreEntity, ABC):
         raise NotImplementedError
 
 
-@entity(description="Customer invoice", resource=ShopStorage)
+@entity(description="Customer invoice", domain=ShopDomain)
 class InvoiceCoreEntity(BaseDocumentCoreEntity):
     """Describe one invoice using the shared document fields."""
 
     def label(self) -> str:
         """Return the invoice label."""
         return f"Invoice {self.id}"
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    InvoiceCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 invoice = InvoiceCoreEntity(id="inv-1")
 assert isinstance(invoice, BaseCoreEntity)

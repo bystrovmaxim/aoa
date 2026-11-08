@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_cash_apply_hint import CashApplicationHintCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Tax remittance advice continuing cash-application liquidity chain", resource=BillingWarehouseStorage)
+@entity(description="Tax remittance advice continuing cash-application liquidity chain", domain=BillingDomain)
 class TaxRemittanceAdviceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Advice stub id")
     lifecycle: BillingDenseLifecycle = Field(description="Remittance lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     cash_apply_hint: Annotated[
         AssociationOne[CashApplicationHintCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream cash-application hint"
-    )
+    ] = Field(description="Upstream cash-application hint")
 
     jurisdiction_code: str = Field(description="Tax authority region code")
     filing_period_id: str = Field(description="Closed reporting period key")

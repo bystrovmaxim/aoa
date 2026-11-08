@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_search_lifecycle import CatalogSearchLifecycle
-from aoa.demo.model.catalog.resources.catalog_search_sidecar_storage import CatalogSearchSidecarStorage
 
 
-@entity(description="Search boost chaining off availability subtree", resource=CatalogSearchSidecarStorage)
+@entity(description="Search boost chaining off availability subtree", domain=CatalogDomain)
 class SearchBoostWeightCoreEntity(BaseCoreEntity):
     id: str = Field(description="Boost id")
     lifecycle: CatalogSearchLifecycle = Field(description="Search boost lifecycle")

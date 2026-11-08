@@ -7,10 +7,14 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 Provides a :class:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode` view derived from a
-resource **class** (``type[BaseResource]``). Reads ``description`` and ``domain``
-from ``@meta`` scratch (``_meta_info``), same contract as
-:class:`~aoa.action_machine.graph.nodes.action_graph_node.ActionGraphNode` for
-those fields. ``node_id`` uses the dotted full qualname of the resource class.
+resource **class** (``type[BaseResource]``). Reads ``description`` from ``@meta`` scratch
+(``_meta_info``), same contract as
+:class:`~aoa.action_machine.graph.nodes.action_graph_node.ActionGraphNode` for that field.
+``node_id`` uses the dotted full qualname of the resource class.
+
+A resource is a database: it has no domain of its own, so its node carries no ``domain``
+edge. Its domains are the domains of the entities it lists with ``@entities``; this node
+contributes one ``resource_entity`` edge to each of them.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -19,10 +23,11 @@ ARCHITECTURE / DATA FLOW
     type[TResource]   (``TResource`` bound to ``BaseResource``)
               │
               v
-    ``@meta`` → ``_meta_info`` ``description`` / ``domain``
+    ``@meta`` → ``_meta_info`` ``description``
+    ``@entities`` → ``_entities_info`` ordered entity classes
               │
               v
-    ``ResourceGraphNode``  →  frozen ``BaseGraphNode`` + domain ``AGGREGATION`` edge
+    ``ResourceGraphNode``  →  frozen ``BaseGraphNode`` + one ``resource_entity`` edge per listed entity
 """
 
 from __future__ import annotations
@@ -32,8 +37,8 @@ from typing import Any, ClassVar, TypeVar
 
 from aoa.action_machine.graph.core.base_graph_edge import BaseGraphEdge
 from aoa.action_machine.graph.core.base_graph_node import BaseGraphNode
-from aoa.action_machine.graph.edges.domain_graph_edge import DomainGraphEdge
-from aoa.action_machine.graph.edges.resource_data_source_graph_edge import ResourceDataSourceGraphEdge
+from aoa.action_machine.graph.edges.resource_entity_graph_edge import ResourceEntityGraphEdge
+from aoa.action_machine.intents.entities.entities_intent_resolver import EntitiesIntentResolver
 from aoa.action_machine.intents.meta.meta_intent_resolver import MetaIntentResolver
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
@@ -46,14 +51,13 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange node for a concrete ``BaseResource`` host class.
-    CONTRACT: :attr:`data_source` is the ``resource_data_source`` edge to the data source the resource names, or ``None``; ``properties["description"]`` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; :attr:`domain` is the ``AGGREGATION`` edge to :class:`~aoa.action_machine.graph.nodes.domain_graph_node.DomainGraphNode` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_domain_type`.
-    FAILURES: :exc:`~aoa.action_machine.exceptions.MissingMetaError` from ``resolve_description`` / ``resolve_domain_type`` when ``@meta`` scratch is absent or invalid.
+    CONTRACT: ``properties["description"]`` from :meth:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver.resolve_description`; :attr:`entities` lists one ``resource_entity`` aggregation edge per class ``@entities`` names — a resource is a database shared by domains, and it carries no ``domain`` edge.
+    FAILURES: :exc:`~aoa.action_machine.exceptions.MissingMetaError` from ``resolve_description`` when ``@meta`` scratch is absent or invalid.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Resource"
-    domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
-    data_source: ResourceDataSourceGraphEdge | None = field(init=False, repr=False, compare=False)
+    entities: list[ResourceEntityGraphEdge] = field(init=False, repr=False, compare=False)
 
     def __init__(self, resource_cls: type[TResource]) -> None:
         super().__init__(
@@ -63,9 +67,11 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
             properties=dict({"description": MetaIntentResolver.resolve_description(resource_cls)}),
             node_obj=resource_cls,
         )
-        object.__setattr__(self, "domain", DomainGraphEdge.from_meta_declared_host(resource_cls, self))
-        data_source_cls = resource_cls.data_source_type()
-        object.__setattr__(self, "data_source", None if data_source_cls is None else ResourceDataSourceGraphEdge(data_source_cls))
+        object.__setattr__(
+            self,
+            "entities",
+            [ResourceEntityGraphEdge(entity_cls) for entity_cls in EntitiesIntentResolver.resolve_entities(resource_cls)],
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -78,5 +84,5 @@ class ResourceGraphNode(BaseGraphNode[type[TResource]]):
         }
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return the domain edge, then the ``resource_data_source`` edge when the resource names a data source."""
-        return [self.domain] if self.data_source is None else [self.domain, self.data_source]
+        """Return one ``resource_entity`` edge per class ``@entities`` lists; a resource has no ``domain`` edge."""
+        return [*self.entities]

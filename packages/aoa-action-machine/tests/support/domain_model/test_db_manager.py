@@ -23,12 +23,9 @@ from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.base_resource import BaseResource
 
-from .domains import OrdersDomain
-
 
 @meta(
     description="Test database resource manager for order-scenario actions",
-    domain=OrdersDomain,
 )
 class OrdersStorage(BaseStorage):
     """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersStorage)``."""

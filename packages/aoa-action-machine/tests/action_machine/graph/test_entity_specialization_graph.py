@@ -61,7 +61,6 @@ from aoa.action_machine.graph.core.node_graph_coordinator import NodeGraphCoordi
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -71,13 +70,8 @@ class _GDomain(BaseDomain):
     description = "g"
 
 
-@meta(description="Where _GStorage keeps its rows")
-class _GDataSource(InMemoryDataSource):
-    """The store _GStorage works with."""
-
-
-@meta(description="Stores the g entities", domain=_GDomain)
-class _GStorage(BaseStorage[_GDataSource]):
+@meta(description="Stores the g entities")
+class _GStorage(BaseStorage):
     """Hold the g entities."""
 
 
@@ -87,7 +81,7 @@ class _GStorage(BaseStorage[_GDataSource]):
 
 
 @exclude_graph_model
-@entity(description="First", resource=_GStorage)
+@entity(description="First", domain=_GDomain)
 class _FirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     stamper: str = Field(description="a column of its own")
@@ -99,7 +93,7 @@ class _FirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Second", resource=_GStorage)
+@entity(description="Second", domain=_GDomain)
 class _SecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     year: int = Field(description="a column of its own")
@@ -111,7 +105,7 @@ class _SecondSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Third", resource=_GStorage)
+@entity(description="Third", domain=_GDomain)
 class _ThirdSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     record: Annotated[
@@ -122,7 +116,7 @@ class _ThirdSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of _HeadCoreEntity", resource=_GStorage)
+@entity(description="Kind of _HeadCoreEntity", domain=_GDomain)
 class _HeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -132,7 +126,7 @@ class _HeadKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Head", resource=_GStorage)
+@entity(description="Head", domain=_GDomain)
 class _HeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     title: str = Field(description="a plain column")
@@ -143,7 +137,7 @@ class _HeadCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="No specialization", resource=_GStorage)
+@entity(description="No specialization", domain=_GDomain)
 class _PlainCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     title: str = Field(description="a plain column")

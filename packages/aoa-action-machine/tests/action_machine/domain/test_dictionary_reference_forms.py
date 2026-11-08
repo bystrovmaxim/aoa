@@ -32,7 +32,6 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_params import BaseParams
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -43,17 +42,12 @@ class _ReferencesDomain(BaseDomain):
     description = "Entities for the dictionary reference form tests"
 
 
-@meta(description="Where _ReferencesStorage keeps its rows")
-class _ReferencesDataSource(InMemoryDataSource):
-    """The store _ReferencesStorage works with."""
-
-
-@meta(description="Stores the references entities", domain=_ReferencesDomain)
-class _ReferencesStorage(BaseStorage[_ReferencesDataSource]):
+@meta(description="Stores the references entities")
+class _ReferencesStorage(BaseStorage):
     """Hold the references entities."""
 
 
-@entity(description="Currencies", resource=_ReferencesStorage)
+@entity(description="Currencies", domain=_ReferencesDomain)
 class RefCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -62,7 +56,7 @@ class RefCurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Prices", resource=_ReferencesStorage)
+@entity(description="Prices", domain=_ReferencesDomain)
 class RefPricesCoreEntity(BaseCoreEntity):
     """An entity with a to-one and a to-many dictionary relation."""
 

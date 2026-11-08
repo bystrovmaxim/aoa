@@ -1,9 +1,9 @@
 # tests/action_machine/graph/test_relations_across_stores.py
 """
-A link between entities is a fact of the logical model: it joins entities of any resources and data sources.
+A link between entities is a fact of the logical model: it joins entities of any resources.
 
-Every link kind is declared between an entity of ``StorefrontStorage`` (``StorefrontDataSource``) and one of
-``SupportStorage`` (``SupportDataSource``) — association, aggregation and composition from either side, an
+Every link kind is declared between an entity of ``StorefrontStorage`` and one of
+``SupportStorage`` — association, aggregation and composition from either side, an
 inverse side, a specialization, a generalization, a dictionary field and a state type shared through
 ``Lifecycle[...]`` — and the model and its graph build with the link in them. Each model is built in a fresh
 interpreter so a declaration never joins the shared model.
@@ -46,7 +46,7 @@ _IMPORTS = textwrap.dedent(
     from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
     from aoa.action_machine.intents.entity import entity
     from aoa.action_machine.intents.meta import meta
-    from aoa.action_machine.resources import BaseDataSource, BaseStorage
+    from aoa.action_machine.resources import BaseStorage
 
 
     class StoreDomain(BaseDomain):
@@ -59,25 +59,15 @@ _IMPORTS = textwrap.dedent(
         description = "Support"
 
 
-    @meta(description="Storefront database")
-    class StorefrontDataSource(BaseDataSource):
-        pass
-
-
-    @meta(description="Support desk database")
-    class SupportDataSource(BaseDataSource):
-        pass
-
-
-    @meta(description="Primary relational store", domain=StoreDomain)
-    class StorefrontStorage(BaseStorage[StorefrontDataSource]):
+    @meta(description="Primary relational store")
+    class StorefrontStorage(BaseStorage):
         @classmethod
         def get_wrapper_class(cls):
             return None
 
 
-    @meta(description="Support desk store", domain=SupportDomain)
-    class SupportStorage(BaseStorage[SupportDataSource]):
+    @meta(description="Support desk store")
+    class SupportStorage(BaseStorage):
         @classmethod
         def get_wrapper_class(cls):
             return None
@@ -103,18 +93,18 @@ def _run(body: str) -> str:
 
 
 _ORDER = """
-    @entity(description="Customer order", resource=StorefrontStorage)
+    @entity(description="Customer order", domain=StoreDomain)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 """
 
 
-def test_an_association_across_data_sources_builds() -> None:
+def test_an_association_across_resources_builds() -> None:
     """A ticket of the support desk points at an order of the storefront: the graph has the relation."""
     out = _run(
         _ORDER
         + """
-    @entity(description="Support ticket", resource=SupportStorage)
+    @entity(description="Support ticket", domain=SupportDomain)
     class SupportTicketCoreEntity(BaseCoreEntity):
         id: str = Field(description="Ticket id")
         order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
@@ -127,12 +117,12 @@ def test_an_association_across_data_sources_builds() -> None:
 
 
 _OWNERSHIP = """
-    @entity(description="Customer order", resource=StorefrontStorage)
+    @entity(description="Customer order", domain=StoreDomain)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
         lines: Annotated[{many}[SalesOrderLineDetailEntity], Inverse(field_name="order")] = Field(description="Lines")
 
-    @entity(description="Order line", resource=SupportStorage)
+    @entity(description="Order line", domain=SupportDomain)
     class SalesOrderLineDetailEntity(BaseDetailEntity):
         id: str = Field(description="Line id")
         order: Annotated[AssociationOne[SalesOrderCoreEntity], Inverse(field_name="lines")] = Field(description="Order")
@@ -144,18 +134,18 @@ _OWNERSHIP = """
 
 
 @pytest.mark.parametrize("many", ["CompositeMany", "AggregateMany"])
-def test_an_ownership_with_its_inverse_side_across_data_sources_builds(many: str) -> None:
-    """A composition or an aggregation, both sides declared, joins the two data sources from either end."""
+def test_an_ownership_with_its_inverse_side_across_resources_builds(many: str) -> None:
+    """A composition or an aggregation, both sides declared, joins the two resources from either end."""
     out = _run(_OWNERSHIP.format(many=many))
     assert out == "SalesOrderCoreEntity->SalesOrderLineDetailEntity SalesOrderLineDetailEntity->SalesOrderCoreEntity"
 
 
-def test_a_one_sided_aggregation_across_data_sources_builds() -> None:
-    """An aggregation with no inverse joins the two data sources from its only side."""
+def test_a_one_sided_aggregation_across_resources_builds() -> None:
+    """An aggregation with no inverse joins the two resources from its only side."""
     out = _run(
         _ORDER
         + """
-    @entity(description="Order note", resource=SupportStorage)
+    @entity(description="Order note", domain=SupportDomain)
     class OrderNoteCoreEntity(BaseCoreEntity):
         id: str = Field(description="Note id")
         order: Annotated[AggregateOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
@@ -168,11 +158,11 @@ def test_a_one_sided_aggregation_across_data_sources_builds() -> None:
 
 
 _SPECIALIZATION = """
-    @entity(description="Kind of counterparty", resource=StorefrontStorage)
+    @entity(description="Kind of counterparty", domain=StoreDomain)
     class CounterpartyKindEnumEntity(BaseEnumEntity):
         ORGANISATION = value(code="organisation", display_name="Organisation")
 
-    @entity(description="Counterparty", resource=StorefrontStorage)
+    @entity(description="Counterparty", domain=StoreDomain)
     class CounterpartyCoreEntity(BaseCoreEntity):
         id: str = Field(description="Counterparty id")
         details: Annotated[
@@ -180,7 +170,7 @@ _SPECIALIZATION = """
             Inverse(field_name="counterparty"),
         ] = Field(description="Variant data")
 
-    @entity(description="Organisation data", resource=SupportStorage)
+    @entity(description="Organisation data", domain=SupportDomain)
     class OrganisationSpecEntity(BaseSpecEntity):
         id: str = Field(description="Head id")
         counterparty: Annotated[
@@ -194,25 +184,25 @@ _SPECIALIZATION = """
 """
 
 
-def test_a_specialization_across_data_sources_builds() -> None:
-    """The head names an alternative of the other data source."""
+def test_a_specialization_across_resources_builds() -> None:
+    """The head names an alternative of the other resource."""
     assert _run(_SPECIALIZATION + '    edges("entity_specialization")\n') == "CounterpartyCoreEntity->OrganisationSpecEntity"
 
 
-def test_a_generalization_across_data_sources_builds() -> None:
-    """The alternative names a head of the other data source."""
+def test_a_generalization_across_resources_builds() -> None:
+    """The alternative names a head of the other resource."""
     assert _run(_SPECIALIZATION + '    edges("parent_entity")\n') == "OrganisationSpecEntity->CounterpartyCoreEntity"
 
 
-def test_a_dictionary_field_across_data_sources_builds() -> None:
+def test_a_dictionary_field_across_resources_builds() -> None:
     """A dictionary of the support desk names the currency of a storefront invoice."""
     out = _run(
         """
-    @entity(description="Currency", resource=SupportStorage)
+    @entity(description="Currency", domain=SupportDomain)
     class CurrencyEnumEntity(BaseEnumEntity):
         USD = value(code="USD", display_name="US dollar")
 
-    @entity(description="Invoice", resource=StorefrontStorage)
+    @entity(description="Invoice", domain=StoreDomain)
     class InvoiceCoreEntity(BaseCoreEntity):
         id: str = Field(description="Invoice id")
         currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
@@ -224,8 +214,8 @@ def test_a_dictionary_field_across_data_sources_builds() -> None:
     assert out == "InvoiceCoreEntity->CurrencyEnumEntity"
 
 
-def test_a_state_type_shared_across_data_sources_builds() -> None:
-    """An order and a return of two data sources share one state type: each carries its lifecycle."""
+def test_a_state_type_shared_across_resources_builds() -> None:
+    """An order and a return of two resources share one state type: each carries its lifecycle."""
     out = _run(
         """
     class OrderStateEntity(BaseStateEntity):
@@ -239,12 +229,12 @@ def test_a_state_type_shared_across_data_sources_builds() -> None:
             .state(OrderStateEntity.PAID).final()
         )
 
-    @entity(description="Customer order", resource=StorefrontStorage)
+    @entity(description="Customer order", domain=StoreDomain)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
         lifecycle: OrderLifecycle = Field(description="Order status")
 
-    @entity(description="Return", resource=SupportStorage)
+    @entity(description="Return", domain=SupportDomain)
     class ReturnCoreEntity(BaseCoreEntity):
         id: str = Field(description="Return id")
         lifecycle: OrderLifecycle = Field(description="Return status")

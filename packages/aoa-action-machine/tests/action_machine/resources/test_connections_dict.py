@@ -15,17 +15,17 @@ class _ResourceTestDomain(BaseDomain):
     description = "Domain for resource-layer tests."
 
 
-def meta(description: str, domain: type[BaseDomain]):
-    """Test-local metadata decorator matching the graph metadata contract."""
+def meta(description: str):
+    """Test-local metadata decorator matching the graph metadata contract (a resource has no domain)."""
 
     def decorator(cls):
-        cls._meta_info = {"description": description, "domain": domain}
+        cls._meta_info = {"description": description, "domain": None}
         return cls
 
     return decorator
 
 
-@meta(description="Connections dict test resource", domain=_ResourceTestDomain)
+@meta(description="Connections dict test resource")
 class DummyController(BaseController):
     """Stub resource manager for tests."""
 

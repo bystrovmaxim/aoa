@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_payout_plan import BillingPayoutPlanCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Sweep instruction under payout plan", resource=BillingWarehouseStorage)
+@entity(description="Sweep instruction under payout plan", domain=BillingDomain)
 class BillingSweepInstructionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sweep id")
     lifecycle: BillingDenseLifecycle = Field(description="Sweep lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     payout_plan: Annotated[
         AssociationOne[BillingPayoutPlanCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent payout plan"
-    )
+    ] = Field(description="Parent payout plan")
 
     corridor_code: str = Field(description="Treasury corridor identifier")
     priority_rank: int = Field(description="Relative ordering within plan", ge=0)

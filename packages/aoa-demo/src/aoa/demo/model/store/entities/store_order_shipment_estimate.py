@@ -9,11 +9,11 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(
-    description="Shipment ETA heuristic hanging off parcels instead of repeating order centroid", resource=StorefrontDatabaseStorage
+    description="Shipment ETA heuristic hanging off parcels instead of repeating order centroid", domain=StoreDomain
 )
 class ShipmentEstimateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Estimate id")
@@ -28,9 +28,7 @@ class ShipmentEstimateCoreEntity(BaseCoreEntity):
     parcel: Annotated[
         AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent parcel artefact"
-    )
+    ] = Field(description="Parent parcel artefact")
 
 
 ShipmentEstimateCoreEntity.model_rebuild()

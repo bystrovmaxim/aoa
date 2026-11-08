@@ -20,13 +20,14 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends import UseCase, depends
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 from aoa.action_machine.resources.sql import SqlStorageWrapper
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -82,8 +83,6 @@ class RecordingPool:
         self.closed = True
 
 
-
-
 class NotesDomain(BaseDomain):
     """Group the connection lesson."""
     name = "notes"
@@ -92,13 +91,11 @@ class NotesDomain(BaseDomain):
 class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
-@meta(description="The notes database")
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
 
 
-@meta(description="SQL statements for the notes example", domain=NotesDomain)
-class NotesStorage(PostgresStorage[ExampleDataSource]):
+@meta(description="SQL statements for the notes example")
+@entities()
+class NotesStorage(PostgresStorage):
     """Use the standard PostgreSQL lifecycle."""
 
     async def add_note(self, text: str) -> str:
@@ -135,7 +132,6 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
         return StatusResult(status=await connections["db"].add_note("one note"))
 
 
-
 @meta(description="Try closing a parent connection", domain=NotesDomain)
 @check_roles(GuestRole)
 @connection(NotesStorage, key="db")
@@ -166,7 +162,7 @@ class ParentAction(BaseAction[EmptyParams, StatusResult]):
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+    async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(pool=PostgresPool(pool=pool)), lambda resource: resource.close())}) as connections:
         result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
         assert result.status == "OK; close refused"
         assert len(pool.held) == 1

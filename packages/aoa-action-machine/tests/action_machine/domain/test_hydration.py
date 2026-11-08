@@ -29,7 +29,6 @@ from aoa.action_machine.domain import BaseCoreEntity, build
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 from ...support.domain_model.entities import RelatedCoreEntity, SampleCoreEntity
@@ -40,13 +39,8 @@ class _HydrationTestDomain(BaseDomain):
     description = "Domain for hydration tests."
 
 
-@meta(description="Where _HydrationTestStorage keeps its rows")
-class _HydrationTestDataSource(InMemoryDataSource):
-    """The store _HydrationTestStorage works with."""
-
-
-@meta(description="Stores the hydration test entities", domain=_HydrationTestDomain)
-class _HydrationTestStorage(BaseStorage[_HydrationTestDataSource]):
+@meta(description="Stores the hydration test entities")
+class _HydrationTestStorage(BaseStorage):
     """Hold the hydration test entities."""
 
 
@@ -136,7 +130,7 @@ class TestEntityProxy:
         """Placeholder attribute names match model field names."""
         from aoa.action_machine.domain.hydration import EntityProxy
 
-        @entity(description="Proxy creation dummy", resource=_HydrationTestStorage)
+        @entity(description="Proxy creation dummy", domain=_HydrationTestDomain)
         class DummyCoreEntity(BaseCoreEntity):
             field1: str
             field2: int
@@ -150,7 +144,7 @@ class TestEntityProxy:
         """Unknown attribute name → `AttributeError`."""
         from aoa.action_machine.domain.hydration import EntityProxy
 
-        @entity(description="Proxy missing field dummy", resource=_HydrationTestStorage)
+        @entity(description="Proxy missing field dummy", domain=_HydrationTestDomain)
         class DummyCoreEntity(BaseCoreEntity):
             existing: str
 
@@ -163,7 +157,7 @@ class TestEntityProxy:
         """`__getattr__` resolves declared field placeholders."""
         from aoa.action_machine.domain.hydration import EntityProxy
 
-        @entity(description="Proxy getattr dummy", resource=_HydrationTestStorage)
+        @entity(description="Proxy getattr dummy", domain=_HydrationTestDomain)
         class DummyCoreEntity(BaseCoreEntity):
             test: str
 

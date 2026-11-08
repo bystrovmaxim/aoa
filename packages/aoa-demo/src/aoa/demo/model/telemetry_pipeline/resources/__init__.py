@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/telemetry_pipeline/resources/__init__.py
-"""Resources of the telemetry pipeline domain."""
+"""The telemetry pipeline model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.telemetry_pipeline.resources.storage import TelemetryPipelineStorage
+
+__all__ = ["TelemetryPipelineStorage"]

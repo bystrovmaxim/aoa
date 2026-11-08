@@ -35,13 +35,14 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -56,17 +57,7 @@ class McpShopDomain(BaseDomain):
     description = "Entities carried through MCP"
 
 
-@meta(description="Where McpShopStorage keeps its rows")
-class McpShopDataSource(InMemoryDataSource):
-    """The store McpShopStorage works with."""
-
-
-@meta(description="Stores the mcp shop entities", domain=McpShopDomain)
-class McpShopStorage(BaseStorage[McpShopDataSource]):
-    """Hold the mcp shop entities."""
-
-
-@entity(description="Currencies", resource=McpShopStorage)
+@entity(description="Currencies", domain=McpShopDomain)
 class McpCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -74,7 +65,7 @@ class McpCurrencyEnumEntity(BaseEnumEntity):
     EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
-@entity(description="Order state", resource=McpShopStorage)
+@entity(description="Order state", domain=McpShopDomain)
 class McpOrderStateEntity(BaseStateEntity):
     """The statuses of an order."""
 
@@ -95,7 +86,7 @@ class McpOrderLifecycle(Lifecycle[McpOrderStateEntity]):
     )
 
 
-@entity(description="Customer", resource=McpShopStorage)
+@entity(description="Customer", domain=McpShopDomain)
 class McpCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
@@ -103,7 +94,7 @@ class McpCustomerCoreEntity(BaseCoreEntity):
     name: str = Field(description="Name")
 
 
-@entity(description="Order", resource=McpShopStorage)
+@entity(description="Order", domain=McpShopDomain)
 class McpOrderCoreEntity(BaseCoreEntity):
     """An order with a customer, a currency and a lifecycle."""
 
@@ -111,6 +102,16 @@ class McpOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[AssociationOne[McpCustomerCoreEntity], NoInverse()] = Field(description="Customer")
     currency: Annotated[CompositeOne[McpCurrencyEnumEntity], NoInverse()] = Field(description="Currency")
     lifecycle: McpOrderLifecycle = Field(description="State")
+
+
+@meta(description="Stores the mcp shop entities")
+@entities(
+    McpCurrencyEnumEntity,
+    McpCustomerCoreEntity,
+    McpOrderCoreEntity,
+)
+class McpShopStorage(BaseStorage):
+    """Hold the mcp shop entities."""
 
 
 @meta(description="Price an order over MCP", domain=McpShopDomain)

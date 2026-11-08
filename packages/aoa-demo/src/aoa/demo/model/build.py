@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Final
 
 _MODULES: Final[tuple[str, ...]] = (
-    "aoa.demo.model.data_sources",
     "aoa.demo.model.roles",
     # billing: full contour, matching store depth
     "aoa.demo.model.billing.domain",
@@ -36,15 +35,21 @@ _MODULES: Final[tuple[str, ...]] = (
     # synthetic domains for heterogeneous ERD / graph cardinality demos
     "aoa.demo.model.identity.domain",
     "aoa.demo.model.identity.entities",
+    "aoa.demo.model.identity.resources",
     "aoa.demo.model.inventory.domain",
     "aoa.demo.model.inventory.entities",
+    # the one database of the storefront, the support desk and inventory
+    "aoa.demo.model.databases",
     "aoa.demo.model.analytics.domain",
     "aoa.demo.model.analytics.entities",
+    "aoa.demo.model.analytics.resources",
     # ERD topology echoes: clinical intake/dispatch mesh + QA portfolio mesh
     "aoa.demo.model.clinical_supply.domain",
     "aoa.demo.model.clinical_supply.entities",
+    "aoa.demo.model.clinical_supply.resources",
     "aoa.demo.model.assurance_portfolio.domain",
     "aoa.demo.model.assurance_portfolio.entities",
+    "aoa.demo.model.assurance_portfolio.resources",
     # store (depends on billing/messaging services)
     "aoa.demo.model.store.marketplace_operations_domain",
     "aoa.demo.model.store.store_domain",
@@ -57,6 +62,7 @@ _MODULES: Final[tuple[str, ...]] = (
     # entity wire projection demo (PR-5)
     "aoa.demo.model.entity_projection_demo.domain",
     "aoa.demo.model.entity_projection_demo.entities",
+    "aoa.demo.model.entity_projection_demo.resources",
     "aoa.demo.model.entity_projection_demo.actions",
     # support: @depends on BaseAction in the same domain and in store
     "aoa.demo.model.support.support_domain",
@@ -65,24 +71,30 @@ _MODULES: Final[tuple[str, ...]] = (
     # operational slices mirroring heavyweight use-case cardinality (diagram harnesses)
     "aoa.demo.model.catalog_custody.catalog_custody_domain",
     "aoa.demo.model.catalog_custody.entities",
+    "aoa.demo.model.catalog_custody.resources",
     "aoa.demo.model.catalog_custody.actions",
     "aoa.demo.model.settlement_desks.settlement_desks_domain",
     "aoa.demo.model.settlement_desks.entities",
+    "aoa.demo.model.settlement_desks.resources",
     "aoa.demo.model.settlement_desks.actions",
     "aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain",
     "aoa.demo.model.telemetry_pipeline.entities",
+    "aoa.demo.model.telemetry_pipeline.resources",
     "aoa.demo.model.telemetry_pipeline.actions",
     "aoa.demo.model.logistics_mesh.logistics_mesh_domain",
     "aoa.demo.model.logistics_mesh.entities",
+    "aoa.demo.model.logistics_mesh.resources",
     "aoa.demo.model.logistics_mesh.actions",
     # access cascade: drawing fixtures for the five access steps (issue #201)
     "aoa.demo.model.access_cascade.access_cascade_domain",
     "aoa.demo.model.access_cascade.roles",
     "aoa.demo.model.access_cascade.actions",
     "aoa.demo.model.access_cascade.entities",
+    "aoa.demo.model.access_cascade.resources",
     # generalization shapes: inheritance-edge fixtures for the diagram (issue #202)
     "aoa.demo.model.generalization_shapes.generalization_shapes_domain",
     "aoa.demo.model.generalization_shapes.actions",
     "aoa.demo.model.generalization_shapes.entities",
+    "aoa.demo.model.generalization_shapes.resources",
     "aoa.demo.fastapi_mcp_services.actions",
 )

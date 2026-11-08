@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Shipment tracking event row", resource=StorefrontDatabaseStorage)
+@entity(description="Shipment tracking event row", domain=StoreDomain)
 class ShipmentTrackingEventCoreEntity(BaseCoreEntity):
     id: str = Field(description="Tracking event id")
     lifecycle: SalesOrderLifecycle = Field(description="Tracking event lifecycle")
@@ -26,9 +26,7 @@ class ShipmentTrackingEventCoreEntity(BaseCoreEntity):
     parcel: Annotated[
         AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owner parcel"
-    )
+    ] = Field(description="Owner parcel")
 
 
 ShipmentTrackingEventCoreEntity.model_rebuild()

@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Sketch aggregate stub following sampling policy (two-node branch)", resource=AnalyticsStorage)
+@entity(description="Sketch aggregate stub following sampling policy (two-node branch)", domain=AnalyticsDomain)
 class AnalyticsAggregateSketchStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sketch id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Sketch stub lifecycle")
@@ -26,9 +26,7 @@ class AnalyticsAggregateSketchStubCoreEntity(BaseCoreEntity):
     policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent sampling policy"
-    )
+    ] = Field(description="Parent sampling policy")
 
 
 AnalyticsAggregateSketchStubCoreEntity.model_rebuild()

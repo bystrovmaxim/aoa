@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Fee schedule facet following interchange slice spine", resource=BillingWarehouseStorage)
+@entity(description="Fee schedule facet following interchange slice spine", domain=BillingDomain)
 class MerchantFeeSchedulePointerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pointer id")
     lifecycle: BillingDenseLifecycle = Field(description="Fee schedule lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     interchange_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent interchange economics row"
-    )
+    ] = Field(description="Parent interchange economics row")
 
     mcc_bucket_code: str = Field(description="Merchant category bucket key")
     interchange_program_name: str = Field(description="Issuer-branded program moniker")

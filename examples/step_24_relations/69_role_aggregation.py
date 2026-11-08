@@ -19,10 +19,10 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.exceptions import RoleCompatibilityError
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class AggregationDomain(BaseDomain):
@@ -32,17 +32,7 @@ class AggregationDomain(BaseDomain):
     description = "Aggregation"
 
 
-@meta(description="Where AggregationStorage keeps its rows")
-class AggregationDataSource(InMemoryDataSource):
-    """The store AggregationStorage works with."""
-
-
-@meta(description="Stores the aggregation entities", domain=AggregationDomain)
-class AggregationStorage(BaseStorage[AggregationDataSource]):
-    """Hold the aggregation entities."""
-
-
-@entity(description="Team", resource=AggregationStorage)
+@entity(description="Team", domain=AggregationDomain)
 class TeamCoreEntity(BaseCoreEntity):
     """A team aggregates one lead; the lead keeps its own lifecycle."""
 
@@ -50,7 +40,7 @@ class TeamCoreEntity(BaseCoreEntity):
     lead: Annotated[AggregateOne[LeadCoreEntity], Inverse(field_name="leads")] = Field(description="Team lead")
 
 
-@entity(description="Lead", resource=AggregationStorage)
+@entity(description="Lead", domain=AggregationDomain)
 class LeadCoreEntity(BaseCoreEntity):
     """A lead's reverse endpoint is an association, never another aggregate."""
 
@@ -60,7 +50,7 @@ class LeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Department", resource=AggregationStorage)
+@entity(description="Department", domain=AggregationDomain)
 class DepartmentCoreEntity(BaseCoreEntity):
     """A department aggregates many members."""
 
@@ -70,7 +60,7 @@ class DepartmentCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Staff", resource=AggregationStorage)
+@entity(description="Staff", domain=AggregationDomain)
 class StaffCoreEntity(BaseCoreEntity):
     """A staff member points back through an association."""
 
@@ -80,7 +70,7 @@ class StaffCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Aggregate A", resource=AggregationStorage)
+@entity(description="Aggregate A", domain=AggregationDomain)
 class AggregateACoreEntity(BaseCoreEntity):
     """An aggregate whose reverse is another aggregate — refused."""
 
@@ -88,7 +78,7 @@ class AggregateACoreEntity(BaseCoreEntity):
     b: Annotated[AggregateOne[AggregateBCoreEntity], Inverse(field_name="a")] = Field(description="Aggregate B")
 
 
-@entity(description="Aggregate B", resource=AggregationStorage)
+@entity(description="Aggregate B", domain=AggregationDomain)
 class AggregateBCoreEntity(BaseCoreEntity):
     """The second aggregate of the refused pair."""
 
@@ -96,7 +86,7 @@ class AggregateBCoreEntity(BaseCoreEntity):
     a: Annotated[AggregateOne[AggregateACoreEntity], Inverse(field_name="b")] = Field(description="Aggregate A")
 
 
-@entity(description="Corrected aggregate", resource=AggregationStorage)
+@entity(description="Corrected aggregate", domain=AggregationDomain)
 class CorrectedAggregateCoreEntity(BaseCoreEntity):
     """The corrected pair keeps one aggregate and one association."""
 
@@ -104,12 +94,27 @@ class CorrectedAggregateCoreEntity(BaseCoreEntity):
     b: Annotated[AggregateOne[CorrectedReverseCoreEntity], Inverse(field_name="a")] = Field(description="Reverse")
 
 
-@entity(description="Corrected reverse", resource=AggregationStorage)
+@entity(description="Corrected reverse", domain=AggregationDomain)
 class CorrectedReverseCoreEntity(BaseCoreEntity):
     """The reverse is an association, so the pair is permitted."""
 
     id: str = Field(description="Identifier")
     a: Annotated[AssociationOne[CorrectedAggregateCoreEntity], Inverse(field_name="b")] = Field(description="Aggregate")
+
+
+@meta(description="Stores the aggregation entities")
+@entities(
+    TeamCoreEntity,
+    LeadCoreEntity,
+    DepartmentCoreEntity,
+    StaffCoreEntity,
+    AggregateACoreEntity,
+    AggregateBCoreEntity,
+    CorrectedAggregateCoreEntity,
+    CorrectedReverseCoreEntity,
+)
+class AggregationStorage(BaseStorage):
+    """Hold the aggregation entities."""
 
 
 for model in (

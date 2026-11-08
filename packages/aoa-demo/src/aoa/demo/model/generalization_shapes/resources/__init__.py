@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/generalization_shapes/resources/__init__.py
-"""Resources of the generalization shapes domain."""
+"""The generalization shapes model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.generalization_shapes.resources.storage import GeneralizationShapesStorage
+
+__all__ = ["GeneralizationShapesStorage"]

@@ -3,14 +3,17 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
-from aoa.demo.model.access_cascade.access_cascade_domain import AccessCascadeDomain
-from aoa.demo.model.data_sources.access_cascade_data_source import AccessCascadeDataSource
+from aoa.demo.model.access_cascade.entities.cascade_boundary_entity import CascadeBoundaryAssocEntity
 
 
-@meta(description="Stores the access cascade model (stub)", domain=AccessCascadeDomain)
-class AccessCascadeStorage(BaseStorage[AccessCascadeDataSource]):
+@meta(description="Stores the access cascade model (stub)")
+@entities(
+    CascadeBoundaryAssocEntity,
+)
+class AccessCascadeStorage(BaseStorage):
     """Hold the access cascade domain's entities; the demo never opens it."""
 
     @classmethod

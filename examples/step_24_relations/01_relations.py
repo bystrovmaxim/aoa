@@ -38,10 +38,10 @@ from aoa.action_machine.domain import (
     RelationNotLoadedError,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -50,17 +50,7 @@ class ShopDomain(BaseDomain):
     description = "Shop domain"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer account", resource=ShopStorage)
+@entity(description="Customer account", domain=ShopDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     name: str = Field(description="Display name")
@@ -71,7 +61,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Field(description="Orders placed by this customer")
 
 
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(ge=0, description="Order total")
@@ -89,7 +79,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Field(description="Line items of the order")
 
 
-@entity(description="Single line of an order", resource=ShopStorage)
+@entity(description="Single line of an order", domain=ShopDomain)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line id")
     sku: str = Field(description="Product code")
@@ -98,6 +88,16 @@ class OrderLineDetailEntity(BaseDetailEntity):
         AssociationOne[OrderCoreEntity],
         Inverse(OrderCoreEntity, "lines"),
     ] = Field(description="Parent order")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    CustomerCoreEntity,
+    OrderCoreEntity,
+    OrderLineDetailEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 CustomerCoreEntity.model_rebuild()

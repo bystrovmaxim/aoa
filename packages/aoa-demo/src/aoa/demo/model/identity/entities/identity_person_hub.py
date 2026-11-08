@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
-from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Person identity hub for credentials, factors, federation, and recovery", resource=IdentityStorage)
+@entity(description="Person identity hub for credentials, factors, federation, and recovery", domain=IdentityDomain)
 class IdentityPersonHubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Person id")
     lifecycle: IdentityDenseLifecycle = Field(description="Person aggregate lifecycle")

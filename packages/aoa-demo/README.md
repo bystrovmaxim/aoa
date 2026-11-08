@@ -14,7 +14,7 @@
 ## The identity domain: one connection per call, with or without a database
 
 `POST /api/v1/identity/lookup` and the MCP tool `identity.lookup` are the reference
-for a database-backed resource. The action declares `IdentityStoreBase` under the
+for a database-backed resource. The action declares `IdentityStorage` under the
 connection key `identity`; the route supplies a value per call — created for the call
 and closed after it — so concurrent calls never share a connection and each
 transaction belongs to one caller. The domain asks storage for two things — a person,
@@ -27,10 +27,10 @@ It runs in two modes, and only the supplied value differs:
 
 | Mode | When | What the route supplies |
 | --- | --- | --- |
-| in memory | `AOA_DEMO_POSTGRES_DSN` is unset | `IdentityStoreStub` — the same two operations, no database, no driver |
-| over a pool | the variable names a database | `IdentityStore(data_source=…)` — one connection per call from `IdentityDataSource`'s pool |
+| in memory | `AOA_DEMO_POSTGRES_DSN` is unset | `IdentityStubStorage` — the same two operations, no database, no driver |
+| over a pool | the variable names a database | `IdentityPostgresStorage(pool=…)` — one connection per call from `IdentityPool` |
 
-The identity data source, and with it the pool, is opened once when the service starts and closed when it stops. An MCP
+`IdentityPool`, a `PostgresPool`, is opened once when the service starts and closed when it stops. An MCP
 service has no request-scoped startup hook, but its server has one, so both
 transports pass the same `pool_lifespan` to `build()` — no wrapper to write.
 
@@ -44,28 +44,28 @@ AOA_DEMO_POSTGRES_DSN=postgresql://user:pass@localhost/db \
   uv run uvicorn aoa.demo.fastapi_mcp_services.app_fastapi_service:app --port 8000
 ```
 
-The pool states its size bounds (`min_size=1, max_size=10`) where the data source is
-created; the wait for a free connection is bounded on the data source
-(`IdentityDataSource.acquire_timeout = 30.0`), because `create_pool` has no such parameter
+The pool states its size bounds (`min_size=1, max_size=10`) where it is
+created; the wait for a free connection is bounded on the pool
+(`IdentityPool.acquire_timeout = 30.0`), because `create_pool` has no such parameter
 — a `timeout=` there would bound connecting, not waiting.
 
 What each mode is for, and what the resource does with its connection, is in
 [`src/aoa/demo/model/identity/README.md`](src/aoa/demo/model/identity/README.md).
 
-## Its stores: every entity has a physical place
+## Its databases: a resource is a database
 
-Every demo resource that stores an entity names a data source (`aoa.demo.model.data_sources`) as its type argument — `class SupportStorage(BaseStorage[ShopDataSource])` — and a domain reaches each data source through one resource. A data source may serve several domains, one resource each:
+Every demo resource is one database, service or process-owned object, and it lists the entities that lie in it with `@entities`; the machine checks every answer of its public methods against that list. A database is shared by domains, so a resource names no domain: its domains are the domains of the entities it lists.
 
-| Data source | Resources | What it shows |
+| Resource | Entities | What it shows |
 | --- | --- | --- |
-| `ShopDataSource` | `StorefrontDatabase` (Store), `SupportStorage` (Support), `InventoryStorage` (Inventory) | one database of three domains, each through a resource of its own |
-| `MessagingDataSource` | `OutboxPrimaryDatabase` (Messaging) | the outbox and the dead-letter queue, kept by the domain's one resource |
-| `CatalogDataSource`, `CatalogSearchDataSource` | `CatalogObjectStore`, `CatalogSearchSidecar` (Catalog) | one domain, two databases, one resource each |
-| `IdentityDataSource` | `IdentityStoreBase` (Identity) | the identity route's PostgreSQL pool, from the section above |
-| `CardNetworkDataSource` | `CardNetworkGateway` (Billing), `StorefrontCardGateway` (Store) | one external service of two domains, one resource each: the data source alone decides how the service's connection is shared |
-| `NotificationGatewayDataSource` | `NotificationGatewayResource` (Messaging) | an external service |
+| `ShopDatabaseStorage` (`model/databases/`) | 61 of Store, Support and Inventory | one database of three domains: the storefront, the support desk and the warehouse were three resources of it, and are one now |
+| `OutboxPrimaryDatabaseStorage` | 17 of Messaging | the outbox and the dead-letter queue in one database |
+| `CatalogObjectStoreStorage`, `CatalogSearchSidecarStorage` | 16 and 1 of Catalog | one domain, two databases, one resource each |
+| `IdentityStorage` | 7 of Identity | the identity route's PostgreSQL storage, reached through `IdentityPool` |
+| `NotificationGateway`, `CardNetworkGateway` | 1 each | a gateway that reports entities lists them too, and is checked the same way |
+| `PaymentGateway`, `TaxQuoteGateway`, `SmtpTransportGateway` and the other gateways | none | a gateway that only calls out declares no `@entities` |
 
-Each other domain keeps its rows in a store of its own: an in-memory data source, or a database (`BillingWarehouseDataSource`, `SessionCacheDataSource`). A relation is a fact of the model and joins entities of any stores: a chargeback ticket of the billing warehouse points at the customer order of the shop database it disputes (`ChargebackTicketCoreEntity.order`), so in Maxitor a line leaves one data source's contour for another's. The graph shows each data source on the application, with a `resource_data_source` edge from each of its resources.
+Each other domain keeps its rows in a database of its own (`BillingWarehouseStorage`, `StorefrontSessionCacheStorage`, …). A relation is a fact of the model and joins entities of any databases: a chargeback ticket of the billing warehouse points at the customer order of the shop database it disputes (`ChargebackTicketCoreEntity.order`). The billing warehouse lists the ticket, not the order, so it answers with the order only as a reference, and an action reads the order from the shop database. The graph links each resource to every entity it lists with a `resource_entity` link.
 
 ## Its graph history
 

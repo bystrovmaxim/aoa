@@ -45,12 +45,11 @@ ARCHITECTURE / DATA FLOW
 THE POOL, AND THE MODE WITHOUT A DATABASE
 ═══════════════════════════════════════════════════════════════════════════════
 
-``pool_lifespan`` opens the identity data source — the identity database and its one
-pool — when ``AOA_DEMO_POSTGRES_DSN`` is set, and closes it when the application stops. Both services pass it to their builder, which hands it
+``pool_lifespan`` opens ``IdentityPool`` — the identity database's one pool — when ``AOA_DEMO_POSTGRES_DSN`` is set, and closes it when the application stops. Both services pass it to their builder, which hands it
 to the framework untouched — an MCP service has no request-scoped startup hook, but
 its server has one.
 
-With a DSN, the identity route declares a per-call resource over that data source: one
+With a DSN, the identity route declares a per-call resource over that pool: one
 connection per call, taken in ``open()`` and given back in ``close()``. Without the
 variable, nothing is created and the route declares the in-memory identity store
 instead, so the demo answers with no database and with no driver installed.
@@ -73,7 +72,7 @@ from aoa.action_machine.resources.sql import SqlStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 if TYPE_CHECKING:
-    from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
+    from aoa.demo.model.identity.resources.identity_pool import IdentityPool
 
 # Register on the default graph before ``create_node_graph_coordinator()`` runs.
 from aoa.demo.model.actions import GetExampleModelGraphJsonAction  # noqa: F401  # pylint: disable=unused-import
@@ -92,34 +91,34 @@ def demo_dsn() -> str | None:
     return os.getenv(DEMO_DSN_ENV) or None
 
 
-class DataSourceHolder:
-    """Carries the identity data source, and its pool, to whoever needs it after the application has started."""
+class PoolHolder:
+    """Carries the identity pool to whoever needs it after the application has started."""
 
-    data_source: IdentityDataSource | None = None
+    pool: IdentityPool | None = None
 
-    def require(self) -> IdentityDataSource:
+    def require(self) -> IdentityPool:
         """
-        Return the open data source, or fail naming the situation rather than an attribute.
+        Return the open pool, or fail naming the situation rather than an attribute.
 
         Raises:
             HandleError: when there is none — a call before startup, or a process started
                 without a connection description.
         """
-        if self.data_source is None:
+        if self.pool is None:
             raise HandleError(
                 f"The demo has no database: set {DEMO_DSN_ENV} before starting, or use the "
                 "database-free mode the identity route falls back to."
             )
-        return self.data_source
+        return self.pool
 
 
-data_source_holder = DataSourceHolder()
+pool_holder = PoolHolder()
 
 
 @asynccontextmanager
 async def pool_lifespan(app: object) -> AsyncIterator[None]:
     """
-    Open the identity data source, and with it the pool, at startup and close it at shutdown.
+    Open the identity pool at startup and close it at shutdown.
 
     Without a connection description nothing is created, and nothing is closed.
     """
@@ -127,21 +126,21 @@ async def pool_lifespan(app: object) -> AsyncIterator[None]:
     if dsn:
         # The optional ``postgres`` extra, imported only when a DSN is given, so that the
         # demo still imports and runs without the driver installed.
-        from aoa.demo.model.identity.resources.identity_data_source import (  # pylint: disable=import-outside-toplevel
-            IdentityDataSource,
+        from aoa.demo.model.identity.resources.identity_pool import (  # pylint: disable=import-outside-toplevel
+            IdentityPool,
         )
 
         # The size bounds are stated here; the wait for a free connection is stated on the
-        # data source (``IdentityDataSource.acquire_timeout``).
-        source = IdentityDataSource(dsn, min_size=1, max_size=10)
+        # pool's class (``IdentityPool.acquire_timeout``).
+        source = IdentityPool(dsn, min_size=1, max_size=10)
         await source.open()
-        data_source_holder.data_source = source
+        pool_holder.pool = source
     try:
         yield
     finally:
-        if data_source_holder.data_source is not None:
-            await data_source_holder.data_source.close()
-            data_source_holder.data_source = None
+        if pool_holder.pool is not None:
+            await pool_holder.pool.close()
+            pool_holder.pool = None
 
 
 def identity_connection() -> ConnectionValue:
@@ -159,7 +158,7 @@ def identity_connection() -> ConnectionValue:
                 IdentityPostgresStorage,
             )
 
-            return IdentityPostgresStorage(data_source=data_source_holder.require())
+            return IdentityPostgresStorage(pool=pool_holder.require())
 
         return PerCallConnection(factory=pooled, finalize=_close_store)
 

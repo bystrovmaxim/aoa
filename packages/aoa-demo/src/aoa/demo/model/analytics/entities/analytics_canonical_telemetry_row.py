@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowDetailEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Canonical telemetry facet on dedup spine (no shared fact hub)", resource=AnalyticsStorage)
+@entity(description="Canonical telemetry facet on dedup spine (no shared fact hub)", domain=AnalyticsDomain)
 class AnalyticsCanonicalTelemetryRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Row id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Canonical telemetry lifecycle")
@@ -26,9 +26,7 @@ class AnalyticsCanonicalTelemetryRowDetailEntity(BaseDetailEntity):
     dedup: Annotated[
         AssociationOne[AnalyticsDedupBloomRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Dedup bloom parent"
-    )
+    ] = Field(description="Dedup bloom parent")
 
 
 AnalyticsCanonicalTelemetryRowDetailEntity.model_rebuild()

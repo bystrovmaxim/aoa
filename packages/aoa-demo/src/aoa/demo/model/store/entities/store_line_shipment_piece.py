@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInvers
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity, SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Shipment piece bridging line + header (dense mesh cue)", resource=StorefrontDatabaseStorage)
+@entity(description="Shipment piece bridging line + header (dense mesh cue)", domain=StoreDomain)
 class LineShipmentPieceDetailEntity(BaseDetailEntity):
     id: str = Field(description="Piece id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Shipment piece lifecycle")
@@ -26,16 +26,12 @@ class LineShipmentPieceDetailEntity(BaseDetailEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Line anchor"
-    )
+    ] = Field(description="Line anchor")
 
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent order duplicate anchor"
-    )
+    ] = Field(description="Parent order duplicate anchor")
 
 
 LineShipmentPieceDetailEntity.model_rebuild()

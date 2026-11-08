@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_device_notice_lifecycle import MsgDeviceNoticeLifecycle
-from aoa.demo.model.messaging.resources.notification_gateway import NotificationGateway
 
 
-@entity(description="Recipient device acknowledgement linked to latency hop", resource=NotificationGateway)
+@entity(description="Recipient device acknowledgement linked to latency hop", domain=MessagingDomain)
 class RecipientDeviceSeenCoreEntity(BaseCoreEntity):
     id: str = Field(description="Device row id")
     lifecycle: MsgDeviceNoticeLifecycle = Field(description="Device seen lifecycle")

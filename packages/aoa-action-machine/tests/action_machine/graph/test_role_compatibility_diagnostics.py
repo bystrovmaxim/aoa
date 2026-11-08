@@ -35,7 +35,6 @@ _IMPORTS = textwrap.dedent(
         value,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError, RoleCompatibilityError
-    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
     from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
@@ -49,13 +48,8 @@ _IMPORTS = textwrap.dedent(
         description = "Diagnostics"
 
 
-    @meta(description="Where DiagStorage keeps its rows")
-    class DiagDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the diag entities", domain=DiagDomain)
-    class DiagStorage(BaseStorage[DiagDataSource]):
+    @meta(description="Stores the diag entities")
+    class DiagStorage(BaseStorage):
         pass
     """
 )
@@ -71,12 +65,12 @@ def test_ownership_refusal_type_attributes_and_text() -> None:
     """An ownership/ownership refusal is a typed error carrying both endpoints and roles."""
     out = _run(
         """
-        @entity(description="A", resource=DiagStorage)
+        @entity(description="A", domain=DiagDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", resource=DiagStorage)
+        @entity(description="B", domain=DiagDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
@@ -109,11 +103,11 @@ def test_specialization_ordinary_refusal_names_the_exclusive_pairing() -> None:
     """A specialization/ordinary mismatch says the two roles pair exclusively."""
     out = _run(
         """
-        @entity(description="Kind", resource=DiagStorage)
+        @entity(description="Kind", domain=DiagDomain)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", resource=DiagStorage)
+        @entity(description="Head", domain=DiagDomain)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[
@@ -121,7 +115,7 @@ def test_specialization_ordinary_refusal_names_the_exclusive_pairing() -> None:
                 Inverse(field_name="record"),
             ] = Field(description="Details")
 
-        @entity(description="Alt", resource=DiagStorage)
+        @entity(description="Alt", domain=DiagDomain)
         class AltCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             record: Annotated[AssociationOne[HeadCoreEntity], Inverse(HeadCoreEntity, "pressing")] = Field(
@@ -147,12 +141,12 @@ def test_a_missing_direction_marker_is_reported_by_the_earlier_pass() -> None:
     """A field with no direction marker is refused by the completeness pass, not the matrix."""
     out = _run(
         """
-        @entity(description="A", resource=DiagStorage)
+        @entity(description="A", domain=DiagDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: CompositeOne[BCoreEntity] = Field(description="B")
 
-        @entity(description="B", resource=DiagStorage)
+        @entity(description="B", domain=DiagDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
@@ -175,12 +169,12 @@ def test_a_one_sided_inverse_is_reported_by_the_inverse_pass() -> None:
     """An Inverse paired with a NoInverse endpoint is refused by the inverse pass first."""
     out = _run(
         """
-        @entity(description="A", resource=DiagStorage)
+        @entity(description="A", domain=DiagDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], NoInverse()] = Field(description="B")
 
-        @entity(description="B", resource=DiagStorage)
+        @entity(description="B", domain=DiagDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")

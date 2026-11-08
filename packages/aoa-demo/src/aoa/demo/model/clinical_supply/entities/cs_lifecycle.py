@@ -18,11 +18,17 @@ class ClinicalSupplyStateEntity(BaseStateEntity):
     RETIRED = value(code="retired", display_name="Retired", sort_order=3)
 
 
-
 class ClinicalSupplyLifecycle(Lifecycle[ClinicalSupplyStateEntity]):
     """Small linear lifecycle for sample rows."""
 
-
     _template = (
-        Lifecycle().state(ClinicalSupplyStateEntity.DRAFT).to(ClinicalSupplyStateEntity.ACTIVE).initial().state(ClinicalSupplyStateEntity.ACTIVE).to(ClinicalSupplyStateEntity.RETIRED).intermediate().state(ClinicalSupplyStateEntity.RETIRED).final()
+        Lifecycle()
+        .state(ClinicalSupplyStateEntity.DRAFT)
+        .to(ClinicalSupplyStateEntity.ACTIVE)
+        .initial()
+        .state(ClinicalSupplyStateEntity.ACTIVE)
+        .to(ClinicalSupplyStateEntity.RETIRED)
+        .intermediate()
+        .state(ClinicalSupplyStateEntity.RETIRED)
+        .final()
     )

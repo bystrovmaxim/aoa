@@ -15,6 +15,7 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
@@ -31,7 +32,10 @@ class WarehouseDomain(BaseDomain):
 
 
 # ── Resource: transport only — read and write stock, no decisions ────────────
-@meta(description="In-memory inventory store (transport only)", domain=WarehouseDomain)
+
+
+@meta(description="In-memory inventory store (transport only)")
+@entities()
 class InventoryStorage(BaseStorage):
 
     """Read and update the supplied inventory."""

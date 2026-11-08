@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dedupe_correlation import DedupeCorrelationCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Downstream watermark continuing dispatcher reconciliation backbone", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Downstream watermark continuing dispatcher reconciliation backbone", domain=MessagingDomain)
 class DownstreamWatermarkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Watermark id")
     lifecycle: MsgDenseLifecycle = Field(description="Watermark lifecycle")
@@ -26,9 +26,7 @@ class DownstreamWatermarkCoreEntity(BaseCoreEntity):
     dedupe: Annotated[
         AssociationOne[DedupeCorrelationCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream dedupe correlation row"
-    )
+    ] = Field(description="Upstream dedupe correlation row")
 
 
 DownstreamWatermarkCoreEntity.model_rebuild()

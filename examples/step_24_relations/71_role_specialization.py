@@ -24,10 +24,10 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.exceptions import RoleCompatibilityError
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class SpecializationDomain(BaseDomain):
@@ -37,24 +37,14 @@ class SpecializationDomain(BaseDomain):
     description = "Specialization"
 
 
-@meta(description="Where SpecializationStorage keeps its rows")
-class SpecializationDataSource(InMemoryDataSource):
-    """The store SpecializationStorage works with."""
-
-
-@meta(description="Stores the specialization entities", domain=SpecializationDomain)
-class SpecializationStorage(BaseStorage[SpecializationDataSource]):
-    """Hold the specialization entities."""
-
-
-@entity(description="Record kind", resource=SpecializationStorage)
+@entity(description="Record kind", domain=SpecializationDomain)
 class RecordKindEnumEntity(BaseEnumEntity):
     """The dictionary an axis borrows its codes from."""
 
     FIRST = value(code="first", display_name="First")
 
 
-@entity(description="Record", resource=SpecializationStorage)
+@entity(description="Record", domain=SpecializationDomain)
 class RecordCoreEntity(BaseCoreEntity):
     """A head with one classified alternative."""
 
@@ -65,7 +55,7 @@ class RecordCoreEntity(BaseCoreEntity):
     ] = Field(description="Pressing details")
 
 
-@entity(description="First press", resource=SpecializationStorage)
+@entity(description="First press", domain=SpecializationDomain)
 class FirstPressSpecEntity(BaseSpecEntity):
     """The alternative side of the valid axis."""
 
@@ -78,7 +68,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Head with ordinary reverse", resource=SpecializationStorage)
+@entity(description="Head with ordinary reverse", domain=SpecializationDomain)
 class SpecOrdinaryHeadCoreEntity(BaseCoreEntity):
     """A specialization whose reverse is an ordinary association — refused."""
 
@@ -89,7 +79,7 @@ class SpecOrdinaryHeadCoreEntity(BaseCoreEntity):
     ] = Field(description="Pressing details")
 
 
-@entity(description="Ordinary reverse", resource=SpecializationStorage)
+@entity(description="Ordinary reverse", domain=SpecializationDomain)
 class OrdinaryReverseCoreEntity(BaseCoreEntity):
     """The reverse is an association, so the specialization / ordinary pair is refused."""
 
@@ -99,7 +89,7 @@ class OrdinaryReverseCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Generalization A", resource=SpecializationStorage)
+@entity(description="Generalization A", domain=SpecializationDomain)
 class GeneralizationACoreEntity(BaseCoreEntity):
     """A generalization whose reverse is another generalization — refused."""
 
@@ -109,7 +99,7 @@ class GeneralizationACoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Generalization B", resource=SpecializationStorage)
+@entity(description="Generalization B", domain=SpecializationDomain)
 class GeneralizationBCoreEntity(BaseCoreEntity):
     """The second generalization of the refused pair."""
 
@@ -119,7 +109,7 @@ class GeneralizationBCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Unpaired head", resource=SpecializationStorage)
+@entity(description="Unpaired head", domain=SpecializationDomain)
 class UnpairedHeadCoreEntity(BaseCoreEntity):
     """Show that a specialization cannot opt out of its reverse."""
 
@@ -128,7 +118,7 @@ class UnpairedHeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Detail of unpaired head", resource=SpecializationStorage)
+@entity(description="Detail of unpaired head", domain=SpecializationDomain)
 class UnpairedDetailSpecEntity(BaseSpecEntity):
     """Keep the opposite endpoint explicit."""
 
@@ -139,7 +129,7 @@ class UnpairedDetailSpecEntity(BaseSpecEntity):
     ] = Field(description="Record")
 
 
-@entity(description="Unpaired generalization", resource=SpecializationStorage)
+@entity(description="Unpaired generalization", domain=SpecializationDomain)
 class UnpairedAlternativeSpecEntity(BaseSpecEntity):
     """Show that a generalization cannot opt out either."""
 
@@ -148,6 +138,23 @@ class UnpairedAlternativeSpecEntity(BaseSpecEntity):
         Classifier(variant=RecordKindEnumEntity.FIRST),
         NoInverse(),
     ] = Field(description="Record")
+
+
+@meta(description="Stores the specialization entities")
+@entities(
+    RecordKindEnumEntity,
+    RecordCoreEntity,
+    FirstPressSpecEntity,
+    SpecOrdinaryHeadCoreEntity,
+    OrdinaryReverseCoreEntity,
+    GeneralizationACoreEntity,
+    GeneralizationBCoreEntity,
+    UnpairedHeadCoreEntity,
+    UnpairedDetailSpecEntity,
+    UnpairedAlternativeSpecEntity,
+)
+class SpecializationStorage(BaseStorage):
+    """Hold the specialization entities."""
 
 
 for model in (

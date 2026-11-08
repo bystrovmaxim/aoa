@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Structured tie reconciling invoicing artefacts with fulfilment-line rows", resource=StorefrontDatabaseStorage)
+@entity(description="Structured tie reconciling invoicing artefacts with fulfilment-line rows", domain=StoreDomain)
 class StoreInvoiceLineTieCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlation id")
     lifecycle: SalesOrderLifecycle = Field(description="Tie lifecycle")
@@ -27,16 +27,12 @@ class StoreInvoiceLineTieCoreEntity(BaseCoreEntity):
     invoice: Annotated[
         AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning invoice artefact"
-    )
+    ] = Field(description="Owning invoice artefact")
 
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning order line artefact"
-    )
+    ] = Field(description="Owning order line artefact")
 
 
 StoreInvoiceLineTieCoreEntity.model_rebuild()

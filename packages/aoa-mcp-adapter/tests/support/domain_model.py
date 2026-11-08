@@ -35,6 +35,7 @@ from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends import depends
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
@@ -42,7 +43,7 @@ from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import BaseGateway, BaseStorage, Connections, InMemoryDataSource
+from aoa.action_machine.resources import BaseGateway, BaseStorage, Connections
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -70,16 +71,6 @@ class TestDomain(BaseDomain):
 
     name = "test"
     description = "Shared test domain for @meta"
-
-
-@meta(description="Where TestStorage keeps its rows")
-class TestDataSource(InMemoryDataSource):
-    """The store TestStorage works with."""
-
-
-@meta(description="Stores the test entities", domain=TestDomain)
-class TestStorage(BaseStorage[TestDataSource]):
-    """Hold the test entities."""
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -135,13 +126,21 @@ class ServiceRole(ApplicationRole):
 
 
 @meta(description="Simple test entity", domain=TestDomain)
-@entity(description="Simple test entity", resource=TestStorage)
+@entity(description="Simple test entity", domain=TestDomain)
 class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
     id: str = Field(description="Identifier")
     name: str = Field(description="Name")
     value: int = Field(description="Value", ge=0)
+
+
+@meta(description="Stores the test entities")
+@entities(
+    SampleCoreEntity,
+)
+class TestStorage(BaseStorage):
+    """Hold the test entities."""
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -190,7 +189,7 @@ class PaymentClient:
         raise NotImplementedError("PaymentClient.refund() is not implemented")
 
 
-@meta(description="Payment service resource of the orders domain", domain=OrdersDomain)
+@meta(description="Payment service resource of the orders domain")
 class PaymentGateway(BaseGateway):
     """The gateway to the payment service: its methods are what the domain asks of it."""
 
@@ -228,7 +227,7 @@ class NotificationClient:
         raise NotImplementedError("NotificationClient.send() is not implemented")
 
 
-@meta(description="Notification service resource of the orders domain", domain=OrdersDomain)
+@meta(description="Notification service resource of the orders domain")
 class NotificationGateway(BaseGateway):
     """The gateway to the notification service: its methods are what the domain asks of it."""
 
@@ -255,8 +254,8 @@ def default_notification_gateway() -> NotificationGateway:
 
 @meta(
     description="Test database resource manager for order-scenario actions",
-    domain=OrdersDomain,
 )
+@entities()
 class OrdersStorage(BaseStorage):
     """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersStorage)``."""
 

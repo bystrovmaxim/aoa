@@ -21,10 +21,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class MusicDomain(BaseDomain):
@@ -34,17 +34,7 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
-@meta(description="Where MusicStorage keeps its rows")
-class MusicDataSource(InMemoryDataSource):
-    """The store MusicStorage works with."""
-
-
-@meta(description="Stores the music entities", domain=MusicDomain)
-class MusicStorage(BaseStorage[MusicDataSource]):
-    """Hold the music entities."""
-
-
-@entity(description="Kind of VinylRecordCoreEntity", resource=MusicStorage)
+@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -53,7 +43,7 @@ class VinylRecordKindEnumEntity(BaseEnumEntity):
     TEST = value(code="test", display_name="Test")
 
 
-@entity(description="Vinyl record", resource=MusicStorage)
+@entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
@@ -77,7 +67,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Re-pressing", resource=MusicStorage)
+@entity(description="Re-pressing", domain=MusicDomain)
 class RepressSpecEntity(BaseSpecEntity):
     """Describe when an album was pressed again."""
 
@@ -90,7 +80,7 @@ class RepressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Test pressing", resource=MusicStorage)
+@entity(description="Test pressing", domain=MusicDomain)
 class TestPressSpecEntity(BaseSpecEntity):
     """Describe who approved a test pressing."""
 
@@ -101,6 +91,17 @@ class TestPressSpecEntity(BaseSpecEntity):
         Classifier(variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Field(description="Record described by this pressing")
+
+
+@meta(description="Stores the music entities")
+@entities(
+    VinylRecordKindEnumEntity,
+    VinylRecordCoreEntity,
+    RepressSpecEntity,
+    TestPressSpecEntity,
+)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
 
 
 for model in (VinylRecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity, TestPressSpecEntity):

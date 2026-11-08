@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/bystrovmaxim/gnomon/main/packages/open-gnomon-protocol/graph/1.8.json",
+  "$id": "https://raw.githubusercontent.com/bystrovmaxim/gnomon/main/packages/open-gnomon-protocol/graph/2.0.json",
   "title": "Gnomon node graph JSON schema",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.8"
+      "const": "2.0"
     },
     "nodes": {
       "type": "array",
@@ -132,9 +132,6 @@
         },
         {
           "$ref": "#/$defs/role"
-        },
-        {
-          "$ref": "#/$defs/data_source"
         }
       ]
     },
@@ -399,32 +396,6 @@
           "properties": {
             "type": {
               "const": "Resource"
-            },
-            "properties": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "description"
-              ],
-              "properties": {
-                "description": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "data_source": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/row"
-        },
-        {
-          "properties": {
-            "type": {
-              "const": "DataSource"
             },
             "properties": {
               "type": "object",
@@ -1036,10 +1007,7 @@
           "$ref": "#/$defs/cache_tag"
         },
         {
-          "$ref": "#/$defs/entity_resource"
-        },
-        {
-          "$ref": "#/$defs/resource_data_source"
+          "$ref": "#/$defs/resource_entity"
         }
       ]
     },
@@ -1676,7 +1644,7 @@
         }
       ]
     },
-    "entity_resource": {
+    "resource_entity": {
       "allOf": [
         {
           "$ref": "#/$defs/link_row"
@@ -1684,32 +1652,7 @@
         {
           "properties": {
             "type": {
-              "const": "entity_resource"
-            },
-            "relationship": {
-              "const": "Aggregation"
-            },
-            "is_dag": {
-              "const": true
-            },
-            "properties": {
-              "type": "object",
-              "additionalProperties": false,
-              "maxProperties": 0
-            }
-          }
-        }
-      ]
-    },
-    "resource_data_source": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/link_row"
-        },
-        {
-          "properties": {
-            "type": {
-              "const": "resource_data_source"
+              "const": "resource_entity"
             },
             "relationship": {
               "const": "Aggregation"

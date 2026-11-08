@@ -28,13 +28,14 @@ from aoa.action_machine.intents.aspects.regular_aspect_decorator import regular_
 from aoa.action_machine.intents.aspects.summary_aspect_decorator import summary_aspect
 from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_string
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.model.base_action import BaseAction
 from aoa.action_machine.model.base_params import BaseParams
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
@@ -64,29 +65,27 @@ class TestDomain(BaseDomain):
     description = "Shared test domain for @meta"
 
 
-@meta(description="Where TestStorage keeps its rows")
-class TestDataSource(InMemoryDataSource):
-    """The store TestStorage works with."""
-
-
-@meta(description="Stores the test entities", domain=TestDomain)
-class TestStorage(BaseStorage[TestDataSource]):
-    """Hold the test entities."""
-
-
 # ════════════════════════════════════════════════════════════════════════════
 # ENTITIES
 # ════════════════════════════════════════════════════════════════════════════
 
 
 @meta(description="Simple test entity", domain=TestDomain)
-@entity(description="Simple test entity", resource=TestStorage)
+@entity(description="Simple test entity", domain=TestDomain)
 class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
     id: str = Field(description="Identifier")
     name: str = Field(description="Name")
     value: int = Field(description="Value", ge=0)
+
+
+@meta(description="Stores the test entities")
+@entities(
+    SampleCoreEntity,
+)
+class TestStorage(BaseStorage):
+    """Hold the test entities."""
 
 
 # ════════════════════════════════════════════════════════════════════════════

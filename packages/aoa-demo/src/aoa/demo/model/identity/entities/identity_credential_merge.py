@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorCoreEntity
-from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Credential merge correlate across person, email, and phone factors", resource=IdentityStorage)
+@entity(description="Credential merge correlate across person, email, and phone factors", domain=IdentityDomain)
 class IdentityCredentialMergeCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlate id")
     lifecycle: IdentityDenseLifecycle = Field(description="Merge correlate lifecycle")
@@ -28,23 +28,17 @@ class IdentityCredentialMergeCorrelateCoreEntity(BaseCoreEntity):
     email_factor: Annotated[
         AssociationOne[IdentityEmailFactorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Email credential anchor"
-    )
+    ] = Field(description="Email credential anchor")
 
     phone_factor: Annotated[
         AssociationOne[IdentityPhoneFactorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Phone credential anchor"
-    )
+    ] = Field(description="Phone credential anchor")
 
     person: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Merged person identity"
-    )
+    ] = Field(description="Merged person identity")
 
 
 IdentityCredentialMergeCorrelateCoreEntity.model_rebuild()

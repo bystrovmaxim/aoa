@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Profit-center split hanging off ingest manifest root", resource=BillingWarehouseStorage)
+@entity(description="Profit-center split hanging off ingest manifest root", domain=BillingDomain)
 class ProfitCenterContributionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Slice id")
     lifecycle: BillingDenseLifecycle = Field(description="Profit center lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     ingest_manifest: Annotated[
         AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning ingest manifest"
-    )
+    ] = Field(description="Owning ingest manifest")
 
     cost_center_code: str = Field(description="Finance cost center key")
     allocation_ratio: float = Field(description="Allocated share of manifest totals", gt=0.0, le=1.0)

@@ -16,55 +16,95 @@ per-call ownership introduced in [Step 19](step-19-connections.md).
 ## The BaseResource contract
 
 A concrete resource participating in the model supplies metadata with
-`@meta(description=..., domain=...)` and implements `get_wrapper_class()`.
-The metadata places it in the domain graph. The wrapper method says what a nested
-action receives: `None` means the object may pass through directly; a class means
-the runtime constructs that restricted view around the resource.
+`@meta(description=...)`, lists the entities of its database with `@entities(...)`, and
+implements `get_wrapper_class()`. The metadata and the entity list place it in the graph. The
+wrapper method says what a nested action receives: `None` means the object may pass through
+directly; a class means the runtime constructs that restricted view around the resource.
 
 `BaseResource` itself does not require open or close. Add them when your
 implementation has something to acquire and release. The SQL family defines both;
 a SQL resource that owns a real connection must implement meaningful cleanup.
 
-A resource is also where entities live. Every entity names the one resource that stores it, with
-`@entity(resource=...)`, and takes its domain from the resource's `@meta`: a storage holds rows,
-a gateway the records an outside service reports, a controller the state it keeps. The kinds are
-exported together — `from aoa.action_machine.resources import BaseStorage, BaseGateway, BaseController`.
-[Step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it) shows the declaration,
-and [step 24](step-24-relations.md#a-relation-joins-entities-of-any-data-sources) why a relation knows no store.
+A resource inherits the base of its kind directly — `BaseStorage` for a store of data,
+`BaseGateway` for someone else's service, `BaseController` for an object the process owns —
+`from aoa.action_machine.resources import BaseStorage, BaseGateway, BaseController`.
 
-## Resources of one database share a data source
+## A resource is a database
 
-A resource is often a part of a database rather than the whole of it: orders and support
-tickets live in one database, each kept by its own resource. A **data source** names that
-database — or any other store: an external service, a store kept in memory. It is a primitive
-of its own, `BaseDataSource`: a description in `@meta` and no domain, because resources of
-several domains may share one store, one resource each. A resource names it as the type
-argument of its base, and a resource that stores an entity must name one — it is the entity's
-physical place:
+A resource **is** a database: it lists the entities that lie in it with `@entities(...)`, and
+the model names no store anywhere else. An entity names its domain with `@entity(domain=...)`
+and no resource ([step 22](step-22-entity.md#name-the-domain-of-an-entity)). A database is
+shared by domains, so a resource's `@meta` takes no domain: its domains are the domains of
+the entities it lists. Two domains whose data lie in one database share one resource:
 
 ```python
-# Fragment: the declarations of a model; `StoreDomain` and `SupportDomain` are defined around them.
-@meta(description="Main shop database")
-class ShopDataSource(BaseDataSource): ...
+# Fragment: `StoreDomain` and `SupportDomain` are defined around it.
+@entity(description="Customer order", domain=StoreDomain)
+class OrderCoreEntity(BaseCoreEntity):
+    id: str = Field(description="Order identifier")
 
-@meta(description="Orders", domain=StoreDomain)
-class OrdersStorage(BaseStorage[ShopDataSource]): ...
 
-@meta(description="Support desk", domain=SupportDomain)
-class SupportStorage(BaseStorage[ShopDataSource]): ...
+@entity(description="Support ticket", domain=SupportDomain)
+class TicketCoreEntity(BaseCoreEntity):
+    id: str = Field(description="Ticket identifier")
+
+
+@meta(description="The shop database")
+@entities(OrderCoreEntity, TicketCoreEntity)
+class ShopDatabaseStorage(BaseStorage): ...
 ```
 
-A domain reaches a data source through one resource: a second resource of `StoreDomain` on
-`ShopDataSource` is refused when the model is built, naming the domain, the data source and
-both resources. A resource that stores no entity — a gateway that only calls out — may name
-no data source. AOA gives a kind for each store: `PostgresDataSource`, `ExternalServiceDataSource`
-(the service's address, credentials and client) and `InMemoryDataSource`. A data source keeps
-what its resources share at run time, and the connection parameters live only there:
-`PostgresDataSource` holds them and the pool, and a resource built with `data_source=` takes its
-connection from it, while the transaction stays the resource's own
-([the PostgreSQL page](../extensions/postgresql.md#installation-and-construction)). In the
-graph a data source hangs on the application, as a domain does, and each resource that
-names it has a `resource_data_source` edge to it.
+[Python](../../examples/step_21_resource/08_database_entities.py) · [Notebook](../../examples/step_21_resource/08_database_entities.ipynb)
+
+The graph links the resource to each entity it lists with a `resource_entity` link, and each
+entity to its own domain:
+
+```text
+schema_version: 2.0
+domain: OrderCoreEntity -> StoreDomain
+domain: TicketCoreEntity -> SupportDomain
+resource_entity: ShopDatabaseStorage -> OrderCoreEntity
+resource_entity: ShopDatabaseStorage -> TicketCoreEntity
+```
+
+Two databases are two resources, and a relation may join their entities
+([step 24](step-24-relations.md#a-relation-joins-entities-of-any-databases)); only an action
+glues their data. One entity class may lie in two databases — a replica, a projection — and
+then both resources list it. Every kind of resource may declare `@entities`: a gateway lists
+the entities the service it calls reports. A resource that never returns an entity may leave
+the declaration out.
+
+The declarations are checked when the class is declared:
+
+```text
+not an entity: @entities: 'OrderRow' is not an @entity. Every @entities argument must be a class decorated with @entity(description=..., domain=...).
+listed twice: @entities: class 'OrderCoreEntity' is listed twice. A database lists each of its entities once.
+not a resource: @entities applies only to a resource (a BaseResource subclass); 'ReportBuilder' is not one. A resource is a database, and it lists the entities that lie in it.
+a resource with a domain: @meta on ShopDatabaseStorage: a resource is a database shared by domains and takes no domain — its domains are the domains of the entities it lists with @entities. Remove domain=.
+```
+
+[Python](../../examples/step_21_resource/09_entities_refusals.py) · [Notebook](../../examples/step_21_resource/09_entities_refusals.ipynb)
+
+How a resource reaches its database is the application's choice, made when it assembles the
+resource: a PostgreSQL storage takes a pool opened in the service's lifespan, its own
+connection for one script run, or a substitute pool in a test — the same class in all three
+([the PostgreSQL page](../extensions/postgresql.md#one-storage-class-three-ways-to-reach-its-database)).
+The pool is not part of the model and does not appear in the graph.
+
+### Migrating from data sources
+
+Before #487 the model named where every entity was stored. Each removed name has one replacement:
+
+| Before | After |
+|---|---|
+| `@entity(description, resource=OrdersStorage)` | `@entity(description, domain=StoreDomain)`; `OrdersStorage` lists the entity with `@entities(...)` |
+| `@meta(description, domain=StoreDomain)` on a resource | `@meta(description)`: the resource's domains are its entities' |
+| `class ShopDataSource(PostgresDataSource)`, `data_source=shop` | `PostgresPool(dsn, ...)` opened by the application, `pool=pool`; or `connection_params=dsn` |
+| `class OrdersStorage(PostgresStorage[ShopDataSource])`, a type argument on any resource base | `class OrdersStorage(PostgresStorage)`: no type argument |
+| several resources of one database, one per domain | one resource of that database, listing the entities of every domain kept there |
+| `BaseDataSource`, `InMemoryDataSource`, `ExternalServiceDataSource` | nothing: an in-memory store or a service's client is the resource's own business |
+| `DataSourceDeclarationError`, `EntityResourceError`, the refusal of `@depends` on another domain's resource | nothing: those rules are gone |
+| `entity_resource`, `resource_data_source` and `DataSource` in the graph | `resource_entity` from a resource to each entity it lists (protocol 2.0) |
 
 ## A gateway has its own methods
 
@@ -74,7 +114,9 @@ calls those methods and never holds the raw client:
 
 ```python
 # Fragment: `PaymentClient` is the provider's client; `BillingDomain` is defined around it.
-@meta(description="Payment provider", domain=BillingDomain)
+
+
+@meta(description="Payment provider")
 class PaymentGateway(BaseGateway):
     def __init__(self, client: PaymentClient) -> None:
         self._client = client
@@ -98,6 +140,143 @@ A test substitutes the gateway around a mock client — `TestBench(mocks={Paymen
 PaymentGateway(AsyncMock(spec=PaymentClient))})` — and the bench resets that client's calls
 between runs. A gateway holds no transaction: a nested action gets the same gateway, and a
 rollup run refuses it, because a call already made to a service cannot be taken back.
+
+## The machine checks what a resource returns
+
+A resource may answer only with the entities its database holds. The machine checks every
+answer: each public method of a resource class — a plain function, a coroutine function or an
+async generator whose name does not start with `_` — is wrapped once, when the class is
+declared. An action receives the resource itself, not a proxy, so `isinstance`, identity and
+attribute access stay as they are, and the check runs however the resource arrived:
+`connections[...]`, `box.resolve(...)` or a test substitute. There is no mode that turns it
+off. When the model is built, AOA computes a plan for each resource — which of its entities can
+reach, through a relation, a class it does not list — so an answer whose classes cannot leave
+the list needs only its type checked.
+
+### Listed entities pass unchanged
+
+The examples below share one model: a shop database lists orders, their lines and customers;
+an order line points at a product, which lies in the catalog database.
+
+```python
+# Fragment: the entities are declared in the linked example.
+@meta(description="The shop database")
+@entities(OrderCoreEntity, OrderLineCoreEntity, CustomerCoreEntity)
+class ShopDatabaseStorage(BaseStorage):
+    def get_order(self) -> OrderCoreEntity:
+        return make_order()
+```
+
+A whole entity, a partial one of a listed class, a list or a mapping of them pass and reach
+the caller unchanged. A dictionary member (`BaseEnumEntity`) and a lifecycle state
+(`BaseStateEntity`) belong to the model, not to a database: they pass wherever they appear,
+without being listed. An answer that carries no entity costs one type check.
+
+```text
+whole order: OrderCoreEntity o1
+partial order: OrderCoreEntity
+list: ['OrderCoreEntity', 'OrderCoreEntity']
+mapping: {'c1': 'OrderCoreEntity'}
+dictionary member: eur
+no entity: 2
+```
+
+[Python](../../examples/step_21_resource/10_return_listed.py) · [Notebook](../../examples/step_21_resource/10_return_listed.ipynb)
+
+### An entity the database does not list is refused
+
+An entity whose exact class the list does not name is refused with `ResourceEntitiesError`. The
+message names the resource, the method, the place in the answer — attributes by name,
+`[index]` in a sequence, `[key]` in a mapping — and the class. A subclass of a listed class is
+not listed: a resource returns exactly the classes it promised, and a shorter answer is a
+partial entity of the same class. `ResourceEntitiesError` is a `TypeError`, like every refusal
+of AOA.
+
+```text
+ResourceEntitiesError: ShopDatabaseStorage.get_product returned ProductCoreEntity at answer, which @entities(ShopDatabaseStorage) does not list.
+ResourceEntitiesError: ShopDatabaseStorage.list_items returned ProductCoreEntity at answer[1], which @entities(ShopDatabaseStorage) does not list.
+ResourceEntitiesError: ShopDatabaseStorage.items_by_kind returned ProductCoreEntity at answer[product], which @entities(ShopDatabaseStorage) does not list.
+ResourceEntitiesError: ShopDatabaseStorage.get_gift_order returned GiftOrderCoreEntity at answer, which @entities(ShopDatabaseStorage) does not list.
+a TypeError: True
+```
+
+[Python](../../examples/step_21_resource/11_return_unlisted.py) · [Notebook](../../examples/step_21_resource/11_return_unlisted.ipynb)
+
+### A relation that leaves the database comes back as a reference
+
+A relation that leads to a class outside the list may be returned only unloaded — a
+reference: the relation holds the id and no entity. A loaded entity there is refused, even a
+partial one that holds only its id; the product is the catalog's to answer.
+
+```text
+reference: p1 loaded: False
+get_order_with_product: ShopDatabaseStorage.get_order_with_product returned ProductCoreEntity at answer.lines[0].product, which @entities(ShopDatabaseStorage) does not list.
+get_order_with_product_id: ShopDatabaseStorage.get_order_with_product_id returned ProductCoreEntity at answer.lines[0].product, which @entities(ShopDatabaseStorage) does not list.
+```
+
+[Python](../../examples/step_21_resource/12_return_reference.py) · [Notebook](../../examples/step_21_resource/12_return_reference.ipynb)
+
+### A stream is checked as it yields
+
+A coroutine is checked when it returns. An async generator is checked element by element: the
+caller receives every element before the first one the database does not list, and the refusal
+comes at that element. A plain generator, and a plain function that returns an awaitable, are
+not checked.
+
+```text
+coroutine: OrderCoreEntity
+received before the refusal: ['OrderCoreEntity', 'OrderCoreEntity']
+ResourceEntitiesError: ShopDatabaseStorage.stream_items returned ProductCoreEntity at answer, which @entities(ShopDatabaseStorage) does not list.
+```
+
+[Python](../../examples/step_21_resource/13_return_stream.py) · [Notebook](../../examples/step_21_resource/13_return_stream.ipynb)
+
+### A resource that lists nothing returns no entity
+
+A resource without `@entities` refuses every entity, and the refusal says it declares none; an
+empty `@entities()` lists nothing in the same way. A method whose name starts with `_` is the
+resource's own business and is not checked, nor are class methods, static methods and
+properties.
+
+```text
+private helper: OrderCoreEntity
+no entity: 1
+ResourceEntitiesError: ReportsDatabaseStorage.get_order returned OrderCoreEntity at answer, but ReportsDatabaseStorage declares no @entities.
+ResourceEntitiesError: EmptyDatabaseStorage.get_order returned OrderCoreEntity at answer, which @entities(EmptyDatabaseStorage) does not list.
+```
+
+[Python](../../examples/step_21_resource/14_return_undeclared.py) · [Notebook](../../examples/step_21_resource/14_return_undeclared.ipynb)
+
+### Each class is checked by its own list
+
+The plan belongs to the class that answered, never to its parent. A subclass with its own
+`@entities` is checked by its own list, even in a method it inherits; a subclass that declares
+none lists nothing. A gateway is checked the same way as a storage.
+
+```text
+register, customer: c1
+gateway, product: Tea
+ResourceEntitiesError: CustomerRegisterStorage.get_order returned OrderCoreEntity at answer, which @entities(CustomerRegisterStorage) does not list.
+ResourceEntitiesError: ShopCopyStorage.get_order returned OrderCoreEntity at answer, but ShopCopyStorage declares no @entities.
+ResourceEntitiesError: CatalogGateway.get_customer returned CustomerCoreEntity at answer, which @entities(CatalogGateway) does not list.
+```
+
+[Python](../../examples/step_21_resource/15_return_inherited.py) · [Notebook](../../examples/step_21_resource/15_return_inherited.ipynb)
+
+### A wrapper and a test substitute are checked too
+
+A nested action receives the resource's wrapper ([below](#a-wrapper-for-nested-operations));
+a wrapper lists nothing of its own, and its answers are checked by the list of the resource it
+wraps. A test bench substitute that is a resource instance is checked like the real resource;
+a bare `Mock` is not a resource and is not checked.
+
+```text
+wrapper: ShopDatabaseStorage.read_product returned ProductCoreEntity at answer, which @entities(ShopDatabaseStorage) does not list.
+resource substitute: ShopDatabaseStorage.get_product returned ProductCoreEntity at answer, which @entities(ShopDatabaseStorage) does not list.
+bare Mock, not checked: p1
+```
+
+[Python](../../examples/step_21_resource/16_return_substitutes.py) · [Notebook](../../examples/step_21_resource/16_return_substitutes.ipynb)
 
 ## The resource stores; the action decides
 
@@ -131,6 +310,7 @@ from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.fastapi import FastApiAdapter
 from aoa.action_machine.resources import Connections
+from aoa.action_machine.intents.entities import entities
 
 class WarehouseDomain(BaseDomain):
     """Group the inventory example."""
@@ -139,7 +319,10 @@ class WarehouseDomain(BaseDomain):
 
 
 # ── Resource: transport only — read and write stock, no decisions ────────────
-@meta(description="In-memory inventory store (transport only)", domain=WarehouseDomain)
+
+
+@meta(description="In-memory inventory store (transport only)")
+@entities()
 class InventoryStorage(BaseStorage):
 
     """Read and update the supplied inventory."""
@@ -319,7 +502,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
+owner = ExampleResource(pool=ExamplePool(pool=pool))
 await owner.open()
 child_view = SqlStorageWrapper(owner)
 try:
@@ -354,7 +537,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-owner = ExampleResource(data_source=ExampleDataSource(pool=pool))
+owner = ExampleResource(pool=ExamplePool(pool=pool))
 await owner.open()
 child_view = SqlStorageWrapper(owner)
 try:
@@ -416,7 +599,7 @@ The following is the body of `main()` from the standalone example; the linked fi
 ```python
 # Fragment: one part of an example; `RecordingPool` comes from the code around it.
 pool = RecordingPool()
-async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(pool=ExamplePool(pool=pool)), lambda resource: resource.close())}) as connections:
     result = await ActionProductMachine(loggers=[]).run(Context(), ParentAction(), EmptyParams(), connections)
     assert result.status == "OK; close refused"
     assert len(pool.held) == 1

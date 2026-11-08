@@ -22,7 +22,7 @@ from aoa.ocel.plugin import OCEL_FRAMES_KEY, OcelPlugin
 from aoa.ocel.plugin.ocel_plugin import collect_ocel_frames
 from aoa.ocel.resource import InMemoryOcelStorage
 
-from ..support import SampleCoreEntity, TestStorage
+from ..support import SampleCoreEntity, TestDomain
 
 
 class _Params(BaseParams):
@@ -124,12 +124,12 @@ def test_build_ocel_event_root_only(event_time: datetime) -> None:
 
 
 def test_build_ocel_event_one_hop_loaded_relation(event_time: datetime) -> None:
-    @entity(description="Policy", resource=TestStorage)
+    @entity(description="Policy", domain=TestDomain)
     class PolicyCoreEntity(BaseCoreEntity):
         id: str = Field(description="id")
         code: str = Field(description="code")
 
-    @entity(description="Child", resource=TestStorage)
+    @entity(description="Child", domain=TestDomain)
     class ChildAssocEntity(BaseAssocEntity):
         id: str = Field(description="id")
         policy: Annotated[

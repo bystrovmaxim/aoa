@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_participant_row import SupportParticipantCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
-from aoa.demo.model.support.resources.storage import SupportStorage
+from aoa.demo.model.support.support_domain import SupportDomain
 
 
-@entity(description="SLA interval chaining from participant row", resource=SupportStorage)
+@entity(description="SLA interval chaining from participant row", domain=SupportDomain)
 class SupportSlaIntervalCoreEntity(BaseCoreEntity):
     id: str = Field(description="Interval id")
     lifecycle: SupportSparseLifecycle = Field(description="SLA interval lifecycle")
@@ -26,9 +26,7 @@ class SupportSlaIntervalCoreEntity(BaseCoreEntity):
     participant: Annotated[
         AssociationOne[SupportParticipantCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream participant linkage"
-    )
+    ] = Field(description="Upstream participant linkage")
 
 
 SupportSlaIntervalCoreEntity.model_rebuild()

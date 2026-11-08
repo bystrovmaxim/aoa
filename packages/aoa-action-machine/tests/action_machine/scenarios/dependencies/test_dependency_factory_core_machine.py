@@ -64,7 +64,6 @@ from ....support.domain_model import (
     PaymentGateway,
     PingAction,
 )
-from ....support.domain_model.domains import TestDomain
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Test helper classes
@@ -91,7 +90,7 @@ class _ConfigurableService:
         self.port = port
 
 
-@meta(description="Mock manager for rollup tests", domain=TestDomain)
+@meta(description="Mock manager for rollup tests")
 class _MockResourceController(BaseController):
     """Resource manager WITHOUT rollup support (default)."""
 
@@ -100,7 +99,7 @@ class _MockResourceController(BaseController):
         return None
 
 
-@meta(description="Mock manager with rollup support", domain=TestDomain)
+@meta(description="Mock manager with rollup support")
 class _RollupSupportedController(BaseController):
     """Resource manager WITH rollup support."""
 

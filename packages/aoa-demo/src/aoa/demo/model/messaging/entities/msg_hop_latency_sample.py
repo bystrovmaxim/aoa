@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_courier_attempt_ledger import CourierAttemptLedgerCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Hop latency sample chained from courier ledger", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Hop latency sample chained from courier ledger", domain=MessagingDomain)
 class HopLatencySampleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Sample id")
     lifecycle: MsgDenseLifecycle = Field(description="Sample lifecycle")
@@ -26,9 +26,7 @@ class HopLatencySampleCoreEntity(BaseCoreEntity):
     ledger: Annotated[
         AssociationOne[CourierAttemptLedgerCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Courier ledger parent"
-    )
+    ] = Field(description="Courier ledger parent")
 
 
 HopLatencySampleCoreEntity.model_rebuild()

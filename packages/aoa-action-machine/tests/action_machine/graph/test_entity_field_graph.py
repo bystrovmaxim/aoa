@@ -31,7 +31,6 @@ from aoa.action_machine.graph.nodes.lifecycle_graph_node import LifeCycleGraphNo
 from aoa.action_machine.graph.nodes.role_graph_node import RoleGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -88,7 +87,7 @@ def test_an_entity_row_without_a_kind_is_rejected() -> None:
     assert row["properties"]["entity_kind"] == "core"
 
     broken = {**row, "properties": {"description": row["properties"]["description"]}}
-    payload = {"schema_version": "1.8", "nodes": [broken], "edges": []}
+    payload = {"schema_version": "2.0", "nodes": [broken], "edges": []}
     with pytest.raises(jsonschema.ValidationError):
         Draft202012Validator(GRAPH_JSON_SCHEMA).validate(payload)
 
@@ -121,17 +120,12 @@ class ReferenceShopDomain(BaseDomain):
     description = "Reference shop"
 
 
-@meta(description="Where ReferenceShopStorage keeps its rows")
-class ReferenceShopDataSource(InMemoryDataSource):
-    """The store ReferenceShopStorage works with."""
-
-
-@meta(description="Stores the reference shop entities", domain=ReferenceShopDomain)
-class ReferenceShopStorage(BaseStorage[ReferenceShopDataSource]):
+@meta(description="Stores the reference shop entities")
+class ReferenceShopStorage(BaseStorage):
     """Hold the reference shop entities."""
 
 
-@entity(description="Currency reference value", resource=ReferenceShopStorage)
+@entity(description="Currency reference value", domain=ReferenceShopDomain)
 class ReferenceCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary a field can reference."""
 
@@ -139,7 +133,7 @@ class ReferenceCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Price tag", resource=ReferenceShopStorage)
+@entity(description="Price tag", domain=ReferenceShopDomain)
 class ReferenceTagCoreEntity(BaseCoreEntity):
     """A row with a dictionary reference, an optional one, and a scalar."""
 
@@ -175,7 +169,7 @@ def test_a_reference_field_row_validates_against_the_schema() -> None:
     row = _field_nodes(ReferenceTagCoreEntity)["currency"].to_dict()
     assert row["properties"]["reference_qualname"] == TypeIntrospection.full_qualname(ReferenceCurrencyEnumEntity)
 
-    document = {"schema_version": "1.8", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
+    document = {"schema_version": "2.0", "nodes": [EntityGraphNode(ReferenceTagCoreEntity).to_dict(), row], "edges": []}
     Draft202012Validator(GRAPH_JSON_SCHEMA).validate(document)
 
 

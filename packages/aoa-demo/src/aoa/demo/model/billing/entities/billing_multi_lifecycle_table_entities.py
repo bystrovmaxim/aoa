@@ -21,8 +21,8 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
 class CounterpartyLinkageStateEntity(BaseStateEntity):
@@ -34,12 +34,17 @@ class CounterpartyLinkageStateEntity(BaseStateEntity):
     VERIFIED = value(code="verified", display_name="Verified", sort_order=2)
 
 
-
 class CounterpartyLinkageLifecycle(Lifecycle[CounterpartyLinkageStateEntity]):
     """Two states, **one** transition: counterparty still needs KYC ring alignment."""
 
-
-    _template = Lifecycle().state(CounterpartyLinkageStateEntity.UNLINKED).to(CounterpartyLinkageStateEntity.VERIFIED).initial().state(CounterpartyLinkageStateEntity.VERIFIED).final()
+    _template = (
+        Lifecycle()
+        .state(CounterpartyLinkageStateEntity.UNLINKED)
+        .to(CounterpartyLinkageStateEntity.VERIFIED)
+        .initial()
+        .state(CounterpartyLinkageStateEntity.VERIFIED)
+        .final()
+    )
 
 
 class LedgerPostingWaveStateEntity(BaseStateEntity):
@@ -52,10 +57,8 @@ class LedgerPostingWaveStateEntity(BaseStateEntity):
     RECONCILED = value(code="reconciled", display_name="Reconciled", sort_order=3)
 
 
-
 class LedgerPostingWaveLifecycle(Lifecycle[LedgerPostingWaveStateEntity]):
     """Three states, **two** transitions: GL wave for a clearing batch."""
-
 
     _template = (
         Lifecycle()
@@ -75,20 +78,14 @@ class SchemeDisputeClockStateEntity(BaseStateEntity):
 
     sort_order: int = Field(default=0, description="Presentation order")
 
-    NOTICE_RECEIVED = value(
-        code="notice_received", display_name="Notice received", sort_order=1
-    )
-    EVIDENCE_WINDOW = value(
-        code="evidence_window", display_name="Evidence window", sort_order=2
-    )
+    NOTICE_RECEIVED = value(code="notice_received", display_name="Notice received", sort_order=1)
+    EVIDENCE_WINDOW = value(code="evidence_window", display_name="Evidence window", sort_order=2)
     RULING_PENDING = value(code="ruling_pending", display_name="Ruling pending", sort_order=3)
     CLOSED = value(code="closed", display_name="Closed", sort_order=4)
 
 
-
 class SchemeDisputeClockLifecycle(Lifecycle[SchemeDisputeClockStateEntity]):
     """Four states, **three** transitions: card-network dispute window."""
-
 
     _template = (
         Lifecycle()
@@ -118,10 +115,8 @@ class TreasuryCutoverProgramStateEntity(BaseStateEntity):
     STEADY = value(code="steady", display_name="Steady state", sort_order=5)
 
 
-
 class TreasuryCutoverProgramLifecycle(Lifecycle[TreasuryCutoverProgramStateEntity]):
     """Five states, **four** transitions: staged treasury rail cutover."""
-
 
     _template = (
         Lifecycle()
@@ -149,15 +144,11 @@ class NostroLiquiditySweepStateEntity(BaseStateEntity):
 
     SWEEP_PLANNED = value(code="sweep_planned", display_name="Sweep planned", sort_order=1)
     SWEEP_SENT = value(code="sweep_sent", display_name="Sweep sent", sort_order=2)
-    SWEEP_ACKNOWLEDGED = value(
-        code="sweep_acknowledged", display_name="Sweep acknowledged", sort_order=3
-    )
-
+    SWEEP_ACKNOWLEDGED = value(code="sweep_acknowledged", display_name="Sweep acknowledged", sort_order=3)
 
 
 class NostroLiquiditySweepLifecycle(Lifecycle[NostroLiquiditySweepStateEntity]):
     """Three states, **two** transitions: nostro sweep (distinct labels from ledger posting wave)."""
-
 
     _template = (
         Lifecycle()
@@ -174,7 +165,7 @@ class NostroLiquiditySweepLifecycle(Lifecycle[NostroLiquiditySweepStateEntity]):
 
 @entity(
     description="Issuer-facing dispute clock plus counterparty linkage (dual lifecycle columns)",
-    resource=BillingWarehouseStorage,
+    domain=BillingDomain,
 )
 class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
     id: str = Field(description="Workbench bundle id")
@@ -186,13 +177,15 @@ class IssuerDisputeWorkbenchCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     case_reference: str = Field(description="Issuer case reference visible to ops")
 
 
 @entity(
     description="Treasury cutover program tracked beside nostro sweep confirmation (dual lifecycles)",
-    resource=BillingWarehouseStorage,
+    domain=BillingDomain,
 )
 class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cutover bundle id")
@@ -204,13 +197,15 @@ class TreasuryCutoverBundleCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     corridor_code: str = Field(description="Treasury corridor identifier")
 
 
 @entity(
     description="Reconciliation audit with KYC ring, GL wave, and scheme dispute mesh (triple lifecycle)",
-    resource=BillingWarehouseStorage,
+    domain=BillingDomain,
 )
 class MultiRingSettlementAuditCoreEntity(BaseCoreEntity):
     id: str = Field(description="Audit run id")
@@ -225,5 +220,7 @@ class MultiRingSettlementAuditCoreEntity(BaseCoreEntity):
     )
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     audit_window_code: str = Field(description="Named reconciliation window (e.g. EOD-Europe)")

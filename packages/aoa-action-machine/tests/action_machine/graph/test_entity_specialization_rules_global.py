@@ -49,7 +49,6 @@ from aoa.action_machine.graph.validators.entity_specialization_validator import 
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -58,13 +57,8 @@ class GlobalDomain(BaseDomain):
     description = "global"
 
 
-@meta(description="Where GlobalStorage keeps its rows")
-class GlobalDataSource(InMemoryDataSource):
-    """The store GlobalStorage works with."""
-
-
-@meta(description="Stores the global entities", domain=GlobalDomain)
-class GlobalStorage(BaseStorage[GlobalDataSource]):
+@meta(description="Stores the global entities")
+class GlobalStorage(BaseStorage):
     """Hold the global entities."""
 
 
@@ -78,7 +72,7 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
 
 
 @exclude_graph_model
-@entity(description="Kind", resource=GlobalStorage)
+@entity(description="Kind", domain=GlobalDomain)
 class _KindEnumEntity(BaseEnumEntity):
     """The dictionary the cases borrow from."""
 
@@ -92,7 +86,7 @@ class _KindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Shared alternative", resource=GlobalStorage)
+@entity(description="Shared alternative", domain=GlobalDomain)
 class SharedAlternativeSpecEntity(BaseSpecEntity):
     """Answers to two heads at once."""
 
@@ -108,7 +102,7 @@ class SharedAlternativeSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="First claim", resource=GlobalStorage)
+@entity(description="First claim", domain=GlobalDomain)
 class FirstClaimHeadCoreEntity(BaseCoreEntity):
     """Claims the shared class."""
 
@@ -117,7 +111,7 @@ class FirstClaimHeadCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Second claim", resource=GlobalStorage)
+@entity(description="Second claim", domain=GlobalDomain)
 class SecondClaimHeadCoreEntity(BaseCoreEntity):
     """Claims the same class through its own axis."""
 
@@ -144,7 +138,7 @@ def test_a_class_in_two_unions_is_refused_by_the_claim_not_by_a_symptom() -> Non
 
 
 @exclude_graph_model
-@entity(description="Named alternative", resource=GlobalStorage)
+@entity(description="Named alternative", domain=GlobalDomain)
 class NamedAlternativeSpecEntity(BaseSpecEntity):
     """The class the head actually names."""
 
@@ -156,7 +150,7 @@ class NamedAlternativeSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Intruder", resource=GlobalStorage)
+@entity(description="Intruder", domain=GlobalDomain)
 class IntruderSpecEntity(BaseSpecEntity):
     """Points at the head without being one of its alternatives."""
 
@@ -165,7 +159,7 @@ class IntruderSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Closed head", resource=GlobalStorage)
+@entity(description="Closed head", domain=GlobalDomain)
 class ClosedHeadCoreEntity(BaseCoreEntity):
     """Names one alternative, and something else points at it."""
 
@@ -199,7 +193,7 @@ def test_the_named_alternative_itself_is_not_reported_as_an_intruder() -> None:
 
 
 @exclude_graph_model
-@entity(description="Self kind", resource=GlobalStorage)
+@entity(description="Self kind", domain=GlobalDomain)
 class _SelfKindEnumEntity(BaseEnumEntity):
     """One value, so the cycle rule is what reports the case."""
 
@@ -207,7 +201,7 @@ class _SelfKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Self cycle", resource=GlobalStorage)
+@entity(description="Self cycle", domain=GlobalDomain)
 class SelfCycleSpecEntity(BaseSpecEntity):
     """Names itself as its own alternative."""
 
@@ -227,7 +221,7 @@ def test_a_head_naming_itself_is_refused_as_a_cycle() -> None:
 
 
 @exclude_graph_model
-@entity(description="Cycle A", resource=GlobalStorage)
+@entity(description="Cycle A", domain=GlobalDomain)
 class CycleASpecEntity(BaseSpecEntity):
     """Names B as its alternative."""
 
@@ -239,7 +233,7 @@ class CycleASpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Cycle B", resource=GlobalStorage)
+@entity(description="Cycle B", domain=GlobalDomain)
 class CycleBSpecEntity(BaseSpecEntity):
     """Names A as its alternative."""
 

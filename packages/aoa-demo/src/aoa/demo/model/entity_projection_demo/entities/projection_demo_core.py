@@ -18,14 +18,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, Inverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.entity_projection_demo.domain import EntityProjectionDemoDomain
 from aoa.demo.model.entity_projection_demo.entities.projection_demo_lifecycle import (
     ProjectionDemoCustomerLifecycle,
     ProjectionDemoOrderLifecycle,
 )
-from aoa.demo.model.entity_projection_demo.resources.storage import EntityProjectionDemoStorage
 
 
-@entity(description="Demo storefront customer", resource=EntityProjectionDemoStorage)
+@entity(description="Demo storefront customer", domain=EntityProjectionDemoDomain)
 class ProjectionDemoCustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     lifecycle: ProjectionDemoCustomerLifecycle = Field(description="Customer lifecycle")
@@ -35,12 +35,10 @@ class ProjectionDemoCustomerCoreEntity(BaseCoreEntity):
     orders: Annotated[
         AssociationMany[ProjectionDemoOrderCoreEntity],
         Inverse(ProjectionDemoOrderCoreEntity, "customer"),
-    ] = Field(
-        description="Orders for this customer"
-    )
+    ] = Field(description="Orders for this customer")
 
 
-@entity(description="Demo storefront order", resource=EntityProjectionDemoStorage)
+@entity(description="Demo storefront order", domain=EntityProjectionDemoDomain)
 class ProjectionDemoOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     lifecycle: ProjectionDemoOrderLifecycle = Field(description="Order lifecycle")
@@ -50,9 +48,7 @@ class ProjectionDemoOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[ProjectionDemoCustomerCoreEntity],
         Inverse(ProjectionDemoCustomerCoreEntity, "orders"),
-    ] = Field(
-        description="Buyer"
-    )
+    ] = Field(description="Buyer")
 
 
 ProjectionDemoCustomerCoreEntity.model_rebuild()

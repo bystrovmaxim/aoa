@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorCoreEntity
-from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Credential rotation bookkeeping for a person and phone factor", resource=IdentityStorage)
+@entity(description="Credential rotation bookkeeping for a person and phone factor", domain=IdentityDomain)
 class IdentityCredentialRotationStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Stub id")
     lifecycle: IdentityDenseLifecycle = Field(description="Rotation stub lifecycle")
@@ -27,16 +27,12 @@ class IdentityCredentialRotationStubCoreEntity(BaseCoreEntity):
     phone_factor: Annotated[
         AssociationOne[IdentityPhoneFactorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream phone factor row"
-    )
+    ] = Field(description="Upstream phone factor row")
 
     person: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Credential owner"
-    )
+    ] = Field(description="Credential owner")
 
 
 IdentityCredentialRotationStubCoreEntity.model_rebuild()

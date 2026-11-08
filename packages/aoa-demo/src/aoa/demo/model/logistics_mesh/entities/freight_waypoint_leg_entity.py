@@ -7,10 +7,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.logistics_mesh.resources.storage import LogisticsMeshStorage
+from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
 
 
-@entity(description="Facility relay hop with synthetic mileage + dwell metrics", resource=LogisticsMeshStorage)
+@entity(description="Facility relay hop with synthetic mileage + dwell metrics", domain=LogisticsMeshDomain)
 class FreightWaypointLegCoreEntity(BaseCoreEntity):
     waypoint_id: str = Field(description="Hop surrogate identifier")
     mode_stub: str = Field(description="dray | linehaul_short | shuttle")

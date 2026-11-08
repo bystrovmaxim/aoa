@@ -38,7 +38,6 @@ _IMPORTS = textwrap.dedent(
         value,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
-    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
         validate_entity_role_compatibility,
     )
@@ -50,13 +49,8 @@ _IMPORTS = textwrap.dedent(
         description = "Adversarial"
 
 
-    @meta(description="Where AdvStorage keeps its rows")
-    class AdvDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the adv entities", domain=AdvDomain)
-    class AdvStorage(BaseStorage[AdvDataSource]):
+    @meta(description="Stores the adv entities")
+    class AdvStorage(BaseStorage):
         pass
     """
 )
@@ -71,14 +65,14 @@ def _run(body: str) -> str:
 def _run_pair(container_a: str, container_b: str) -> str:
     """Declare one reciprocal ordinary pair in a fresh process and return its verdict."""
     body = f"""
-        @entity(description="First", resource=AdvStorage)
+        @entity(description="First", domain=AdvDomain)
         class FirstCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             second: Annotated[{container_a}[SecondCoreEntity], Inverse(field_name="first")] = Field(
                 description="Second"
             )
 
-        @entity(description="Second", resource=AdvStorage)
+        @entity(description="Second", domain=AdvDomain)
         class SecondCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             first: Annotated[{container_b}[FirstCoreEntity], Inverse(field_name="second")] = Field(
@@ -117,11 +111,11 @@ def _run_valid_axis() -> str:
     """Declare a complete valid classified axis and return its verdict."""
     return _run(
         """
-        @entity(description="Kind", resource=AdvStorage)
+        @entity(description="Kind", domain=AdvDomain)
         class KindEnumEntity(BaseEnumEntity):
             FIRST = value(code="first", display_name="First")
 
-        @entity(description="Head", resource=AdvStorage)
+        @entity(description="Head", domain=AdvDomain)
         class HeadCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             pressing: Annotated[
@@ -129,7 +123,7 @@ def _run_valid_axis() -> str:
                 Inverse(field_name="record"),
             ] = Field(description="Details")
 
-        @entity(description="Alt", resource=AdvStorage)
+        @entity(description="Alt", domain=AdvDomain)
         class AltSpecEntity(BaseSpecEntity):
             id: str = Field(description="Identifier")
             record: Annotated[
@@ -153,12 +147,12 @@ def _run_generalization_pair() -> str:
     """Declare two Generalization fields pointing at each other and return the verdict."""
     return _run(
         """
-        @entity(description="A", resource=AdvStorage)
+        @entity(description="A", domain=AdvDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[Generalization[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", resource=AdvStorage)
+        @entity(description="B", domain=AdvDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[Generalization[ACoreEntity], Inverse(field_name="b")] = Field(description="A")

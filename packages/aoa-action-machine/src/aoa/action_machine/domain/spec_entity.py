@@ -15,7 +15,7 @@ package, one file each, and the entity base holds the hierarchy rules.
 USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="Organisation-specific counterparty data", resource=ShopDatabase)
+    @entity(description="Organisation-specific counterparty data", domain=ShopDomain)
     class OrganisationSpecEntity(BaseSpecEntity):
         id: str = Field(description="The head counterparty identifier")
         registration: str = Field(description="Registration number")

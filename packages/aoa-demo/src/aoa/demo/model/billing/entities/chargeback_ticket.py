@@ -7,25 +7,22 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
 from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceCoreEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 
 
-@entity(description="Chargeback case opened on payment-event", resource=BillingWarehouseStorage)
+@entity(description="Chargeback case opened on payment-event", domain=BillingDomain)
 class ChargebackTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ticket id")
     lifecycle: BillingDenseLifecycle = Field(description="Dispute lifecycle")
 
-
     interchange_assessment_slice: Annotated[
         AssociationOne[InterchangeAssessmentSliceCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Associated interchange assessment economics slice"
-    )
+    ] = Field(description="Associated interchange assessment economics slice")
 
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
@@ -37,9 +34,7 @@ class ChargebackTicketCoreEntity(BaseCoreEntity):
     tax_remit_advice: Annotated[
         AssociationOne[TaxRemittanceAdviceCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Associated tax remittance advice stub row"
-    )
+    ] = Field(description="Associated tax remittance advice stub row")
 
     issuer_case_id: str = Field(description="Issuer or acquirer case identifier")
     network_reason_code: str = Field(description="Network standardized dispute reason code")

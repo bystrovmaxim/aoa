@@ -7,10 +7,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseDetailEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.catalog_custody.resources.storage import CatalogCustodyStorage
+from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustodyDomain
 
 
-@entity(description="Canonical regulated SKU custody row", resource=CatalogCustodyStorage)
+@entity(description="Canonical regulated SKU custody row", domain=CatalogCustodyDomain)
 class RegulatedStockKeepingUnitRowDetailEntity(BaseDetailEntity):
     sku_code: str = Field(description="Trade item identifier under custody regime")
     custody_tier: str = Field(description="Regulatory posture bucket (cold chain, pharma, DG, ... )")

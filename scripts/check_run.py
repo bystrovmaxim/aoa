@@ -88,10 +88,10 @@ JOBS_VARIABLE = "AOA_CHECK_JOBS"
 STOP_GRACE_SECONDS = 5.0
 POLL_SECONDS = 0.05
 GRAPH_WRITE = "Graph files (graph-builder write)"
-# graph-builder from Maxitor 3.22.0, which reads protocol 1.8, taken from gnomon at the commit that merged it: no
-# release is needed to move it, only this commit. It runs in an environment of its own, so it never meets this
-# repository's workspace packages. CI's graph-builder action is pinned to the same commit.
-GRAPH_BUILDER = 'uvx --from "git+https://github.com/bystrovmaxim/gnomon@9ecc198834cc7df462a729f751ddf4870874cc35#subdirectory=packages/maxitor" graph-builder'
+# graph-builder from the gnomon commit that reads protocol 2.0, taken at the commit that merged it: no release is
+# needed to move it, only this commit. It runs in an environment of its own, so it never meets this repository's
+# workspace packages. CI's graph-builder action is pinned to the same commit.
+GRAPH_BUILDER = 'uvx --from "git+https://github.com/bystrovmaxim/gnomon@5d9dac89617aef08ea508988ce9106c1d82d8285#subdirectory=packages/maxitor" graph-builder'
 PACKAGES = (
     "packages/aoa-action-machine",
     "packages/aoa-ocel",

@@ -17,14 +17,20 @@ ARCHITECTURE / DATA FLOW
 
     Domain actions and entities -> StorefrontSessionCacheStorage -> SqlStorage contract
 """
+
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlStorage
-from aoa.demo.model.data_sources.session_cache_data_source import SessionCacheDataSource
-from aoa.demo.model.store.store_domain import StoreDomain
+from aoa.demo.model.store.entities.store_cart_merge_trace import CartMergeTraceCoreEntity
+from aoa.demo.model.store.entities.store_order_risk_score import OrderRiskScoreCoreEntity
 
 
-@meta(description="Session cache (stub)", domain=StoreDomain)
-class StorefrontSessionCacheStorage(SqlStorage[SessionCacheDataSource]):
+@meta(description="Session cache (stub)")
+@entities(
+    CartMergeTraceCoreEntity,
+    OrderRiskScoreCoreEntity,
+)
+class StorefrontSessionCacheStorage(SqlStorage):
     """
     AI-CORE-BEGIN
     ROLE: Database-free storage for the demo domain.
@@ -32,6 +38,7 @@ class StorefrontSessionCacheStorage(SqlStorage[SessionCacheDataSource]):
     INVARIANTS: The class retains its Storage kind and domain metadata.
     AI-CORE-END
     """
+
     def __init__(self, rollup: bool = False) -> None:
         """Preserve the SQL contract’s rollup configuration."""
         super().__init__(rollup=rollup)

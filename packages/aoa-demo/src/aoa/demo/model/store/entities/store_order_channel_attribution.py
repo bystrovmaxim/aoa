@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Order channel attribution facet", resource=StorefrontDatabaseStorage)
+@entity(description="Order channel attribution facet", domain=StoreDomain)
 class OrderChannelAttributionCoreEntity(BaseCoreEntity):
     id: str = Field(description="OrderChannelAttributionCoreEntity id")
     lifecycle: SalesOrderLifecycle = Field(description="OrderChannelAttributionCoreEntity lifecycle")
@@ -26,9 +26,7 @@ class OrderChannelAttributionCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent sales order anchor"
-    )
+    ] = Field(description="Parent sales order anchor")
 
 
 OrderChannelAttributionCoreEntity.model_rebuild()

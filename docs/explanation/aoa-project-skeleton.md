@@ -25,7 +25,7 @@ The rest of the parts are built up around these operations:
 
 - transport is plugged in through adapters;
 - external dependencies are declared as ports;
-- data sources hide behind `Resource`;
+- databases and services hide behind `Resource`, which lists the entities it answers with;
 - domain objects are described as `Entity`;
 - observability is wired in through plugins;
 - tests assemble a different environment around the same operation;

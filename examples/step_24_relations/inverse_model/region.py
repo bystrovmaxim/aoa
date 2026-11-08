@@ -9,13 +9,13 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, Inverse
 from aoa.action_machine.intents.entity import entity
 
-from .domain import CrossModuleStorage
+from .domain import CrossModuleDomain
 
 if TYPE_CHECKING:
     from .offer import OfferCoreEntity
 
 
-@entity(description="Region", resource=CrossModuleStorage)
+@entity(description="Region", domain=CrossModuleDomain)
 class RegionCoreEntity(BaseCoreEntity):
     """Name the reverse field without a class-valued marker."""
 

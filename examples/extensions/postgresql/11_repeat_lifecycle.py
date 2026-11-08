@@ -7,15 +7,11 @@ Run: uv run python examples/extensions/postgresql/11_repeat_lifecycle.py
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 
 
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
-
-
-class ExampleStorage(PostgresStorage[ExampleDataSource]):
-    """A PostgreSQL resource that works through the example's data source."""
+class ExampleStorage(PostgresStorage):
+    """A PostgreSQL resource that works through the example's pool."""
 
 
 class RecordingConnection:
@@ -71,7 +67,7 @@ class RecordingPool:
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    db = ExampleStorage(data_source=ExampleDataSource(pool=pool))
+    db = ExampleStorage(pool=PostgresPool(pool=pool))
     await db.open()
     await db.open()
     assert len(pool.held) == 1

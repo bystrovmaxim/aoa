@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import ClinicalConsumableSkuCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_packing_anchor import ClinicalPackingAnchorCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
-from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Inbound partner lot keyed to SKU and packing posture (supply row analogue)",
-    resource=ClinicalSupplyStorage,
+    domain=ClinicalSupplyDomain,
 )
 class ClinicalInboundShipmentTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Inbound ticket id")
@@ -31,23 +31,17 @@ class ClinicalInboundShipmentTicketCoreEntity(BaseCoreEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Fulfillment partner"
-    )
+    ] = Field(description="Fulfillment partner")
 
     consumable_row: Annotated[
         AssociationOne[ClinicalConsumableSkuCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Shipped SKU master"
-    )
+    ] = Field(description="Shipped SKU master")
 
     packing_anchor: Annotated[
         AssociationOne[ClinicalPackingAnchorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Lot packing profile"
-    )
+    ] = Field(description="Lot packing profile")
 
 
 ClinicalInboundShipmentTicketCoreEntity.model_rebuild()

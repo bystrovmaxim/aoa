@@ -45,7 +45,6 @@ from typing import Any
 
 from starlette.websockets import WebSocket
 
-from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_controller import BaseController
 
@@ -53,14 +52,7 @@ from aoa.action_machine.resources.base_controller import BaseController
 CLIENT_TOO_SLOW = 4008
 
 
-class TransportDomain(BaseDomain):
-    """Domain of the transport resources the FastAPI adapter hands to actions."""
-
-    name = "transport"
-    description = "Resources the FastAPI adapter creates for one connection"
-
-
-@meta(description="One WebSocket connection an action can send events through", domain=TransportDomain)
+@meta(description="One WebSocket connection an action can send events through")
 class SocketChannelController(BaseController):
     """
     AI-CORE-BEGIN

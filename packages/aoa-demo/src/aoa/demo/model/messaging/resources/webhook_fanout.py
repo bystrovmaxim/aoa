@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.messaging.domain import MessagingDomain
 
 
 class WebhookFanoutClient:
@@ -13,7 +12,6 @@ class WebhookFanoutClient:
 
 @meta(
     description="Webhook fan-out gateway (stub)",
-    domain=MessagingDomain,
 )
 class WebhookFanoutGateway(BaseGateway):
     """The gateway to the webhook fan-out: its methods are what the domain asks of it."""

@@ -45,6 +45,7 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
@@ -78,7 +79,8 @@ class AdminRole(ApplicationRole):
     description = "Full administrative access."
 
 
-@meta(description="Transport to the user credential store.", domain=AuthDomain)
+@meta(description="Transport to the user credential store.")
+@entities()
 class UserStoreStorage(BaseStorage):
     def __init__(self, users: dict[str, tuple[str, list[str]]]) -> None:
         self._users = users

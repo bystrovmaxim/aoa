@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
-from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
-@entity(description="Planogram spine root — no SKU foreign key (merchant-only subtree)", resource=CatalogObjectStoreStorage)
+@entity(description="Planogram spine root — no SKU foreign key (merchant-only subtree)", domain=CatalogDomain)
 class ShelfPlacementHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hint id")
     lifecycle: CatalogDenseLifecycle = Field(description="Shelf placement lifecycle")

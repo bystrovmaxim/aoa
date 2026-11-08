@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_scenario_sheet import AssuranceScenarioSheetCoreEntity
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Ordered choreography line within scenario sheet (step analogue)", resource=AssurancePortfolioStorage)
+@entity(description="Ordered choreography line within scenario sheet (step analogue)", domain=AssurancePortfolioDomain)
 class AssuranceScenarioInstructionLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Instruction line id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Instruction lifecycle")
@@ -26,9 +26,7 @@ class AssuranceScenarioInstructionLineDetailEntity(BaseDetailEntity):
     scenario_sheet: Annotated[
         AssociationOne[AssuranceScenarioSheetCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent scenario sheet"
-    )
+    ] = Field(description="Parent scenario sheet")
 
 
 AssuranceScenarioInstructionLineDetailEntity.model_rebuild()

@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Payment authorization row", resource=StorefrontDatabaseStorage)
+@entity(description="Payment authorization row", domain=StoreDomain)
 class PaymentAuthorizationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Authorization id")
     lifecycle: SalesOrderLifecycle = Field(description="Authorization lifecycle")
@@ -26,9 +26,7 @@ class PaymentAuthorizationCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Authorized order"
-    )
+    ] = Field(description="Authorized order")
 
 
 PaymentAuthorizationCoreEntity.model_rebuild()

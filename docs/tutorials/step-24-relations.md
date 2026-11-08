@@ -57,7 +57,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.intents.entities import entities
 
 
 class ShopDomain(BaseDomain):
@@ -65,17 +65,7 @@ class ShopDomain(BaseDomain):
     description = "Shop domain"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer account", resource=ShopStorage)
+@entity(description="Customer account", domain=ShopDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     name: str = Field(description="Display name")
@@ -86,7 +76,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Field(description="Orders placed by this customer")
 
 
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(ge=0, description="Order total")
@@ -104,7 +94,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Field(description="Line items of the order")
 
 
-@entity(description="Single line of an order", resource=ShopStorage)
+@entity(description="Single line of an order", domain=ShopDomain)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line id")
     sku: str = Field(description="Product code")
@@ -113,6 +103,16 @@ class OrderLineDetailEntity(BaseDetailEntity):
         AssociationOne[OrderCoreEntity],
         Inverse(OrderCoreEntity, "lines"),
     ] = Field(description="Parent order")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    CustomerCoreEntity,
+    OrderCoreEntity,
+    OrderLineDetailEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 CustomerCoreEntity.model_rebuild()
@@ -268,7 +268,7 @@ from aoa.action_machine.graph.validators.entity_inverse_validator import validat
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.intents.entities import entities
 
 
 class DirectionDomain(BaseDomain):
@@ -278,49 +278,51 @@ class DirectionDomain(BaseDomain):
     description = "Reciprocal directions"
 
 
-@meta(description="Where DirectionStorage keeps its rows")
-class DirectionDataSource(InMemoryDataSource):
-    """The store DirectionStorage works with."""
-
-
-@meta(description="Stores the direction entities", domain=DirectionDomain)
-class DirectionStorage(BaseStorage[DirectionDataSource]):
-    """Hold the direction entities."""
-
-
-@entity(description="Offer", resource=DirectionStorage)
+@entity(description="Offer", domain=DirectionDomain)
 class OfferCoreEntity(BaseCoreEntity):
     """Collect the regions offering this product."""
 
     regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="offer")] = Field(description="Regions")
 
 
-@entity(description="Region", resource=DirectionStorage)
+@entity(description="Region", domain=DirectionDomain)
 class RegionCoreEntity(BaseCoreEntity):
     """Name the opposite endpoint explicitly."""
 
     offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
 
 
-@entity(description="One-way bookmark", resource=DirectionStorage)
+@entity(description="One-way bookmark", domain=DirectionDomain)
 class BookmarkCoreEntity(BaseCoreEntity):
     """Keep an intentional unpaired link."""
 
     offer: Annotated[AssociationOne[OfferCoreEntity], NoInverse()] = Field(description="Bookmarked offer")
 
 
-@entity(description="Old reverse endpoint", resource=DirectionStorage)
+@entity(description="Old reverse endpoint", domain=DirectionDomain)
 class OldOfferCoreEntity(BaseCoreEntity):
     """Keep the previous unpaired reverse declaration."""
 
     regions: Annotated[AssociationMany[OldRegionCoreEntity], NoInverse()] = Field(description="Regions")
 
 
-@entity(description="Old forward endpoint", resource=DirectionStorage)
+@entity(description="Old forward endpoint", domain=DirectionDomain)
 class OldRegionCoreEntity(BaseCoreEntity):
     """Demonstrate the one-sided inverse refusal."""
 
     offer: Annotated[AssociationOne[OldOfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
+
+
+@meta(description="Stores the direction entities")
+@entities(
+    OfferCoreEntity,
+    RegionCoreEntity,
+    BookmarkCoreEntity,
+    OldOfferCoreEntity,
+    OldRegionCoreEntity,
+)
+class DirectionStorage(BaseStorage):
+    """Hold the direction entities."""
 
 
 for model in (OfferCoreEntity, RegionCoreEntity, OldOfferCoreEntity, OldRegionCoreEntity):
@@ -423,7 +425,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.intents.entities import entities
 
 
 class MusicDomain(BaseDomain):
@@ -433,17 +435,7 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
-@meta(description="Where MusicStorage keeps its rows")
-class MusicDataSource(InMemoryDataSource):
-    """The store MusicStorage works with."""
-
-
-@meta(description="Stores the music entities", domain=MusicDomain)
-class MusicStorage(BaseStorage[MusicDataSource]):
-    """Hold the music entities."""
-
-
-@entity(description="Kind of VinylRecordCoreEntity", resource=MusicStorage)
+@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -452,7 +444,7 @@ class VinylRecordKindEnumEntity(BaseEnumEntity):
     TEST = value(code="test", display_name="Test")
 
 
-@entity(description="Vinyl record", resource=MusicStorage)
+@entity(description="Vinyl record", domain=MusicDomain)
 class VinylRecordCoreEntity(BaseCoreEntity):
     """Describe the information shared by all pressings."""
 
@@ -464,7 +456,7 @@ class VinylRecordCoreEntity(BaseCoreEntity):
     ] = Field(description="Details of this pressing")
 
 
-@entity(description="First pressing", resource=MusicStorage)
+@entity(description="First pressing", domain=MusicDomain)
 class FirstPressSpecEntity(BaseSpecEntity):
     """Describe the stamper used for a first pressing."""
 
@@ -477,7 +469,7 @@ class FirstPressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Re-pressing", resource=MusicStorage)
+@entity(description="Re-pressing", domain=MusicDomain)
 class RepressSpecEntity(BaseSpecEntity):
     """Describe when an album was pressed again."""
 
@@ -490,7 +482,7 @@ class RepressSpecEntity(BaseSpecEntity):
     ] = Field(description="Record described by this pressing")
 
 
-@entity(description="Test pressing", resource=MusicStorage)
+@entity(description="Test pressing", domain=MusicDomain)
 class TestPressSpecEntity(BaseSpecEntity):
     """Describe who approved a test pressing."""
 
@@ -501,6 +493,18 @@ class TestPressSpecEntity(BaseSpecEntity):
         Classifier(variant=VinylRecordKindEnumEntity.TEST),
         Inverse(VinylRecordCoreEntity, "pressing"),
     ] = Field(description="Record described by this pressing")
+
+
+@meta(description="Stores the music entities")
+@entities(
+    VinylRecordKindEnumEntity,
+    VinylRecordCoreEntity,
+    FirstPressSpecEntity,
+    RepressSpecEntity,
+    TestPressSpecEntity,
+)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
 
 
 for model in (VinylRecordCoreEntity, FirstPressSpecEntity, RepressSpecEntity, TestPressSpecEntity):
@@ -609,31 +613,29 @@ Descriptions and defaults are checked for ownership relations, specializations a
 
 Specialization and Generalization require Inverse on both endpoints. NoInverse is refused on either specialized field. Ordinary reciprocal pairs are also checked against the endpoint-role matrix during model assembly.
 
-## A relation joins entities of any data sources
+## A relation joins entities of any databases
 
-A relation is a fact of the model: it says two entities are related and promises no foreign key, no join and no shared transaction. So it may join entities of any resources and any data sources — an association, an aggregation or a composition from either side, an inverse side, a specialization, a generalization and a dictionary field alike. In exchange every entity has a physical place: it names the resource that stores it ([step 22](step-22-entity.md#store-the-entity-in-the-resource-that-holds-it)), and that resource names its data source ([step 21](step-21-resource.md#resources-of-one-database-share-a-data-source)).
+A relation is a fact of the model: it says two entities are related and promises no foreign key, no join and no shared transaction. So it may join entities of any databases — an association, an aggregation or a composition from either side, an inverse side, a specialization, a generalization and a dictionary field alike. An entity names only its domain ([step 22](step-22-entity.md#name-the-domain-of-an-entity)); the database that holds it lists it ([step 21](step-21-resource.md#a-resource-is-a-database)).
 
-Two resources of one database, one per domain, relate their entities:
+Two domains whose entities lie in one database share one resource, and their entities relate:
 
-[Script](../../examples/step_24_relations/75_relation_inside_one_data_source.py) · [Notebook](../../examples/step_24_relations/75_relation_inside_one_data_source.ipynb)
+[Script](../../examples/step_24_relations/75_relation_inside_one_database.py) · [Notebook](../../examples/step_24_relations/75_relation_inside_one_database.ipynb)
 
 ```text
-resource_data_source: OrdersStorage -> ShopDataSource
-resource_data_source: SupportStorage -> ShopDataSource
+resource_entity: ShopDatabaseStorage -> SalesOrderCoreEntity
+resource_entity: ShopDatabaseStorage -> SupportTicketCoreEntity
 entity_relation: SupportTicketCoreEntity -> SalesOrderCoreEntity
 ```
 
-Two resources of two databases relate their entities just the same:
+Two databases relate their entities just the same:
 
 [Script](../../examples/step_24_relations/74_relation_across_resources.py) · [Notebook](../../examples/step_24_relations/74_relation_across_resources.ipynb)
 
 ```text
-resource_data_source: StorefrontDatabase -> StorefrontDataSource
-resource_data_source: SupportDatabase -> SupportDataSource
 entity_relation: SupportTicketCoreEntity -> SalesOrderCoreEntity
 ```
 
-How a relation across two databases is read or kept consistent is the actions' business, not the model's. The model build refuses a resource that stores an entity and names no data source, and two resources of one domain on one data source; the graph build checks both again on the finished graph, so a graph that breaks them is never written.
+How a relation across two databases is read or kept consistent is the actions' business, not the model's: each database answers only with its own entities ([the check on return](step-21-resource.md#the-machine-checks-what-a-resource-returns)), a relation that leaves it comes back as a reference, and an action glues the data of the two.
 
 ## Endpoint role compatibility
 

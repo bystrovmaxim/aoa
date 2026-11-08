@@ -34,7 +34,6 @@ _IMPORTS = textwrap.dedent(
         Inverse,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
-    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
         validate_entity_role_compatibility,
     )
@@ -46,13 +45,8 @@ _IMPORTS = textwrap.dedent(
         description = "Compatibility"
 
 
-    @meta(description="Where CompatStorage keeps its rows")
-    class CompatDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the compat entities", domain=CompatDomain)
-    class CompatStorage(BaseStorage[CompatDataSource]):
+    @meta(description="Stores the compat entities")
+    class CompatStorage(BaseStorage):
         pass
     """
 )
@@ -61,14 +55,14 @@ _IMPORTS = textwrap.dedent(
 def _run_pair(container_a: str, container_b: str) -> str:
     """Declare one reciprocal pair in a fresh process and return its verdict."""
     body = f"""
-        @entity(description="First", resource=CompatStorage)
+        @entity(description="First", domain=CompatDomain)
         class FirstCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             second: Annotated[{container_a}[SecondCoreEntity], Inverse(field_name="first")] = Field(
                 description="Second"
             )
 
-        @entity(description="Second", resource=CompatStorage)
+        @entity(description="Second", domain=CompatDomain)
         class SecondCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             first: Annotated[{container_b}[FirstCoreEntity], Inverse(field_name="second")] = Field(

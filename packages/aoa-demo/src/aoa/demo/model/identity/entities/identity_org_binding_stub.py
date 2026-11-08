@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.domain import IdentityDomain
 from aoa.demo.model.identity.entities.id_dense_lifecycle import IdentityDenseLifecycle
 from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageCoreEntity
 from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
-from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
 
 
-@entity(description="Organization binding for a person through a federated linkage", resource=IdentityStorage)
+@entity(description="Organization binding for a person through a federated linkage", domain=IdentityDomain)
 class IdentityOrgBindingStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Binding id")
     lifecycle: IdentityDenseLifecycle = Field(description="Org binding lifecycle")
@@ -27,16 +27,12 @@ class IdentityOrgBindingStubCoreEntity(BaseCoreEntity):
     federated_linkage: Annotated[
         AssociationOne[IdentityFederatedLinkageCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent federated linkage row"
-    )
+    ] = Field(description="Parent federated linkage row")
 
     person: Annotated[
         AssociationOne[IdentityPersonHubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Bound person identity"
-    )
+    ] = Field(description="Bound person identity")
 
 
 IdentityOrgBindingStubCoreEntity.model_rebuild()

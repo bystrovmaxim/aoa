@@ -36,7 +36,7 @@ from aoa.action_machine.runtime.cache_entry import CacheEntry
 from aoa.action_machine.runtime.cache_tag import CacheTag
 from aoa.action_machine.runtime.tools_box import ToolsBox
 
-from .domain_model.domains import OrdersDomain, OrdersStorage
+from .domain_model.domains import OrdersDomain
 
 DATABASE: dict[str, dict[str, object]] = {}
 RUNS: dict[str, int] = {}
@@ -56,7 +56,7 @@ def _ran(action: str) -> None:
     RUNS[action] = RUNS.get(action, 0) + 1
 
 
-@entity(description="A shop order, cached entity by entity", resource=OrdersStorage)
+@entity(description="A shop order, cached entity by entity", domain=OrdersDomain)
 class ShopOrderCoreEntity(BaseCoreEntity):
     """An order."""
 
@@ -64,7 +64,7 @@ class ShopOrderCoreEntity(BaseCoreEntity):
     total: float = Field(description="Total")
 
 
-@entity(description="A shop customer, owner of a list", resource=OrdersStorage)
+@entity(description="A shop customer, owner of a list", domain=OrdersDomain)
 class ShopCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 

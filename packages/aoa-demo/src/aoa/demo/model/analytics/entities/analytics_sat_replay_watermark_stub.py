@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_metric_rollup_staging import AnalyticsMetricRollupStagingCoreEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Replay watermark on rollup staging egress (orthogonal to DQ branch)", resource=AnalyticsStorage)
+@entity(description="Replay watermark on rollup staging egress (orthogonal to DQ branch)", domain=AnalyticsDomain)
 class ReplayWatermarkStubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Watermark id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Watermark lifecycle")
@@ -26,9 +26,7 @@ class ReplayWatermarkStubCoreEntity(BaseCoreEntity):
     rollup_staging: Annotated[
         AssociationOne[AnalyticsMetricRollupStagingCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning rollup staging row"
-    )
+    ] = Field(description="Owning rollup staging row")
 
 
 ReplayWatermarkStubCoreEntity.model_rebuild()

@@ -8,6 +8,7 @@ Run: uv run python examples/how_to/06_custom_resource.py
 import asyncio
 
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.connection_scope import connection_scope
@@ -19,7 +20,8 @@ class NotesDomain(BaseDomain):
     name = "notes"
     description = "Notes transport"
 
-@meta(description="Append notes to a supplied store", domain=NotesDomain)
+@meta(description="Append notes to a supplied store")
+@entities()
 class NotesStorage(BaseStorage):
     """Expose storage access with an explicit usable interval."""
     def __init__(self, storage, events):

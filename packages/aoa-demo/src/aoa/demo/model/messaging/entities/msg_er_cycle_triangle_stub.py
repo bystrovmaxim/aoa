@@ -22,7 +22,7 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
+from aoa.demo.model.messaging.domain import MessagingDomain
 
 
 class _MsgDirectedCycleSketchStateEntity(BaseStateEntity):
@@ -34,17 +34,22 @@ class _MsgDirectedCycleSketchStateEntity(BaseStateEntity):
     SETTLED = value(code="settled", display_name="Settled", sort_order=2)
 
 
-
 class _MsgDirectedCycleSketchLifecycle(Lifecycle[_MsgDirectedCycleSketchStateEntity]):
     """Statuses and links of the _MsgDirectedCycleSketchLifecycle axis."""
 
-
-    _template = Lifecycle().state(_MsgDirectedCycleSketchStateEntity.OPEN).to(_MsgDirectedCycleSketchStateEntity.SETTLED).initial().state(_MsgDirectedCycleSketchStateEntity.SETTLED).final()
+    _template = (
+        Lifecycle()
+        .state(_MsgDirectedCycleSketchStateEntity.OPEN)
+        .to(_MsgDirectedCycleSketchStateEntity.SETTLED)
+        .initial()
+        .state(_MsgDirectedCycleSketchStateEntity.SETTLED)
+        .final()
+    )
 
 
 @entity(
     description="Messaging triangle hop A (\u2192B, \u2190C reciprocal)",
-    resource=OutboxPrimaryDatabaseStorage,
+    domain=MessagingDomain,
 )
 class MsgDirectedCycleTriangleACoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop A id")
@@ -59,21 +64,17 @@ class MsgDirectedCycleTriangleACoreEntity(BaseCoreEntity):
     follow_b: Annotated[
         AssociationOne[MsgDirectedCycleTriangleBCoreEntity],
         Inverse(MsgDirectedCycleTriangleBCoreEntity, "back_from_a"),
-    ] = Field(
-        description="Forward hop A\u2192B"
-    )
+    ] = Field(description="Forward hop A\u2192B")
 
     back_from_c: Annotated[
         AssociationOne[MsgDirectedCycleTriangleCCoreEntity],
         Inverse(MsgDirectedCycleTriangleCCoreEntity, "follow_a"),
-    ] = Field(
-        description="Return hop C\u2192A pair"
-    )
+    ] = Field(description="Return hop C\u2192A pair")
 
 
 @entity(
     description="Messaging triangle hop B (\u2190A / \u2192C reciprocal)",
-    resource=OutboxPrimaryDatabaseStorage,
+    domain=MessagingDomain,
 )
 class MsgDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop B id")
@@ -88,22 +89,17 @@ class MsgDirectedCycleTriangleBCoreEntity(BaseCoreEntity):
     back_from_a: Annotated[
         AssociationOne[MsgDirectedCycleTriangleACoreEntity],
         Inverse(MsgDirectedCycleTriangleACoreEntity, "follow_b"),
-    ] = Field(
-        description="Reciprocal B\u2192A"
-    )
+    ] = Field(description="Reciprocal B\u2192A")
 
     follow_c: Annotated[
         AssociationOne[MsgDirectedCycleTriangleCCoreEntity],
         Inverse(MsgDirectedCycleTriangleCCoreEntity, "back_from_b"),
-    ] = Field(
-        description="Forward hop B\u2192C"
-    )
-
+    ] = Field(description="Forward hop B\u2192C")
 
 
 @entity(
     description="Messaging triangle hop C (\u2190B / \u2192A reciprocal)",
-    resource=OutboxPrimaryDatabaseStorage,
+    domain=MessagingDomain,
 )
 class MsgDirectedCycleTriangleCCoreEntity(BaseCoreEntity):
     id: str = Field(description="Hop C id")
@@ -118,16 +114,12 @@ class MsgDirectedCycleTriangleCCoreEntity(BaseCoreEntity):
     back_from_b: Annotated[
         AssociationOne[MsgDirectedCycleTriangleBCoreEntity],
         Inverse(MsgDirectedCycleTriangleBCoreEntity, "follow_c"),
-    ] = Field(
-        description="Reciprocal C\u2192B"
-    )
+    ] = Field(description="Reciprocal C\u2192B")
 
     follow_a: Annotated[
         AssociationOne[MsgDirectedCycleTriangleACoreEntity],
         Inverse(MsgDirectedCycleTriangleACoreEntity, "back_from_c"),
-    ] = Field(
-        description="Forward hop C\u2192A"
-    )
+    ] = Field(description="Forward hop C\u2192A")
 
 
 MsgDirectedCycleTriangleACoreEntity.model_rebuild()

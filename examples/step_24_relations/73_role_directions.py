@@ -20,10 +20,10 @@ from aoa.action_machine.domain import (
     NoInverse,
 )
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class DirectionDomain(BaseDomain):
@@ -33,38 +33,28 @@ class DirectionDomain(BaseDomain):
     description = "Relationship directions"
 
 
-@meta(description="Where DirectionStorage keeps its rows")
-class DirectionDataSource(InMemoryDataSource):
-    """The store DirectionStorage works with."""
-
-
-@meta(description="Stores the direction entities", domain=DirectionDomain)
-class DirectionStorage(BaseStorage[DirectionDataSource]):
-    """Hold the direction entities."""
-
-
-@entity(description="Independent first object", resource=DirectionStorage)
+@entity(description="Independent first object", domain=DirectionDomain)
 class FirstCoreEntity(BaseCoreEntity):
     """Declare one link without claiming a reciprocal endpoint."""
 
     second: Annotated[CompositeMany[SecondCoreEntity], NoInverse()] = Field(description="Independent second links")
 
 
-@entity(description="Independent second object", resource=DirectionStorage)
+@entity(description="Independent second object", domain=DirectionDomain)
 class SecondCoreEntity(BaseCoreEntity):
     """Declare a different unpaired relationship back to the first type."""
 
     first: Annotated[AggregateOne[FirstCoreEntity], NoInverse()] = Field(description="Independent first link")
 
 
-@entity(description="Single bookmark", resource=DirectionStorage)
+@entity(description="Single bookmark", domain=DirectionDomain)
 class BookmarkCoreEntity(BaseCoreEntity):
     """Use NoInverse without any reverse declaration."""
 
     target: Annotated[AssociationOne[FirstCoreEntity], NoInverse()] = Field(description="Bookmarked object")
 
 
-@entity(description="Paired owner", resource=DirectionStorage)
+@entity(description="Paired owner", domain=DirectionDomain)
 class OwnerCoreEntity(BaseCoreEntity):
     """Name an explicit reciprocal endpoint."""
 
@@ -73,7 +63,7 @@ class OwnerCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Paired item", resource=DirectionStorage)
+@entity(description="Paired item", domain=DirectionDomain)
 class ItemCoreEntity(BaseCoreEntity):
     """Name the owner endpoint back."""
 
@@ -82,18 +72,32 @@ class ItemCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Unpaired reverse", resource=DirectionStorage)
+@entity(description="Unpaired reverse", domain=DirectionDomain)
 class UnpairedCoreEntity(BaseCoreEntity):
     """Remain unpaired even when another field points at this type."""
 
     source: Annotated[AssociationOne[SourceCoreEntity], NoInverse()] = Field(description="Unpaired source")
 
 
-@entity(description="Incorrectly paired source", resource=DirectionStorage)
+@entity(description="Incorrectly paired source", domain=DirectionDomain)
 class SourceCoreEntity(BaseCoreEntity):
     """Try to use an unpaired field as the reverse endpoint."""
 
     target: Annotated[AssociationOne[UnpairedCoreEntity], Inverse(field_name="source")] = Field(description="Target")
+
+
+@meta(description="Stores the direction entities")
+@entities(
+    FirstCoreEntity,
+    SecondCoreEntity,
+    BookmarkCoreEntity,
+    OwnerCoreEntity,
+    ItemCoreEntity,
+    UnpairedCoreEntity,
+    SourceCoreEntity,
+)
+class DirectionStorage(BaseStorage):
+    """Hold the direction entities."""
 
 
 for model in (FirstCoreEntity, SecondCoreEntity, OwnerCoreEntity, ItemCoreEntity, UnpairedCoreEntity, SourceCoreEntity):

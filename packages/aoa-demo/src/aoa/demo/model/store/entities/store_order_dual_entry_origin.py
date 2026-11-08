@@ -11,12 +11,12 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.store_dual_entry_lifecycle import StoreDualEntryLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(
     description="Trace row for orders that may originate online or as a walk-in quote (dual-entry demo)",
-    resource=StorefrontDatabaseStorage,
+    domain=StoreDomain,
 )
 class OrderDualEntryOriginTraceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Origin trace id")
@@ -31,9 +31,7 @@ class OrderDualEntryOriginTraceCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Related order aggregate for this origin trace"
-    )
+    ] = Field(description="Related order aggregate for this origin trace")
 
 
 OrderDualEntryOriginTraceCoreEntity.model_rebuild()

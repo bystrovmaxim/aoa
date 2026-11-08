@@ -12,7 +12,6 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_intent_resolver import EntityIntentResolver
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -21,22 +20,17 @@ class _TDomain(BaseDomain):
     description = "t"
 
 
-@meta(description="Where _TStorage keeps its rows")
-class _TDataSource(InMemoryDataSource):
-    """The store _TStorage works with."""
-
-
-@meta(description="Stores the t entities", domain=_TDomain)
-class _TStorage(BaseStorage[_TDataSource]):
+@meta(description="Stores the t entities")
+class _TStorage(BaseStorage):
     """Hold the t entities."""
 
 
-@entity(description="Target", resource=_TStorage)
+@entity(description="Target", domain=_TDomain)
 class _TargetAssocEntity(BaseAssocEntity):
     id: str
 
 
-@entity(description="Host", resource=_TStorage)
+@entity(description="Host", domain=_TDomain)
 class _HostAssocEntity(BaseAssocEntity):
     id: str
     other: Annotated[AssociationOne[_TargetAssocEntity], NoInverse()] = Field(

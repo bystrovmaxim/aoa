@@ -27,13 +27,14 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, ConsoleLogger
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
@@ -45,19 +46,17 @@ class RootDomain(BaseDomain):
     description = "Root domain"
 
 
-@meta(description="Where RootStorage keeps its rows")
-class RootDataSource(InMemoryDataSource):
-    """The store RootStorage works with."""
-
-
-@meta(description="Stores the root entities", domain=RootDomain)
-class RootStorage(BaseStorage[RootDataSource]):
-    """Hold the root entities."""
-
-
-@entity(description="Order", resource=RootStorage)
+@entity(description="Order", domain=RootDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order ID")
+
+
+@meta(description="Stores the root entities")
+@entities(
+    OrderCoreEntity,
+)
+class RootStorage(BaseStorage):
+    """Hold the root entities."""
 
 
 class OrderParams(BaseParams):

@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.catalog.domain import CatalogDomain
 
 
 class IndexSyncClient:
@@ -13,7 +12,6 @@ class IndexSyncClient:
 
 @meta(
     description="Search index sync gateway (stub)",
-    domain=CatalogDomain,
 )
 class IndexSyncGateway(BaseGateway):
     """The gateway to the search index: its methods are what the domain asks of it."""

@@ -56,7 +56,6 @@ from ..resources.identity_storage import IdentityStorage
 @check_roles(GuestRole)
 @connection(IdentityStorage, key="identity", description="Identity store, one connection per call")
 class IdentityLookupAction(BaseAction["IdentityLookupAction.Params", "IdentityLookupAction.Result"]):
-
     class Params(BaseParams):
         """Identity lookup input parameters."""
 

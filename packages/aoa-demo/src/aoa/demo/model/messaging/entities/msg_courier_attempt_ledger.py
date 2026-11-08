@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_batching_fence import BatchingFenceCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Courier ledger grafted onto reconciliation tail", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Courier ledger grafted onto reconciliation tail", domain=MessagingDomain)
 class CourierAttemptLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger id")
     lifecycle: MsgDenseLifecycle = Field(description="Courier ledger lifecycle")
@@ -26,9 +26,7 @@ class CourierAttemptLedgerCoreEntity(BaseCoreEntity):
     batching_fence: Annotated[
         AssociationOne[BatchingFenceCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning batch coordination fence row"
-    )
+    ] = Field(description="Owning batch coordination fence row")
 
 
 CourierAttemptLedgerCoreEntity.model_rebuild()

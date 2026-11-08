@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingPipelineLifecycle
 from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 if TYPE_CHECKING:
     from aoa.demo.model.billing.entities.billing_sat_fx_residual import FxResidualTagCoreEntity
     from aoa.demo.model.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleCoreEntity
 
 
-@entity(description="Parse pass artifact on ingest manifest", resource=BillingWarehouseStorage)
+@entity(description="Parse pass artifact on ingest manifest", domain=BillingDomain)
 class BillingParsePassCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parse pass id")
     lifecycle: BillingPipelineLifecycle = Field(description="Parse lifecycle")
@@ -24,23 +24,17 @@ class BillingParsePassCoreEntity(BaseCoreEntity):
     manifest: Annotated[
         AssociationOne[BillingFileIngestManifestCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Source manifest"
-    )
+    ] = Field(description="Source manifest")
 
     fx_residual_tag: Annotated[
         AssociationOne[FxResidualTagCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="FX residual tag linked to this parse pass"
-    )
+    ] = Field(description="FX residual tag linked to this parse pass")
 
     retrieval_evidence_bundle: Annotated[
         AssociationOne[RetrievalEvidenceBundleCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Retrieval evidence bundle associated with parse outcome"
-    )
+    ] = Field(description="Retrieval evidence bundle associated with parse outcome")
 
     parser_semver: str = Field(description="Parser implementation semantic version")
     pass_sequence_no: int = Field(description="Monotonic retry index for same manifest hash", ge=0)

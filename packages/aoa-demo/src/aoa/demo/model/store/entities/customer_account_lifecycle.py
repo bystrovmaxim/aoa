@@ -22,10 +22,8 @@ class CustomerAccountStateEntity(BaseStateEntity):
     CLOSED = value(code="closed", display_name="Closed", sort_order=3)
 
 
-
 class CustomerAccountLifecycle(Lifecycle[CustomerAccountStateEntity]):
     """Three states: provisioned → active → closed."""
-
 
     _template = (
         Lifecycle()

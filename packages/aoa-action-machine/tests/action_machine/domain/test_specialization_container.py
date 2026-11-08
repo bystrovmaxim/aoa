@@ -27,7 +27,6 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -38,18 +37,13 @@ class ContainerShopDomain(BaseDomain):
     description = "Container shop"
 
 
-@meta(description="Where ContainerShopStorage keeps its rows")
-class ContainerShopDataSource(InMemoryDataSource):
-    """The store ContainerShopStorage works with."""
-
-
-@meta(description="Stores the container shop entities", domain=ContainerShopDomain)
-class ContainerShopStorage(BaseStorage[ContainerShopDataSource]):
+@meta(description="Stores the container shop entities")
+class ContainerShopStorage(BaseStorage):
     """Hold the container shop entities."""
 
 
 @exclude_graph_model
-@entity(description="Edition kind", resource=ContainerShopStorage)
+@entity(description="Edition kind", domain=ContainerShopDomain)
 class ContainerEditionKindEnumEntity(BaseEnumEntity):
     """A closed dictionary the axis is classified by."""
 
@@ -60,7 +54,7 @@ class ContainerEditionKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Record", resource=ContainerShopStorage)
+@entity(description="Record", domain=ContainerShopDomain)
 class ContainerRecordCoreEntity(BaseCoreEntity):
     """The head whose field is the container."""
 
@@ -71,7 +65,7 @@ class ContainerRecordCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="First press", resource=ContainerShopStorage)
+@entity(description="First press", domain=ContainerShopDomain)
 class ContainerFirstPressSpecEntity(BaseSpecEntity):
     """The first-press extension."""
 
@@ -82,7 +76,7 @@ class ContainerFirstPressSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Repress", resource=ContainerShopStorage)
+@entity(description="Repress", domain=ContainerShopDomain)
 class ContainerRepressSpecEntity(BaseSpecEntity):
     """The repress extension."""
 

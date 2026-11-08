@@ -12,9 +12,9 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta.meta_decorator import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -25,21 +25,19 @@ class TestDomain(BaseDomain):
     description = "Test domain"
 
 
-@meta(description="Where TestStorage keeps its rows")
-class TestDataSource(InMemoryDataSource):
-    """The store TestStorage works with."""
-
-
-@meta(description="Stores the test entities", domain=TestDomain)
-class TestStorage(BaseStorage[TestDataSource]):
-    """Hold the test entities."""
-
-
 @meta(description="Simple test entity", domain=TestDomain)
-@entity(description="Simple test entity", resource=TestStorage)
+@entity(description="Simple test entity", domain=TestDomain)
 class SampleCoreEntity(BaseCoreEntity):
     """Minimal entity for basic tests. No relations or lifecycle."""
 
     id: str = Field(description="Identifier")
     name: str = Field(description="Name")
     value: int = Field(description="Value", ge=0)
+
+
+@meta(description="Stores the test entities")
+@entities(
+    SampleCoreEntity,
+)
+class TestStorage(BaseStorage):
+    """Hold the test entities."""

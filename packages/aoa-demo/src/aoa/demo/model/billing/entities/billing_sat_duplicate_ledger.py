@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Duplicate suppression fragment attached to parse pass", resource=BillingWarehouseStorage)
+@entity(description="Duplicate suppression fragment attached to parse pass", domain=BillingDomain)
 class DuplicateSuppressionLedgerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Ledger fragment id")
     lifecycle: BillingDenseLifecycle = Field(description="Duplicate ledger lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning parse pass"
-    )
+    ] = Field(description="Owning parse pass")
 
     suppression_scope: str = Field(description="Scope key (merchant, MID, PAN prefix)")
     fingerprint_hex: str = Field(description="Payload fingerprint sampled for duplicate probes")

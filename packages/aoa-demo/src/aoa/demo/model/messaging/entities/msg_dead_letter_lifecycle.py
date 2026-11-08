@@ -20,11 +20,17 @@ class MsgDeadLetterStateEntity(BaseStateEntity):
     DRAINED = value(code="drained", display_name="Drained", sort_order=3)
 
 
-
 class MsgDeadLetterLifecycle(Lifecycle[MsgDeadLetterStateEntity]):
     """queued → routed → drained."""
 
-
     _template = (
-        Lifecycle().state(MsgDeadLetterStateEntity.QUEUED).to(MsgDeadLetterStateEntity.ROUTED).initial().state(MsgDeadLetterStateEntity.ROUTED).to(MsgDeadLetterStateEntity.DRAINED).intermediate().state(MsgDeadLetterStateEntity.DRAINED).final()
+        Lifecycle()
+        .state(MsgDeadLetterStateEntity.QUEUED)
+        .to(MsgDeadLetterStateEntity.ROUTED)
+        .initial()
+        .state(MsgDeadLetterStateEntity.ROUTED)
+        .to(MsgDeadLetterStateEntity.DRAINED)
+        .intermediate()
+        .state(MsgDeadLetterStateEntity.DRAINED)
+        .final()
     )

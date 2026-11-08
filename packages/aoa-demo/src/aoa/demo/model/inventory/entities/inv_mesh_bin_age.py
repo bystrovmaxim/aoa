@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_bin_coordinate_stub import BinCoordinateStubCoreEntity
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_lot_age_bucket import LotAgeBucketCoreEntity
-from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
 @entity(
     description="Correlates physical bin coordinates with terminal aging buckets (facility mesh)",
-    resource=InventoryStorage,
+    domain=InventoryDomain,
 )
 class InvBinAgeCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
@@ -30,16 +30,12 @@ class InvBinAgeCorrelateCoreEntity(BaseCoreEntity):
     bin_coordinate: Annotated[
         AssociationOne[BinCoordinateStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Structural bin anchor"
-    )
+    ] = Field(description="Structural bin anchor")
 
     age_bucket: Annotated[
         AssociationOne[LotAgeBucketCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Operational aging artefact anchor"
-    )
+    ] = Field(description="Operational aging artefact anchor")
 
 
 InvBinAgeCorrelateCoreEntity.model_rebuild()

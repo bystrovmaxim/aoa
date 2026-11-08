@@ -17,12 +17,14 @@ ARCHITECTURE / DATA FLOW
 
     Domain actions and entities -> BillingReadReplicaStorage -> SqlStorage contract
 """
+
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlStorage
-from aoa.demo.model.billing.domain import BillingDomain
 
 
-@meta(description="Billing read replica (stub)", domain=BillingDomain)
+@meta(description="Billing read replica (stub)")
+@entities()
 class BillingReadReplicaStorage(SqlStorage):
     """
     AI-CORE-BEGIN
@@ -31,6 +33,7 @@ class BillingReadReplicaStorage(SqlStorage):
     INVARIANTS: The class retains its Storage kind and domain metadata.
     AI-CORE-END
     """
+
     def __init__(self, rollup: bool = False) -> None:
         """Preserve the SQL contract’s rollup configuration."""
         super().__init__(rollup=rollup)

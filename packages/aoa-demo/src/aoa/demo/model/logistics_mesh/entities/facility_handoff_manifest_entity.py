@@ -10,16 +10,14 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity import FreightWaypointLegCoreEntity
-from aoa.demo.model.logistics_mesh.resources.storage import LogisticsMeshStorage
+from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
 
 
-@entity(description="Cross-dock hand-off manifest row", resource=LogisticsMeshStorage)
+@entity(description="Cross-dock hand-off manifest row", domain=LogisticsMeshDomain)
 class FacilityHandoffManifestAssocEntity(BaseAssocEntity):
     manifest_id: str = Field(description="Cargo manifest surrogate key")
     customs_seal_stub: str = Field(description="Tamper-evident seal token")
     next_leg_placeholder: Annotated[
         AssociationOne[FreightWaypointLegCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Next relay leg reserved for cargo slice"
-    )
+    ] = Field(description="Next relay leg reserved for cargo slice")

@@ -18,11 +18,17 @@ class AssurancePortfolioStateEntity(BaseStateEntity):
     FROZEN = value(code="frozen", display_name="Frozen", sort_order=3)
 
 
-
 class AssurancePortfolioLifecycle(Lifecycle[AssurancePortfolioStateEntity]):
     """Linear bookkeeping lifecycle for seeded portfolio rows."""
 
-
     _template = (
-        Lifecycle().state(AssurancePortfolioStateEntity.INTAKE).to(AssurancePortfolioStateEntity.STEADY).initial().state(AssurancePortfolioStateEntity.STEADY).to(AssurancePortfolioStateEntity.FROZEN).intermediate().state(AssurancePortfolioStateEntity.FROZEN).final()
+        Lifecycle()
+        .state(AssurancePortfolioStateEntity.INTAKE)
+        .to(AssurancePortfolioStateEntity.STEADY)
+        .initial()
+        .state(AssurancePortfolioStateEntity.STEADY)
+        .to(AssurancePortfolioStateEntity.FROZEN)
+        .intermediate()
+        .state(AssurancePortfolioStateEntity.FROZEN)
+        .final()
     )

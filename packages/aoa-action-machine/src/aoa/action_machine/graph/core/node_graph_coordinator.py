@@ -33,7 +33,7 @@ Unexpected rows (duplicate ids, dangling targets, forbidden ``is_dag`` cycles, s
 ``label``, ``properties``; each edge includes ``source_id``, ``target_id``,
 ``type``, ``relationship``, ``is_dag``, ``properties`` and its ``id`` from
 :func:`~aoa.action_machine.graph.edge_identity.edge_id`) suitable for rebuilding a
-``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``1.7``;
+``networkx.DiGraph`` keyed by node ``id``. The format is ``schema_version`` ``2.0``;
 nodes come in ``id`` order and edges in edge ``id`` order. Callers may still pass ``export_json_schema`` to
 :meth:`build` for API compatibility; it is not used by :meth:`to_json`.
 
@@ -75,7 +75,7 @@ from __future__ import annotations
 
 import gc
 import json
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any, cast
 
 from aoa.action_machine.graph.core import _dag
@@ -85,25 +85,23 @@ from aoa.action_machine.graph.core.base_graph_node_inspector import BaseGraphNod
 from aoa.action_machine.graph.core.edge_id_rule import EDGE_SEPARATOR
 from aoa.action_machine.graph.core.exceptions import DuplicateEdgeError, DuplicateNodeError, InvalidGraphError
 from aoa.action_machine.graph.edge_identity import EDGE_ID_RULES, edge_id
-from aoa.action_machine.graph.edges.entity_resource_graph_edge import EntityResourceGraphEdge
-from aoa.action_machine.graph.edges.resource_data_source_graph_edge import ResourceDataSourceGraphEdge
-from aoa.action_machine.graph.nodes.application_graph_node import ApplicationGraphNode
-from aoa.action_machine.graph.nodes.data_source_graph_node import DataSourceGraphNode
+from aoa.action_machine.graph.edges.resource_entity_graph_edge import ResourceEntityGraphEdge
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.graph.nodes.resource_graph_node import ResourceGraphNode
 from aoa.action_machine.graph.validators import (
     cache_tags_validator,
     emits_vocabulary_validator,
-    entity_data_source_validator,
     entity_field_validator,
     entity_inverse_validator,
     entity_role_compatibility_validator,
     entity_specialization_validator,
     json_form_validator,
-    resource_domain_validator,
     resource_wrapper_validator,
 )
+from aoa.action_machine.intents.entities.entities_intent_resolver import EntitiesIntentResolver
+from aoa.action_machine.resources.entities.plan import attach_entities_plans
 from aoa.action_machine.runtime.base_coordinator import BaseCoordinator
+from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
 _BUILD_REQUIRED_MSG = "This NodeGraphCoordinator operation is only available after a successful build()."
 
@@ -116,6 +114,15 @@ def _describe_edge(row: dict[str, Any]) -> str:
     if name is not None:
         text += f" ({name}={row.get('properties', {}).get(name)!r})"
     return text
+
+
+def _resource_classes(nodes: Iterable[BaseGraphNode[Any]]) -> list[type[Any]]:
+    """Return the resource classes of every ``Resource`` node, for the return plan."""
+    classes: list[type[Any]] = []
+    for node in nodes:
+        if node.node_type == "Resource" and isinstance(node.node_obj, type):
+            classes.append(node.node_obj)
+    return classes
 
 
 class NodeGraphCoordinator(BaseCoordinator):
@@ -165,6 +172,10 @@ class NodeGraphCoordinator(BaseCoordinator):
         The entity-field declaration pass runs first, before a node is gathered, so a field that
         declares no form is named by the rule instead of surfacing as a dangling edge.
 
+        Once the resource nodes are gathered, every one of them gets the frozen return plan of
+        its ``@entities`` attached to its concrete class (``cls.__dict__['_entities_plan']``), so
+        the first request finds the check ready and a broken declaration fails with the model.
+
         Args:
             inspectors: Inspector instances contributing interchange nodes.
             export_json_schema: Ignored; retained only for backward-compatible keyword arguments.
@@ -173,14 +184,9 @@ class NodeGraphCoordinator(BaseCoordinator):
             DuplicateNodeError: two sources contributed the same ``node.node_id``.
             InvalidGraphError: missing ``target_node_id``, a cycle among ``is_dag`` edges, a node id
                 containing ``|``, an edge whose id part (its rule's property) is missing, empty,
-                not a string or contains ``|``, an entity without exactly one ``entity_resource``
-                edge, a resource with more than one ``resource_data_source`` edge or one that ends
-                elsewhere than at a data source, a data source without exactly one ``application``
-                edge or without a resource, a resource that stores an entity without a
-                ``resource_data_source`` edge, or two resources of one domain on one data source.
+                not a string or contains ``|``, a listed entity without a ``resource_entity`` edge,
+                or a ``resource_entity`` edge that ends elsewhere than at an entity node.
             DuplicateEdgeError: two edges get the same edge id.
-            EntityResourceError: a resource that stores an entity names no data source.
-            DataSourceDeclarationError: two resources of one domain name the same data source.
             RoleCompatibilityError: two endpoints of one relationship declare roles the
                 role-pair matrix refuses (an ownership/ownership pair, or a
                 specialization/generalization endpoint paired with an ordinary role).
@@ -189,7 +195,6 @@ class NodeGraphCoordinator(BaseCoordinator):
                 field takes no new path: the pass finds no axis and returns.
             EventContractError: a method declares in ``@emits`` an event outside its domain's ``events``.
             JsonFormError: a Params or Result has no JSON Schema in validation or serialization mode.
-            DependencyDeclarationError: an action depends on a resource of another domain.
             CacheTagsError: an action invalidates an entity type no action caches, or caches one no action invalidates.
             NotImplementedError: an inspector inherits the default ``get_graph_nodes`` stub.
             RuntimeError: if :meth:`build` was already called on this instance.
@@ -200,19 +205,17 @@ class NodeGraphCoordinator(BaseCoordinator):
         # ``__subclasses__()`` keeps listing a dead class, such as one refused at declaration, until it is collected.
         gc.collect()
         entity_field_validator.validate_entity_fields()
-        entity_data_source_validator.validate_entity_data_sources()
         entity_inverse_validator.validate_entity_inverses()
         entity_role_compatibility_validator.validate_entity_role_compatibility()
         inspector_nodes = self._gather_all_nodes(inspectors)
         nodes = self._expand_and_collect(inspector_nodes)
+        attach_entities_plans(_resource_classes(nodes.values()))
         resource_wrapper_validator.validate_resource_wrappers(nodes.values())
-        resource_domain_validator.validate_resource_data_sources(nodes.values())
+        self._validate_resource_entity_edges(nodes)
         dag_adjacency = self._single_pass_validate_and_wire(nodes)
         self._validate_edge_identity(nodes)
-        self._validate_entity_resource_edges(nodes)
         entity_specialization_validator.validate_entity_specializations()
         emits_vocabulary_validator.validate_emits_vocabulary(nodes.values())
-        resource_domain_validator.validate_resource_domains(nodes.values())
         json_form_validator.validate_json_forms(nodes.values())
         cache_tags_validator.validate_cache_tags(nodes.values())
         self._validate_dag_acyclicity(nodes, dag_adjacency)
@@ -267,7 +270,7 @@ class NodeGraphCoordinator(BaseCoordinator):
             row["id"] = edge_id(row)
             edge_dicts.append(row)
         payload: dict[str, Any] = {
-            "schema_version": "1.8",
+            "schema_version": "2.0",
             "nodes": [node.to_dict() for node in nodes],
             "edges": sorted(edge_dicts, key=lambda e: e["id"]),
         }
@@ -407,6 +410,40 @@ class NodeGraphCoordinator(BaseCoordinator):
             nodes[node.node_id] = node
         return nodes
 
+    def _validate_resource_entity_edges(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
+        """
+        Refuse a listed entity without a ``resource_entity`` edge, and one that ends elsewhere than at an entity.
+
+        A resource is a database: ``@entities`` lists what lies in it, and the graph carries one
+        ``resource_entity`` aggregation edge per entry. A resource without the declaration has
+        no such edge and needs none. The pass only reads; it wires and indexes nothing.
+        """
+        for source_id, node in nodes.items():
+            edges = [edge for edge in node.get_all_edges() if edge.edge_name == ResourceEntityGraphEdge.EDGE_TYPE]
+            for edge in edges:
+                target_id = edge.target_node_id
+                target = nodes.get(target_id)
+                if target is None:
+                    raise InvalidGraphError(
+                        f"Edge resource_entity from {source_id!r} references missing target {target_id!r}; "
+                        "a resource_entity edge must end at an entity node."
+                    )
+                if target.node_type != EntityGraphNode.NODE_TYPE:
+                    raise InvalidGraphError(
+                        f"Edge resource_entity from {source_id!r} ends at {target_id!r}, a {target.node_type} node, "
+                        "not an entity node; a resource_entity edge joins a resource to one of its entities."
+                    )
+            if node.node_type != ResourceGraphNode.NODE_TYPE or not isinstance(node.node_obj, type):
+                continue
+            declared_ids = {edge.target_node_id for edge in edges}
+            for entity_cls in EntitiesIntentResolver.resolve_entities(node.node_obj):
+                target_id = TypeIntrospection.full_qualname(entity_cls)
+                if target_id not in declared_ids:
+                    raise InvalidGraphError(
+                        f"Resource {source_id!r} lists {entity_cls.__name__} in @entities but has no "
+                        f"resource_entity edge to {target_id!r}; the graph carries one edge per listed entity."
+                    )
+
     def _single_pass_validate_and_wire(
         self,
         nodes: dict[str, BaseGraphNode[Any]],
@@ -454,70 +491,6 @@ class NodeGraphCoordinator(BaseCoordinator):
                 if key in seen:
                     raise DuplicateEdgeError(key, seen[key], described)
                 seen[key] = described
-
-    @staticmethod
-    def _validate_data_source_edges(nodes: dict[str, BaseGraphNode[Any]]) -> set[str]:
-        """
-        Refuse a resource with more than one ``resource_data_source`` edge or one that ends
-        elsewhere than at a data source, and a data source without exactly one ``application``
-        edge to the application or without a resource; return the resources that name one.
-        """
-        named: set[str] = set()
-        used: set[str] = set()
-        reached: dict[tuple[str, str], str] = {}
-        for node_id, node in nodes.items():
-            if node.node_type != ResourceGraphNode.NODE_TYPE:
-                continue
-            targets = [e.target_node_id for e in node.get_all_edges() if e.edge_name == ResourceDataSourceGraphEdge.EDGE_NAME]
-            if len(targets) > 1:
-                raise InvalidGraphError(f"Resource {node_id} has {len(targets)} resource_data_source edges; a resource has at most one.")
-            for target in targets:
-                if getattr(nodes.get(target), "node_type", None) != DataSourceGraphNode.NODE_TYPE:
-                    raise InvalidGraphError(f"Resource {node_id} has a resource_data_source edge to {target}, which is not a data source.")
-            used.update(targets)
-            if targets:
-                named.add(node_id)
-                for domain in (e.target_node_id for e in node.get_all_edges() if e.edge_name == "domain"):
-                    first = reached.setdefault((domain, targets[0]), node_id)
-                    if first != node_id:
-                        raise InvalidGraphError(
-                            f"Domain {domain} reaches data source {targets[0]} through resources {first} and {node_id}; "
-                            "a domain reaches one data source through one resource."
-                        )
-        for node_id, node in nodes.items():
-            if node.node_type != DataSourceGraphNode.NODE_TYPE:
-                continue
-            applications = [e.target_node_id for e in node.get_all_edges() if e.edge_name == "application"]
-            if len(applications) != 1 or getattr(nodes.get(applications[0]), "node_type", None) != ApplicationGraphNode.NODE_TYPE:
-                raise InvalidGraphError(f"Data source {node_id} has {len(applications)} application edges; a data source has exactly one, to the application.")
-            if node_id not in used:
-                raise InvalidGraphError(f"Data source {node_id} has no resource; a data source is shared by at least one.")
-        return named
-
-    def _validate_entity_resource_edges(self, nodes: dict[str, BaseGraphNode[Any]]) -> None:
-        """
-        Refuse an entity without exactly one ``entity_resource`` edge, and every data source rule a schema cannot check.
-
-        A link between entities is a fact of the logical model and joins entities of any resources and data sources;
-        in exchange a resource that stores an entity names exactly one data source.
-        """
-        named = self._validate_data_source_edges(nodes)
-        stored: dict[str, list[str]] = {}
-        for node_id, node in nodes.items():
-            if node.node_type != EntityGraphNode.NODE_TYPE:
-                continue
-            targets = [e.target_node_id for e in node.get_all_edges() if e.edge_name == EntityResourceGraphEdge.EDGE_TYPE]
-            if len(targets) != 1:
-                raise InvalidGraphError(
-                    f"Entity {node_id} has {len(targets)} entity_resource edges; an entity has exactly one."
-                )
-            stored.setdefault(targets[0], []).append(node_id)
-        for resource in sorted(stored):
-            if resource not in named:
-                raise InvalidGraphError(
-                    f"Resource {resource} stores {', '.join(sorted(stored[resource]))} and has no resource_data_source edge; "
-                    "a resource that stores an entity has exactly one."
-                )
 
     def _validate_dag_acyclicity(
         self,

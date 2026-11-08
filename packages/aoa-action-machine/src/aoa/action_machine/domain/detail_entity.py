@@ -15,7 +15,7 @@ package, one file each, and the entity base holds the hierarchy rules.
 USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="A line of one order", resource=ShopDatabase)
+    @entity(description="A line of one order", domain=ShopDomain)
     class OrderLineDetailEntity(BaseDetailEntity):
         order_id: str = Field(description="Owning order")
         number: int = Field(description="Line number within the order")

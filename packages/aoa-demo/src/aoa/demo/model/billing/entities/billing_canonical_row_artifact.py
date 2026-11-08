@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Canonical row emitted from parser", resource=BillingWarehouseStorage)
+@entity(description="Canonical row emitted from parser", domain=BillingDomain)
 class BillingCanonicalRowArtifactCoreEntity(BaseCoreEntity):
     id: str = Field(description="Artifact id")
     lifecycle: BillingDenseLifecycle = Field(description="Row lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     parse_pass: Annotated[
         AssociationOne[BillingParsePassCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Originating parse pass"
-    )
+    ] = Field(description="Originating parse pass")
 
     logical_row_key: str = Field(description="Dedup-stable business key emitted by parser")
     row_revision_no: int = Field(description="Monotonic intra-pass revision counter", ge=0)

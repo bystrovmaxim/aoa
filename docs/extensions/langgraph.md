@@ -39,7 +39,9 @@ from aoa.langgraph import LangGraphController
 
 # LangGraphController stays out of the model graph, like PostgresResource;
 # the service declares its graph as a subclass with @meta and connects to that.
-@meta(description="Ticket processing graph", domain=SupportDomain)
+
+
+@meta(description="Ticket processing graph")
 class TicketGraph(LangGraphController):
     """The ticket graph this service connects its actions to."""
 
@@ -74,6 +76,8 @@ ticket_graph = (
 )
 
 # Run inside a host Action, whose @summary_aspect receives box from the machine:
+
+
 @meta(description="Process a support ticket", domain=SupportDomain)
 @check_roles(GuestRole)
 @connection(TicketGraph, key="graph", description="Ticket-processing graph")

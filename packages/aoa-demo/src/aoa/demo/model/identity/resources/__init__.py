@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/identity/resources/__init__.py
-"""Resources placeholder — identity demo has no facade wiring."""
+"""The identity model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.identity.resources.identity_storage import IdentityStorage
+
+__all__ = ["IdentityStorage"]

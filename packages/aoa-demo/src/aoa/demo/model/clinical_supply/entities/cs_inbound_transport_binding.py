@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket import ClinicalInboundShipmentTicketCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_transport_anchor import ClinicalTransportAnchorCoreEntity
-from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Associative modality bind between inbound ticket and courier channel (M:N bridge)",
-    resource=ClinicalSupplyStorage,
+    domain=ClinicalSupplyDomain,
 )
 class ClinicalInboundTransportBindingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Binding row id")
@@ -30,16 +30,12 @@ class ClinicalInboundTransportBindingCoreEntity(BaseCoreEntity):
     inbound_ticket: Annotated[
         AssociationOne[ClinicalInboundShipmentTicketCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Subject inbound lot"
-    )
+    ] = Field(description="Subject inbound lot")
 
     transport_anchor: Annotated[
         AssociationOne[ClinicalTransportAnchorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Chosen modality snapshot"
-    )
+    ] = Field(description="Chosen modality snapshot")
 
 
 ClinicalInboundTransportBindingCoreEntity.model_rebuild()

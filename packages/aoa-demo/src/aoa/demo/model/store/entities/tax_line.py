@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInvers
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Tax line row", resource=StorefrontDatabaseStorage)
+@entity(description="Tax line row", domain=StoreDomain)
 class TaxLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Tax line id")
     lifecycle: SalesOrderLifecycle = Field(description="Tax line lifecycle")
@@ -26,9 +26,7 @@ class TaxLineDetailEntity(BaseDetailEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Taxed order"
-    )
+    ] = Field(description="Taxed order")
 
 
 TaxLineDetailEntity.model_rebuild()

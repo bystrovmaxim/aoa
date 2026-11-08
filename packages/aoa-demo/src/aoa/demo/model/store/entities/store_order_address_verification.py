@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Address verification keyed to customer profile subgraph", resource=StorefrontDatabaseStorage)
+@entity(description="Address verification keyed to customer profile subgraph", domain=StoreDomain)
 class AddressVerificationTrailCoreEntity(BaseCoreEntity):
     id: str = Field(description="Verification id")
     lifecycle: SalesOrderLifecycle = Field(description="AV verification lifecycle")
@@ -26,9 +26,7 @@ class AddressVerificationTrailCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent customer aggregate"
-    )
+    ] = Field(description="Parent customer aggregate")
 
 
 AddressVerificationTrailCoreEntity.model_rebuild()

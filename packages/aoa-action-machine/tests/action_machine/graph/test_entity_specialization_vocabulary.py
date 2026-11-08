@@ -35,7 +35,6 @@ from aoa.action_machine.intents.entity.entity_specialization_intent_resolver imp
     gather_entity_specialization_intent_resolvers,
 )
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -46,18 +45,13 @@ class VocabularyDomain(BaseDomain):
     description = "Vocabulary"
 
 
-@meta(description="Where VocabularyStorage keeps its rows")
-class VocabularyDataSource(InMemoryDataSource):
-    """The store VocabularyStorage works with."""
-
-
-@meta(description="Stores the vocabulary entities", domain=VocabularyDomain)
-class VocabularyStorage(BaseStorage[VocabularyDataSource]):
+@meta(description="Stores the vocabulary entities")
+class VocabularyStorage(BaseStorage):
     """Hold the vocabulary entities."""
 
 
 @exclude_graph_model
-@entity(description="Edition kind", resource=VocabularyStorage)
+@entity(description="Edition kind", domain=VocabularyDomain)
 class VocabularyKindEnumEntity(BaseEnumEntity):
     """The dictionary the good axis borrows its codes from."""
 
@@ -73,7 +67,7 @@ class EmptyKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Other kind", resource=VocabularyStorage)
+@entity(description="Other kind", domain=VocabularyDomain)
 class OtherKindEnumEntity(BaseEnumEntity):
     """A second dictionary, whose values do not belong to the first."""
 
@@ -81,7 +75,7 @@ class OtherKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Good head", resource=VocabularyStorage)
+@entity(description="Good head", domain=VocabularyDomain)
 class VocabularyGoodHeadCoreEntity(BaseCoreEntity):
     """An axis classified by the dictionary."""
 
@@ -92,7 +86,7 @@ class VocabularyGoodHeadCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="First press", resource=VocabularyStorage)
+@entity(description="First press", domain=VocabularyDomain)
 class VocabularyFirstSpecEntity(BaseSpecEntity):
     """Names the first value."""
 
@@ -103,7 +97,7 @@ class VocabularyFirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Repress", resource=VocabularyStorage)
+@entity(description="Repress", domain=VocabularyDomain)
 class VocabularyRepressSpecEntity(BaseSpecEntity):
     """Names the second value."""
 
@@ -137,7 +131,7 @@ def test_a_dictionary_axis_passes_the_rules() -> None:
 
 
 @exclude_graph_model
-@entity(description="Empty head", resource=VocabularyStorage)
+@entity(description="Empty head", domain=VocabularyDomain)
 class VocabularyEmptyHeadCoreEntity(BaseCoreEntity):
     """An axis borrowing from a dictionary that declares nothing."""
 
@@ -146,7 +140,7 @@ class VocabularyEmptyHeadCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Empty extension", resource=VocabularyStorage)
+@entity(description="Empty extension", domain=VocabularyDomain)
 class VocabularyEmptySpecEntity(BaseSpecEntity):
     """Points back at the empty head."""
 
@@ -163,7 +157,7 @@ def test_an_axis_cannot_borrow_from_an_empty_dictionary() -> None:
 
 
 @exclude_graph_model
-@entity(description="Wrong head", resource=VocabularyStorage)
+@entity(description="Wrong head", domain=VocabularyDomain)
 class VocabularyWrongHeadCoreEntity(BaseCoreEntity):
     """An axis whose extension names a value of another dictionary."""
 
@@ -172,7 +166,7 @@ class VocabularyWrongHeadCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Wrong extension", resource=VocabularyStorage)
+@entity(description="Wrong extension", domain=VocabularyDomain)
 class VocabularyWrongSpecEntity(BaseSpecEntity):
     """Names a value the head's dictionary does not declare."""
 
@@ -189,7 +183,7 @@ def test_an_extension_must_name_this_dictionary_s_value() -> None:
 
 
 @exclude_graph_model
-@entity(description="Copy head", resource=VocabularyStorage)
+@entity(description="Copy head", domain=VocabularyDomain)
 class VocabularyCopyHeadCoreEntity(BaseCoreEntity):
     """An axis whose extension names a copy of a declared value."""
 
@@ -198,7 +192,7 @@ class VocabularyCopyHeadCoreEntity(BaseCoreEntity):
 
 
 @exclude_graph_model
-@entity(description="Copy extension", resource=VocabularyStorage)
+@entity(description="Copy extension", domain=VocabularyDomain)
 class VocabularyCopySpecEntity(BaseSpecEntity):
     """Names a constructed copy, which is not the declared object."""
 
@@ -254,19 +248,19 @@ def test_an_optional_axis_keeps_its_dictionary_and_graph_edges() -> None:
     from aoa.action_machine.graph.edges.entity_specialization_graph_edge import EntitySpecializationGraphEdge
 
     @exclude_graph_model
-    @entity(description="Optional kind", resource=VocabularyStorage)
+    @entity(description="Optional kind", domain=VocabularyDomain)
     class OptionalKindEnumEntity(BaseEnumEntity):
         """Declare the one possible classification."""
         FIRST = value(code="first", display_name="First")
 
     @exclude_graph_model
-    @entity(description="Optional head", resource=VocabularyStorage)
+    @entity(description="Optional head", domain=VocabularyDomain)
     class OptionalHeadCoreEntity(BaseCoreEntity):
         """Allow a head whose classification has not been supplied."""
         kind: Specialization[OptionalDetailsSpecEntity, OptionalKindEnumEntity] | None = Field(description="Optional choice")
 
     @exclude_graph_model
-    @entity(description="Optional details", resource=VocabularyStorage)
+    @entity(description="Optional details", domain=VocabularyDomain)
     class OptionalDetailsSpecEntity(BaseSpecEntity):
         """Describe the classified head."""
         record: Annotated[

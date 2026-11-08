@@ -9,11 +9,7 @@ import asyncio
 
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
-
-
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 
 
 class RecordingConnection:
@@ -66,7 +62,7 @@ class RecordingPool:
         self.closed = True
 
 
-class NotesStorage(PostgresStorage[ExampleDataSource]):
+class NotesStorage(PostgresStorage):
     """The notes domain's resource: its own method runs the statement."""
 
     async def add_note(self, text: str) -> str:
@@ -78,7 +74,7 @@ async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
     try:
-        async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(data_source=ExampleDataSource(pool=pool)), lambda resource: resource.close())}) as connections:
+        async with connection_scope({"db": PerCallConnection(lambda: NotesStorage(pool=PostgresPool(pool=pool)), lambda resource: resource.close())}) as connections:
             db = connections["db"]
             await db.begin()
             try:

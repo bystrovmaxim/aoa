@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Budgeted interactive query facet on sampling policy branch", resource=AnalyticsStorage)
+@entity(description="Budgeted interactive query facet on sampling policy branch", domain=AnalyticsDomain)
 class BudgetedQueryPlanCoreEntity(BaseCoreEntity):
     id: str = Field(description="Plan id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Budget plan lifecycle")
@@ -26,9 +26,7 @@ class BudgetedQueryPlanCoreEntity(BaseCoreEntity):
     sampling_policy: Annotated[
         AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning sampling policy"
-    )
+    ] = Field(description="Owning sampling policy")
 
 
 BudgetedQueryPlanCoreEntity.model_rebuild()

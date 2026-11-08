@@ -55,9 +55,11 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 **connections** — the dictionary of resources supplied to an operation. When explicitly passed to a child through `box.run`, resources with a wrapper class are wrapped; SQL wrappers refuse transaction control and closing. Resources returning no wrapper pass through directly.
 
-**Resource** (`BaseResource`) — access to storage or another external system, separated from business decisions. It may live for one call or wrap a shared client; its owner decides when it is opened and released.
+**Resource** (`BaseResource`) — one database, service or process-owned object, separated from business decisions. It lists the entities that lie in it with `@entities` and answers only with them; it takes no domain, since a database is shared by domains. It may live for one call or wrap a shared client; its owner decides when it is opened and released.
 
-**Data source** (`BaseDataSource`) — one database or other store that several resources share. A resource names it as the type argument of its base (`PostgresResource[ShopDataSource]`); entities of resources of one data source may relate to each other. It belongs to no domain and keeps what its resources share at run time — the connection parameters and the pool. It is optional; an action never depends on it.
+**`@entities`** — the declaration of a resource that lists the entity classes of its database. The machine checks every answer of the resource's public methods against it and raises `ResourceEntitiesError` for an entity it does not list; a relation that leaves the list comes back as a reference. See [Step 21](../tutorials/step-21-resource.md#the-machine-checks-what-a-resource-returns).
+
+**`PostgresPool`** — the connection source of a PostgreSQL database: connection parameters and the pool several storages share. A plain object of the application, opened at startup; it is in neither the model nor the graph.
 
 **Database connection** — an open database session. Statements on it share session state and the current transaction. One open connection must not be shared by concurrent calls that need independent work.
 
@@ -130,7 +132,7 @@ A brief reference of AOA terms — convenient to come back to while reading. The
 
 ## The data model
 
-**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and the one resource that stores them; an entity's domain is its resource's domain. State descriptions are declared through a lifecycle instead. See [Step 22](../tutorials/step-22-entity.md).
+**Entity** — domain information declared independently of storage. `BaseEntity` supplies shared mechanics; an application class inherits one of six kind bases. Ordinary model entities use `@entity` for their description and their domain; an entity names no store, and the databases that hold it list it with `@entities`. State descriptions are declared through a lifecycle instead. See [Step 22](../tutorials/step-22-entity.md).
 
 **Entity kind** — the role represented by an instance, expressed by its kind base and matching class-name suffix. It is selected by domain meaning, not by the number of foreign keys or the presence of an `id` column. The graph exports it as `entity_kind`, together with the name its kind base declares as `KIND_LABEL` (`entity_kind_label`: Core, Association, Detail, Specialization, Enumeration, State).
 

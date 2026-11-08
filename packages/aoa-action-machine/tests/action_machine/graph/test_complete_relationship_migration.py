@@ -30,7 +30,6 @@ _IMPORTS = textwrap.dedent(
         value,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
-    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
     from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
@@ -42,13 +41,8 @@ _IMPORTS = textwrap.dedent(
         description = "Migration"
 
 
-    @meta(description="Where MigrationStorage keeps its rows")
-    class MigrationDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the migration entities", domain=MigrationDomain)
-    class MigrationStorage(BaseStorage[MigrationDataSource]):
+    @meta(description="Stores the migration entities")
+    class MigrationStorage(BaseStorage):
         pass
     """
 )
@@ -64,18 +58,18 @@ def test_a_bare_dictionary_migrates_to_an_explicit_association() -> None:
     """The bare dictionary form is refused; the AssociationOne[D] replacement passes."""
     out = _run(
         """
-        @entity(description="Currency", resource=MigrationStorage)
+        @entity(description="Currency", domain=MigrationDomain)
         class CurrencyEnumEntity(BaseEnumEntity):
             EUR = value(code="eur", display_name="Euro")
 
         @exclude_graph_model
-        @entity(description="Bare", resource=MigrationStorage)
+        @entity(description="Bare", domain=MigrationDomain)
         class BareCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             currency: CurrencyEnumEntity = Field(description="Currency")
 
         @exclude_graph_model
-        @entity(description="Complete", resource=MigrationStorage)
+        @entity(description="Complete", domain=MigrationDomain)
         class CompleteCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Currency")
@@ -100,17 +94,17 @@ def test_no_relation_migrates_to_a_complete_relationship() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Target", resource=MigrationStorage)
+        @entity(description="Target", domain=MigrationDomain)
         class TargetCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Embedded", resource=MigrationStorage)
+        @entity(description="Embedded", domain=MigrationDomain)
         class EmbeddedCoreEntity(BaseCoreEntity):
             value: Annotated[TargetCoreEntity, NoRelation("embedded snapshot")] = Field(description="Value")
 
         @exclude_graph_model
-        @entity(description="Complete", resource=MigrationStorage)
+        @entity(description="Complete", domain=MigrationDomain)
         class CompleteRelationCoreEntity(BaseCoreEntity):
             target: Annotated[AssociationOne[TargetCoreEntity], NoInverse()] = Field(description="Target")
 
@@ -134,13 +128,13 @@ def test_a_one_sided_inverse_migrates_to_reciprocal_markers() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="One-sided offer", resource=MigrationStorage)
+        @entity(description="One-sided offer", domain=MigrationDomain)
         class OfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[RegionCoreEntity], NoInverse()] = Field(description="Regions")
 
         @exclude_graph_model
-        @entity(description="One-sided region", resource=MigrationStorage)
+        @entity(description="One-sided region", domain=MigrationDomain)
         class RegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
@@ -155,7 +149,7 @@ def test_a_one_sided_inverse_migrates_to_reciprocal_markers() -> None:
             print("ONE_SIDED_REFUSE " + exc.entity_name + " " + exc.field_name)
 
         @exclude_graph_model
-        @entity(description="Reciprocal offer", resource=MigrationStorage)
+        @entity(description="Reciprocal offer", domain=MigrationDomain)
         class ReciprocalOfferCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             regions: Annotated[AssociationMany[ReciprocalRegionCoreEntity], Inverse(field_name="offer")] = Field(
@@ -163,7 +157,7 @@ def test_a_one_sided_inverse_migrates_to_reciprocal_markers() -> None:
             )
 
         @exclude_graph_model
-        @entity(description="Reciprocal region", resource=MigrationStorage)
+        @entity(description="Reciprocal region", domain=MigrationDomain)
         class ReciprocalRegionCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             offer: Annotated[AssociationOne[ReciprocalOfferCoreEntity], Inverse(field_name="regions")] = Field(

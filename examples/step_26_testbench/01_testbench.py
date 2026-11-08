@@ -53,7 +53,7 @@ class AdminRole(ApplicationRole):
     description = "Administrator"
 
 
-@meta(description="Payment gateway", domain=BillingDomain)
+@meta(description="Payment gateway")
 class PaymentServiceGateway(BaseGateway):
     async def charge(self, amount: float) -> str:
         raise NotImplementedError("real gateway — mocked in tests")

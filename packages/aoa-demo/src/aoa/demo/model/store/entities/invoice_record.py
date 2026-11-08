@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Invoice row", resource=StorefrontDatabaseStorage)
+@entity(description="Invoice row", domain=StoreDomain)
 class InvoiceRecordCoreEntity(BaseCoreEntity):
     id: str = Field(description="Invoice id")
     lifecycle: SalesOrderLifecycle = Field(description="Invoice lifecycle")
@@ -26,10 +26,7 @@ class InvoiceRecordCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Invoiced order"
-    )
-
+    ] = Field(description="Invoiced order")
 
 
 InvoiceRecordCoreEntity.model_rebuild()

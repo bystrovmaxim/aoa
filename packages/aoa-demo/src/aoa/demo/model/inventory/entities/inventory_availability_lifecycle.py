@@ -20,11 +20,17 @@ class InventoryAvailabilityStateEntity(BaseStateEntity):
     ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
 
 
-
 class InventoryAvailabilityLifecycle(Lifecycle[InventoryAvailabilityStateEntity]):
     """draft → staged → archived."""
 
-
     _template = (
-        Lifecycle().state(InventoryAvailabilityStateEntity.DRAFT).to(InventoryAvailabilityStateEntity.STAGED).initial().state(InventoryAvailabilityStateEntity.STAGED).to(InventoryAvailabilityStateEntity.ARCHIVED).intermediate().state(InventoryAvailabilityStateEntity.ARCHIVED).final()
+        Lifecycle()
+        .state(InventoryAvailabilityStateEntity.DRAFT)
+        .to(InventoryAvailabilityStateEntity.STAGED)
+        .initial()
+        .state(InventoryAvailabilityStateEntity.STAGED)
+        .to(InventoryAvailabilityStateEntity.ARCHIVED)
+        .intermediate()
+        .state(InventoryAvailabilityStateEntity.ARCHIVED)
+        .final()
     )

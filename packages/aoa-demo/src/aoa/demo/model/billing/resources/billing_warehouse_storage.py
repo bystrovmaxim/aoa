@@ -17,14 +17,72 @@ ARCHITECTURE / DATA FLOW
 
     Domain actions and entities -> BillingWarehouseStorage -> SqlStorage contract
 """
+
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlStorage
-from aoa.demo.model.billing.domain import BillingDomain
-from aoa.demo.model.data_sources.billing_warehouse_data_source import BillingWarehouseDataSource
+from aoa.demo.model.billing.entities.arbitration_brief_stub import ArbitrationBriefStubCoreEntity
+from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactCoreEntity
+from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
+from aoa.demo.model.billing.entities.billing_mesh_chargeback_ingest import BillingChargebackIngestCorrelateCoreEntity
+from aoa.demo.model.billing.entities.billing_mesh_parse_interchange import BillingParseInterchangeBridgeCoreEntity
+from aoa.demo.model.billing.entities.billing_multi_lifecycle_table_entities import (
+    IssuerDisputeWorkbenchCoreEntity,
+    MultiRingSettlementAuditCoreEntity,
+    TreasuryCutoverBundleCoreEntity,
+)
+from aoa.demo.model.billing.entities.billing_parse_pass import BillingParsePassCoreEntity
+from aoa.demo.model.billing.entities.billing_payout_plan import BillingPayoutPlanCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_acquirer_integrity import AcquirerIntegrityCheckCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_cash_apply_hint import CashApplicationHintCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_duplicate_ledger import DuplicateSuppressionLedgerCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_fee_schedule_ptr import MerchantFeeSchedulePointerCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_fx_residual import FxResidualTagCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_interchange_slice import InterchangeAssessmentSliceCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_ledger_mirror_offset import LedgerMirrorOffsetCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_narrative_correction import NarrativeCorrectionCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_profit_center_slice import ProfitCenterContributionCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_regulatory_ptr import RegulatorySubmissionPointerCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_ripple_correction import SettlementRippleCorrectionCoreEntity
+from aoa.demo.model.billing.entities.billing_sat_tax_remit_stub import TaxRemittanceAdviceCoreEntity
+from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionCoreEntity
+from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
+from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
+from aoa.demo.model.billing.entities.funding_window_hint import FundingWindowHintCoreEntity
+from aoa.demo.model.billing.entities.retrieval_evidence_bundle import RetrievalEvidenceBundleCoreEntity
 
 
-@meta(description="Billing warehouse connection (stub)", domain=BillingDomain)
-class BillingWarehouseStorage(SqlStorage[BillingWarehouseDataSource]):
+@meta(description="Billing warehouse connection (stub)")
+@entities(
+    ArbitrationBriefStubCoreEntity,
+    BillingCanonicalRowArtifactCoreEntity,
+    BillingFileIngestManifestCoreEntity,
+    BillingChargebackIngestCorrelateCoreEntity,
+    BillingParseInterchangeBridgeCoreEntity,
+    IssuerDisputeWorkbenchCoreEntity,
+    TreasuryCutoverBundleCoreEntity,
+    MultiRingSettlementAuditCoreEntity,
+    BillingParsePassCoreEntity,
+    BillingPayoutPlanCoreEntity,
+    AcquirerIntegrityCheckCoreEntity,
+    CashApplicationHintCoreEntity,
+    DuplicateSuppressionLedgerCoreEntity,
+    MerchantFeeSchedulePointerCoreEntity,
+    FxResidualTagCoreEntity,
+    InterchangeAssessmentSliceCoreEntity,
+    LedgerMirrorOffsetCoreEntity,
+    NarrativeCorrectionCoreEntity,
+    ProfitCenterContributionCoreEntity,
+    RegulatorySubmissionPointerCoreEntity,
+    SettlementRippleCorrectionCoreEntity,
+    TaxRemittanceAdviceCoreEntity,
+    BillingSweepInstructionCoreEntity,
+    ChargebackTicketCoreEntity,
+    CurrencyEnumEntity,
+    FundingWindowHintCoreEntity,
+    RetrievalEvidenceBundleCoreEntity,
+)
+class BillingWarehouseStorage(SqlStorage):
     """
     AI-CORE-BEGIN
     ROLE: Database-free storage for the demo domain.
@@ -32,6 +90,7 @@ class BillingWarehouseStorage(SqlStorage[BillingWarehouseDataSource]):
     INVARIANTS: The class retains its Storage kind and domain metadata.
     AI-CORE-END
     """
+
     def __init__(self, rollup: bool = False) -> None:
         """Preserve the SQL contract’s rollup configuration."""
         super().__init__(rollup=rollup)

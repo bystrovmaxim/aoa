@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgWebhookLifecycle
 from aoa.demo.model.messaging.entities.msg_webhook_ingress_receipt import WebhookIngressReceiptCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Signature verification envelope chained from webhook receipt", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Signature verification envelope chained from webhook receipt", domain=MessagingDomain)
 class WebhookSignatureEnvelopeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Envelope id")
     lifecycle: MsgWebhookLifecycle = Field(description="Envelope lifecycle")
@@ -26,9 +26,7 @@ class WebhookSignatureEnvelopeCoreEntity(BaseCoreEntity):
     receipt: Annotated[
         AssociationOne[WebhookIngressReceiptCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Ingress receipt linkage"
-    )
+    ] = Field(description="Ingress receipt linkage")
 
 
 WebhookSignatureEnvelopeCoreEntity.model_rebuild()

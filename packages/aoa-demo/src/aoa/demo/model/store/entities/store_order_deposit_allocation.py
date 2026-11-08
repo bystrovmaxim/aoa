@@ -9,12 +9,12 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(
     description="Deposit allocation keyed to invoice artefacts instead of repeating order spine only",
-    resource=StorefrontDatabaseStorage,
+    domain=StoreDomain,
 )
 class DepositAllocationCoreEntity(BaseCoreEntity):
     id: str = Field(description="Allocation id")
@@ -29,9 +29,7 @@ class DepositAllocationCoreEntity(BaseCoreEntity):
     invoice: Annotated[
         AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Target invoice artefact"
-    )
+    ] = Field(description="Target invoice artefact")
 
 
 DepositAllocationCoreEntity.model_rebuild()

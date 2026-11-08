@@ -19,12 +19,17 @@ class BillingDenseStateEntity(BaseStateEntity):
     FINALIZED = value(code="finalized", display_name="Finalized", sort_order=2)
 
 
-
 class BillingDenseLifecycle(Lifecycle[BillingDenseStateEntity]):
     """open → finalized (single terminal)."""
 
-
-    _template = Lifecycle().state(BillingDenseStateEntity.OPEN).to(BillingDenseStateEntity.FINALIZED).initial().state(BillingDenseStateEntity.FINALIZED).final()
+    _template = (
+        Lifecycle()
+        .state(BillingDenseStateEntity.OPEN)
+        .to(BillingDenseStateEntity.FINALIZED)
+        .initial()
+        .state(BillingDenseStateEntity.FINALIZED)
+        .final()
+    )
 
 
 class BillingPipelineStateEntity(BaseStateEntity):
@@ -37,10 +42,8 @@ class BillingPipelineStateEntity(BaseStateEntity):
     EXPORTED = value(code="exported", display_name="Exported", sort_order=3)
 
 
-
 class BillingPipelineLifecycle(Lifecycle[BillingPipelineStateEntity]):
     """staged ingest pipeline markers."""
-
 
     _template = (
         Lifecycle()

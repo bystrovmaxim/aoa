@@ -10,12 +10,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.invoice_record import InvoiceRecordCoreEntity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(
     description="Parallel billing bridge between orders and invoicing artefacts (creates cyclic routing options in ERD)",
-    resource=StorefrontDatabaseStorage,
+    domain=StoreDomain,
 )
 class StoreOrderInvoiceBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
@@ -30,16 +30,12 @@ class StoreOrderInvoiceBridgeCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream order artefact"
-    )
+    ] = Field(description="Upstream order artefact")
 
     invoice: Annotated[
         AssociationOne[InvoiceRecordCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Downstream invoicing artefact"
-    )
+    ] = Field(description="Downstream invoicing artefact")
 
 
 StoreOrderInvoiceBridgeCoreEntity.model_rebuild()

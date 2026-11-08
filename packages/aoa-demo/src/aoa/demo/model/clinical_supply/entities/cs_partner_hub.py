@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_geographic_anchor import ClinicalGeographicAnchorCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
-from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
-@entity(description="Neutral partner root keyed for subtype projections", resource=ClinicalSupplyStorage)
+@entity(description="Neutral partner root keyed for subtype projections", domain=ClinicalSupplyDomain)
 class ClinicalPartnerHubCoreEntity(BaseCoreEntity):
     id: str = Field(description="Partner id")
     lifecycle: ClinicalSupplyLifecycle = Field(description="Partner lifecycle")
@@ -26,9 +26,7 @@ class ClinicalPartnerHubCoreEntity(BaseCoreEntity):
     site_anchor: Annotated[
         AssociationOne[ClinicalGeographicAnchorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Registered geography"
-    )
+    ] = Field(description="Registered geography")
 
 
 ClinicalPartnerHubCoreEntity.model_rebuild()
