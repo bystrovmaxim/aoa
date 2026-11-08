@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 from aoa.demo.model.inventory.entities.inv_lot_freeze_flag import LotFreezeFlagCoreEntity
-from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Disposition advice for a frozen lot within a facility", resource=InventoryStorage)
+@entity(description="Disposition advice for a frozen lot within a facility", domain=InventoryDomain)
 class DispositionAdviceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Advice id")
     lifecycle: InvDenseLifecycle = Field(description="Disposition lifecycle")
@@ -27,16 +27,12 @@ class DispositionAdviceCoreEntity(BaseCoreEntity):
     freeze_flag: Annotated[
         AssociationOne[LotFreezeFlagCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream freeze flag"
-    )
+    ] = Field(description="Upstream freeze flag")
 
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Facility execution context"
-    )
+    ] = Field(description="Facility execution context")
 
 
 DispositionAdviceCoreEntity.model_rebuild()

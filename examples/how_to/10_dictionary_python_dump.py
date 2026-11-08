@@ -12,10 +12,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AggregateMany, BaseCoreEntity, BaseEnumEntity, CompositeOne, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class PricingDomain(BaseDomain):
@@ -25,17 +25,7 @@ class PricingDomain(BaseDomain):
     description = "Pricing"
 
 
-@meta(description="Where PricingStorage keeps its rows")
-class PricingDataSource(InMemoryDataSource):
-    """The store PricingStorage works with."""
-
-
-@meta(description="Stores the pricing entities", domain=PricingDomain)
-class PricingStorage(BaseStorage[PricingDataSource]):
-    """Hold the pricing entities."""
-
-
-@entity(description="Currencies", resource=PricingStorage)
+@entity(description="Currencies", domain=PricingDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare canonical currency values."""
 
@@ -44,12 +34,21 @@ class CurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Prices", resource=PricingStorage)
+@entity(description="Prices", domain=PricingDomain)
 class PricesCoreEntity(BaseCoreEntity):
     """Select one primary currency and several alternatives."""
 
     primary: Annotated[CompositeOne[CurrencyEnumEntity], NoInverse()] = Field(description="Primary currency")
     alternatives: Annotated[AggregateMany[CurrencyEnumEntity], NoInverse()] = Field(description="Alternative currencies")
+
+
+@meta(description="Stores the pricing entities")
+@entities(
+    CurrencyEnumEntity,
+    PricesCoreEntity,
+)
+class PricingStorage(BaseStorage):
+    """Hold the pricing entities."""
 
 
 price = PricesCoreEntity(primary=CompositeOne(id="eur"), alternatives=AggregateMany(ids=("usd",)))

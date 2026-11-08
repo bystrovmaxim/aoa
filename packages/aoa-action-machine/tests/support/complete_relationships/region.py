@@ -10,13 +10,13 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, Inverse
 from aoa.action_machine.intents.entity import entity
 
-from .domain import CrossStorage
+from .domain import CrossDomain
 
 if TYPE_CHECKING:
     from .offer import OfferCoreEntity
 
 
-@entity(description="Region", resource=CrossStorage)
+@entity(description="Region", domain=CrossDomain)
 class RegionCoreEntity(BaseCoreEntity):
     """A region selecting one offer."""
 

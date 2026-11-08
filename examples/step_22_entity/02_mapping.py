@@ -9,10 +9,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity, build
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -22,22 +22,20 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     """Describe an order independently of its storage."""
 
     id: str = Field(description="Order identifier")
     total: float = Field(ge=0, description="Order total")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    OrderCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 row = {"order_id": "ord-2", "amount": 99.5}
 order = build(row, OrderCoreEntity, lambda fields, row: {

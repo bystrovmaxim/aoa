@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Dispatcher shard tied to outbox", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Dispatcher shard tied to outbox", domain=MessagingDomain)
 class DispatcherCursorShardCoreEntity(BaseCoreEntity):
     id: str = Field(description="Cursor id")
     lifecycle: MsgDenseLifecycle = Field(description="Dispatcher cursor lifecycle")
@@ -26,9 +26,7 @@ class DispatcherCursorShardCoreEntity(BaseCoreEntity):
     outbox_row: Annotated[
         AssociationOne[OutboxMessageCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent outbox envelope"
-    )
+    ] = Field(description="Parent outbox envelope")
 
 
 DispatcherCursorShardCoreEntity.model_rebuild()

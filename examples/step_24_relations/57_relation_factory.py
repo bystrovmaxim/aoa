@@ -8,10 +8,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -21,24 +21,24 @@ class ExampleDomain(BaseDomain):
     description = "Explicit entity fields"
 
 
-@meta(description="Where ExampleStorage keeps its rows")
-class ExampleDataSource(InMemoryDataSource):
-    """The store ExampleStorage works with."""
-
-
-@meta(description="Stores the example entities", domain=ExampleDomain)
-class ExampleStorage(BaseStorage[ExampleDataSource]):
-    """Hold the example entities."""
-
-@entity(description="Related object", resource=ExampleStorage)
+@entity(description="Related object", domain=ExampleDomain)
 class TargetCoreEntity(BaseCoreEntity):
     """Identify the related object."""
     id: str = Field(description="Identifier")
 
-@entity(description="Host object", resource=ExampleStorage)
+@entity(description="Host object", domain=ExampleDomain)
 class HostCoreEntity(BaseCoreEntity):
     """Declare the field under examination."""
     target: Annotated[AssociationOne[TargetCoreEntity], NoInverse()] = Field(default_factory=lambda: AssociationOne(id="t"), description="Target")
+
+
+@meta(description="Stores the example entities")
+@entities(
+    TargetCoreEntity,
+    HostCoreEntity,
+)
+class ExampleStorage(BaseStorage):
+    """Hold the example entities."""
 
 def main() -> None:
     """Run the example and assert its result."""

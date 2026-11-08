@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Payment capture row", resource=StorefrontDatabaseStorage)
+@entity(description="Payment capture row", domain=StoreDomain)
 class PaymentCaptureCoreEntity(BaseCoreEntity):
     id: str = Field(description="Capture id")
     lifecycle: SalesOrderLifecycle = Field(description="Capture lifecycle")
@@ -26,10 +26,7 @@ class PaymentCaptureCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Captured order"
-    )
-
+    ] = Field(description="Captured order")
 
 
 PaymentCaptureCoreEntity.model_rebuild()

@@ -20,11 +20,17 @@ class CatalogSearchStateEntity(BaseStateEntity):
     ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
 
 
-
 class CatalogSearchLifecycle(Lifecycle[CatalogSearchStateEntity]):
     """draft → staged → archived."""
 
-
     _template = (
-        Lifecycle().state(CatalogSearchStateEntity.DRAFT).to(CatalogSearchStateEntity.STAGED).initial().state(CatalogSearchStateEntity.STAGED).to(CatalogSearchStateEntity.ARCHIVED).intermediate().state(CatalogSearchStateEntity.ARCHIVED).final()
+        Lifecycle()
+        .state(CatalogSearchStateEntity.DRAFT)
+        .to(CatalogSearchStateEntity.STAGED)
+        .initial()
+        .state(CatalogSearchStateEntity.STAGED)
+        .to(CatalogSearchStateEntity.ARCHIVED)
+        .intermediate()
+        .state(CatalogSearchStateEntity.ARCHIVED)
+        .final()
     )

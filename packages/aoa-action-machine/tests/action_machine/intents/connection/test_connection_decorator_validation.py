@@ -7,10 +7,8 @@ from aoa.action_machine.intents.connection.connection_decorator import _validate
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources import BaseController
 
-from ....support.domain_model.domains import TestDomain
 
-
-@meta(description="Connection decorator test resource", domain=TestDomain)
+@meta(description="Connection decorator test resource")
 class _MgrController(BaseController):
     @classmethod
     def get_wrapper_class(cls):

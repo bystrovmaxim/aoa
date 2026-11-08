@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.messaging.domain import MessagingDomain
 
 
 class SmtpTransportClient:
@@ -13,7 +12,6 @@ class SmtpTransportClient:
 
 @meta(
     description="SMTP transport gateway (stub)",
-    domain=MessagingDomain,
 )
 class SmtpTransportGateway(BaseGateway):
     """The gateway to the SMTP transport: its methods are what the domain asks of it."""

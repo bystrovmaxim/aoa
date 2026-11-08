@@ -73,10 +73,14 @@ def test_the_demo_graph_carries_the_dictionary_relation_edges() -> None:
         assert edge["properties"]["field_name"]
 
 
-def test_the_dictionary_relation_stays_inside_its_resource() -> None:
-    """A dictionary is stored by the resource of the entities that select from it."""
+def test_the_dictionary_relation_stays_inside_its_domain() -> None:
+    """A dictionary is an entity of the domain of the entities that select from it."""
     graph = _graph()
-    resource_of = {edge["source_id"]: edge["target_id"] for edge in graph["edges"] if edge.get("type") == "entity_resource"}
+    domain_of = {
+        edge["source_id"].rsplit(".", 1)[-1]: edge["target_id"].rsplit(".", 1)[-1]
+        for edge in graph["edges"]
+        if edge.get("type") == "domain"
+    }
     relations = [
         edge
         for edge in graph["edges"]
@@ -84,6 +88,6 @@ def test_the_dictionary_relation_stays_inside_its_resource() -> None:
     ]
 
     assert relations
+    assert domain_of["CurrencyEnumEntity"] == "BillingDomain"
     for edge in relations:
-        assert resource_of[edge["source_id"]] == resource_of[edge["target_id"]]
-        assert resource_of[edge["target_id"]].endswith("BillingWarehouseStorage")
+        assert domain_of[edge["source_id"].rsplit(".", 1)[-1]] == domain_of["CurrencyEnumEntity"]

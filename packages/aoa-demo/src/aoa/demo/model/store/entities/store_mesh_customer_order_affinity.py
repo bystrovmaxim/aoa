@@ -9,11 +9,11 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import CustomerAccountCoreEntity, SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(
-    description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", resource=StorefrontDatabaseStorage
+    description="Many-to-many style affinity row bridging buyer subgraph and transactional orders", domain=StoreDomain
 )
 class StoreCustomerOrderAffinityCoreEntity(BaseCoreEntity):
     id: str = Field(description="Affinity id")
@@ -28,16 +28,12 @@ class StoreCustomerOrderAffinityCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Buyer profile anchor"
-    )
+    ] = Field(description="Buyer profile anchor")
 
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Order aggregate anchor"
-    )
+    ] = Field(description="Order aggregate anchor")
 
 
 StoreCustomerOrderAffinityCoreEntity.model_rebuild()

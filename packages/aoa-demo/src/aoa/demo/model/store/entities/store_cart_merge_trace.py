@@ -6,10 +6,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.storefront_session_lifecycle import StorefrontSessionLifecycle
-from aoa.demo.model.store.resources.storefront_session_cache_storage import StorefrontSessionCacheStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Cart merge diagnostics hanging off buyer profile graph", resource=StorefrontSessionCacheStorage)
+@entity(description="Cart merge diagnostics hanging off buyer profile graph", domain=StoreDomain)
 class CartMergeTraceCoreEntity(BaseCoreEntity):
     id: str = Field(description="Trace id")
     lifecycle: StorefrontSessionLifecycle = Field(description="Merge trace lifecycle")

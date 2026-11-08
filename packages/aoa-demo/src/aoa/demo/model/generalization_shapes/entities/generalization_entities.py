@@ -28,7 +28,6 @@ ARCHITECTURE / DATA FLOW
         └── audit_log: AssociationOne[AuditLogEntry]          → store domain
 """
 
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -46,10 +45,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.generalization_shapes.resources.storage import GeneralizationShapesStorage
+from aoa.demo.model.generalization_shapes.generalization_shapes_domain import GeneralizationShapesDomain
 
 
-@entity(description="Shape: the dictionary the drawing axis borrows its codes from", resource=GeneralizationShapesStorage)
+@entity(description="Shape: the dictionary the drawing axis borrows its codes from", domain=GeneralizationShapesDomain)
 class GeneralizationShapesKindEnumEntity(BaseEnumEntity):
     """Declare the codes the drawing axis borrows."""
 
@@ -59,7 +58,7 @@ class GeneralizationShapesKindEnumEntity(BaseEnumEntity):
 
 @entity(
     description="Shape: the specialization head — its axis and the two extensions draw the ERD generalization",
-    resource=GeneralizationShapesStorage,
+    domain=GeneralizationShapesDomain,
 )
 class GeneralizationHeadCoreEntity(BaseCoreEntity):
     """
@@ -77,15 +76,12 @@ class GeneralizationHeadCoreEntity(BaseCoreEntity):
             GeneralizationVariantASpecEntity | GeneralizationVariantBSpecEntity, GeneralizationShapesKindEnumEntity
         ],
         Inverse(field_name="head"),
-    ] = Field(
-        description="Shape: the specialization axis — one of the declared variants"
-    )
-
+    ] = Field(description="Shape: the specialization axis — one of the declared variants")
 
 
 @entity(
     description="Shape: an extension entity — the ERD draws a parent_entity arrow into the head",
-    resource=GeneralizationShapesStorage,
+    domain=GeneralizationShapesDomain,
 )
 class GeneralizationVariantASpecEntity(BaseSpecEntity):
     """
@@ -102,16 +98,12 @@ class GeneralizationVariantASpecEntity(BaseSpecEntity):
         Generalization[GeneralizationHeadCoreEntity],
         Classifier(variant=GeneralizationShapesKindEnumEntity.VARIANT_A),
         Inverse(GeneralizationHeadCoreEntity, "details"),
-    ] = Field(
-        description="Shape: the extension's reverse field — the parent_entity edge into the head"
-    )
-
-
+    ] = Field(description="Shape: the extension's reverse field — the parent_entity edge into the head")
 
 
 @entity(
     description="Shape: a second extension entity — the ERD draws another parent_entity arrow into the head",
-    resource=GeneralizationShapesStorage,
+    domain=GeneralizationShapesDomain,
 )
 class GeneralizationVariantBSpecEntity(BaseSpecEntity):
     """
@@ -128,10 +120,7 @@ class GeneralizationVariantBSpecEntity(BaseSpecEntity):
         Generalization[GeneralizationHeadCoreEntity],
         Classifier(variant=GeneralizationShapesKindEnumEntity.VARIANT_B),
         Inverse(GeneralizationHeadCoreEntity, "details"),
-    ] = Field(
-        description="Shape: the extension's reverse field — the parent_entity edge into the head"
-    )
-
+    ] = Field(description="Shape: the extension's reverse field — the parent_entity edge into the head")
 
 
 GeneralizationHeadCoreEntity.model_rebuild()

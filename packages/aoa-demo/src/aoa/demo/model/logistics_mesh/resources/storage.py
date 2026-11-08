@@ -3,14 +3,19 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
-from aoa.demo.model.data_sources.logistics_mesh_data_source import LogisticsMeshDataSource
-from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
+from aoa.demo.model.logistics_mesh.entities.facility_handoff_manifest_entity import FacilityHandoffManifestAssocEntity
+from aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity import FreightWaypointLegCoreEntity
 
 
-@meta(description="Stores the logistics mesh model (stub)", domain=LogisticsMeshDomain)
-class LogisticsMeshStorage(BaseStorage[LogisticsMeshDataSource]):
+@meta(description="Stores the logistics mesh model (stub)")
+@entities(
+    FacilityHandoffManifestAssocEntity,
+    FreightWaypointLegCoreEntity,
+)
+class LogisticsMeshStorage(BaseStorage):
     """Hold the logistics mesh domain's entities; the demo never opens it."""
 
     @classmethod

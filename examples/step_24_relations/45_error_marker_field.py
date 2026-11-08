@@ -8,10 +8,10 @@ Run: uv run python examples/step_24_relations/45_error_marker_field.py
 from __future__ import annotations
 
 from aoa.action_machine.domain import BaseDomain, BaseEnumEntity, Classifier, value
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class MusicDomain(BaseDomain):
@@ -21,21 +21,19 @@ class MusicDomain(BaseDomain):
     description = "A music catalogue"
 
 
-@meta(description="Where MusicStorage keeps its rows")
-class MusicDataSource(InMemoryDataSource):
-    """The store MusicStorage works with."""
-
-
-@meta(description="Stores the music entities", domain=MusicDomain)
-class MusicStorage(BaseStorage[MusicDataSource]):
-    """Hold the music entities."""
-
-
-@entity(description="Kind of VinylRecordCoreEntity", resource=MusicStorage)
+@entity(description="Kind of VinylRecordCoreEntity", domain=MusicDomain)
 class VinylRecordKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     FIRST = value(code="first", display_name="First")
+
+
+@meta(description="Stores the music entities")
+@entities(
+    VinylRecordKindEnumEntity,
+)
+class MusicStorage(BaseStorage):
+    """Hold the music entities."""
 
 
 def main() -> None:

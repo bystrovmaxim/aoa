@@ -22,10 +22,8 @@ class SalesOrderLineStateEntity(BaseStateEntity):
     FULFILLED = value(code="fulfilled", display_name="Fulfilled", sort_order=3)
 
 
-
 class SalesOrderLineLifecycle(Lifecycle[SalesOrderLineStateEntity]):
     """Three states: open → reserved → fulfilled."""
-
 
     _template = (
         Lifecycle()

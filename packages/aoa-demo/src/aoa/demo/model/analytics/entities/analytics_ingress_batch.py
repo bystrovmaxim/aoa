@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Ingress batch spine head", resource=AnalyticsStorage)
+@entity(description="Ingress batch spine head", domain=AnalyticsDomain)
 class AnalyticsIngressBatchCoreEntity(BaseCoreEntity):
     id: str = Field(description="Batch id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Batch lifecycle")

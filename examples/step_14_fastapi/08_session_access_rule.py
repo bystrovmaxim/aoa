@@ -33,6 +33,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.context_requires import context_requires
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, StubParams
 from aoa.action_machine.model.base_state import BaseState
@@ -60,7 +61,8 @@ class ViewerRole(ApplicationRole):
     description = "Read-only access."
 
 
-@meta(description="Application registry of ended login sessions.", domain=OrdersDomain)
+@meta(description="Application registry of ended login sessions.")
+@entities()
 class SessionRegistryStorage(BaseStorage):
     def __init__(self) -> None:
         self._ended: set[str] = set()

@@ -3,14 +3,23 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
-from aoa.demo.model.data_sources.telemetry_pipeline_data_source import TelemetryPipelineDataSource
-from aoa.demo.model.telemetry_pipeline.telemetry_pipeline_domain import TelemetryPipelineDomain
+from aoa.demo.model.telemetry_pipeline.entities.routed_observation_slice_entity import (
+    RoutedObservationSliceDetailEntity,
+)
+from aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity import (
+    TelemetryIngestEnvelopeCoreEntity,
+)
 
 
-@meta(description="Stores the telemetry pipeline model (stub)", domain=TelemetryPipelineDomain)
-class TelemetryPipelineStorage(BaseStorage[TelemetryPipelineDataSource]):
+@meta(description="Stores the telemetry pipeline model (stub)")
+@entities(
+    RoutedObservationSliceDetailEntity,
+    TelemetryIngestEnvelopeCoreEntity,
+)
+class TelemetryPipelineStorage(BaseStorage):
     """Hold the telemetry pipeline domain's entities; the demo never opens it."""
 
     @classmethod

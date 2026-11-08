@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/access_cascade/resources/__init__.py
-"""Resources of the access cascade domain."""
+"""The access cascade model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.access_cascade.resources.storage import AccessCascadeStorage
+
+__all__ = ["AccessCascadeStorage"]

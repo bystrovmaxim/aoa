@@ -17,10 +17,10 @@ from pydantic import Field, ValidationError
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseDetailEntity, CompositeMany, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -30,17 +30,7 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer", resource=ShopStorage)
+@entity(description="Customer", domain=ShopDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     """A customer identified by a UUID."""
 
@@ -48,7 +38,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     name: str = Field(description="Customer name")
 
 
-@entity(description="Order line", resource=ShopStorage)
+@entity(description="Order line", domain=ShopDomain)
 class LineDetailEntity(BaseDetailEntity):
     """One line of an order."""
 
@@ -56,13 +46,23 @@ class LineDetailEntity(BaseDetailEntity):
     qty: int = Field(description="Quantity")
 
 
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     """An order with its customer and its lines."""
 
     id: str = Field(description="Order identifier")
     customer: Annotated[AssociationOne[CustomerCoreEntity], NoInverse()] = Field(description="Customer")
     lines: Annotated[CompositeMany[LineDetailEntity], NoInverse()] = Field(description="Lines")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    CustomerCoreEntity,
+    LineDetailEntity,
+    OrderCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 CUSTOMER_ID = "00000000-0000-0000-0000-000000000001"

@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
 from aoa.demo.model.messaging.entities.msg_webhook_signature_envelope import WebhookSignatureEnvelopeCoreEntity
 from aoa.demo.model.messaging.entities.outbox_message import OutboxMessageCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
 @entity(
-    description="Correlates isolated webhook verification path with transactional outbox rows", resource=OutboxPrimaryDatabaseStorage
+    description="Correlates isolated webhook verification path with transactional outbox rows", domain=MessagingDomain
 )
 class MsgOutboxWebhookCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
@@ -29,16 +29,12 @@ class MsgOutboxWebhookCorrelateCoreEntity(BaseCoreEntity):
     outbox_row: Annotated[
         AssociationOne[OutboxMessageCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream outbox linkage"
-    )
+    ] = Field(description="Upstream outbox linkage")
 
     signature_envelope: Annotated[
         AssociationOne[WebhookSignatureEnvelopeCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Verified webhook linkage"
-    )
+    ] = Field(description="Verified webhook linkage")
 
 
 MsgOutboxWebhookCorrelateCoreEntity.model_rebuild()

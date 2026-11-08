@@ -1,6 +1,8 @@
-"""Connection parameters live in the data source.
+"""A pool keeps the connection parameters.
 
-A PostgreSQL resource takes only its data source. The data source keeps the connection parameters and creates the pool from them when it opens. Replace only create_pool so the example needs no database.
+``PostgresPool`` holds the address and the pool options, and creates the driver's pool from
+them when it opens; a storage built with ``pool=`` takes its connection from it. Replace only
+create_pool so the example needs no database.
 
 Run: uv run python examples/extensions/postgresql/08_owned_connection.py
 """
@@ -8,7 +10,7 @@ Run: uv run python examples/extensions/postgresql/08_owned_connection.py
 import asyncio
 from unittest.mock import AsyncMock, patch
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 
 
 class RecordingConnection:
@@ -62,27 +64,25 @@ class RecordingPool:
 
 
 
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: its connection parameters and its pool."""
 
 
-class ExampleStorage(PostgresStorage[ExampleDataSource]):
-    """A PostgreSQL resource that works through the example's data source."""
+class ExampleStorage(PostgresStorage):
+    """A PostgreSQL resource that works through the example's pool."""
 
 
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
     create_pool = AsyncMock(return_value=pool)
-    with patch("aoa.action_machine.resources.postgres.postgres_data_source.asyncpg.create_pool", create_pool):
-        async with ExampleDataSource("postgresql://example.invalid/demo", min_size=1, max_size=1) as source:
-            db = ExampleStorage(data_source=source)
+    with patch("aoa.action_machine.resources.postgres.postgres_pool.asyncpg.create_pool", create_pool):
+        async with PostgresPool("postgresql://example.invalid/demo", min_size=1, max_size=1) as source:
+            db = ExampleStorage(pool=source)
             await db.open()
             await db.close()
     create_pool.assert_awaited_once_with("postgresql://example.invalid/demo", min_size=1, max_size=1)
     assert pool.closed
     print("create_pool calls:", create_pool.await_count)
-    print("pool closed with its data source:", pool.closed)
+    print("pool closed by PostgresPool:", pool.closed)
 
 
 if __name__ == "__main__":

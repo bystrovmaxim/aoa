@@ -648,7 +648,9 @@ A resource can be a thin adapter over a standard protocol, or a domain-oriented 
 
 ```python
 # Fragment: its imports are left out.
-class OrderStorage(PostgresStorage):
+@meta(description="The shop database")
+@entities(OrderCoreEntity, CustomerCoreEntity)
+class ShopDatabaseStorage(PostgresStorage):
     async def load_customer(self, customer_id: str) -> CustomerCoreEntity:
         row = await self._fetchrow(
             "SELECT * FROM customers WHERE id = $1", (customer_id,)
@@ -662,7 +664,7 @@ class OrderStorage(PostgresStorage):
         )
 ```
 
-`save_order` does not decide whether an order may be created — that is the `Action`'s job. The resource only executes the operation and returns control. The same principle applies to any external executor — a payment gateway, email service, or AI agent:
+`save_order` does not decide whether an order may be created — that is the `Action`'s job. The resource only executes the operation and returns control. A resource is a database: `@entities` lists the entities that lie in it, and the machine checks every answer of its public methods against that list — `load_customer` may return a `CustomerCoreEntity`, never an entity another database holds. How the storage connects is chosen when the application builds it: `ShopDatabaseStorage(pool=pool)` in a service, `ShopDatabaseStorage(connection_params=dsn)` in a script. The same principle applies to any external executor — a payment gateway, email service, or AI agent:
 
 ```python
 # Fragment: its imports are left out.
@@ -677,13 +679,13 @@ class SupportAgentGateway(BaseGateway):
 
 ### Entity: domain object without storage coupling
 
-`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same. The entity still names the one resource that stores it, `@entity(resource=...)`, and takes its domain from that resource.
+`Entity` describes domain objects — fields, relationships, and lifecycle. There are no tables, collections, or ORM mappings here. The same `OrderCoreEntity` is assembled from PostgreSQL, MongoDB, an external API response, or a test fixture — the source changes, the model stays the same. The entity names its domain, `@entity(domain=...)`, and no store: the databases that hold it list it with `@entities`.
 
 Every field must have a `description` — this is not a comment but structured metadata: it goes into the system graph, ArchiMate diagrams, and auto-generated documentation. A missing description is a build error.
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer order", resource=StoreStorage)
+@entity(description="Customer order", domain=StoreDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -708,7 +710,7 @@ Cardinality is set by the suffix: `One` — a single object, `Many` — a collec
 
 ```python
 # Fragment: its imports are left out.
-@entity(description="Customer account", resource=StoreStorage)
+@entity(description="Customer account", domain=StoreDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer identifier")
     name: str = Field(description="Display name")
@@ -720,7 +722,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     ] = Rel(description="Orders placed by this customer")
 
 
-@entity(description="Customer order", resource=StoreStorage)
+@entity(description="Customer order", domain=StoreDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order identifier")
     total: float = Field(description="Order total", ge=0)
@@ -739,7 +741,7 @@ class OrderCoreEntity(BaseCoreEntity):
     ] = Rel(description="Line items of the order")
 
 
-@entity(description="Single line item within an order", resource=StoreStorage)
+@entity(description="Single line item within an order", domain=StoreDomain)
 class OrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Line item identifier")
     product_name: str = Field(description="Product display name")
@@ -754,7 +756,7 @@ class OrderLineDetailEntity(BaseDetailEntity):
 
 Every relationship must have a mirror on the other side — declared via `Inverse(TargetClass, "field_name")`. The coordinator at startup verifies that both sides are consistent in type and cardinality. A mismatch is a build error before the first request.
 
-`NoInverse()` is an explicit exception: the referenced entity keeps no field pointing back. A relation is a fact of the logical model: it says two entities are related and promises no foreign key, no join and no shared transaction, so it may join entities of any resources and databases. In exchange every stored entity has a physical place: its resource names a data source (`BaseStorage[ShopDataSource]`), and a domain reaches each data source through one resource.
+`NoInverse()` is an explicit exception: the referenced entity keeps no field pointing back. A relation is a fact of the logical model: it says two entities are related and promises no foreign key, no join and no shared transaction, so it may join entities of any databases. A database answers only with its own entities, so a relation that leaves it comes back as a reference — the id without the entity — and an action glues the data of two databases.
 
 ### Lifecycle
 

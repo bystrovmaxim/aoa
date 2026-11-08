@@ -9,8 +9,8 @@ PURPOSE
 Materializes a frozen :class:`~aoa.action_machine.graph.core.base_graph_node.BaseGraphNode` from an
 entity **class** object: stable ``id`` (dotted path), ``node_type="Entity"``,
 ``label`` from the class name, ``properties`` from :meth:`~aoa.action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_description`,
-a ``domain`` edge built by :class:`~aoa.action_machine.graph.edges.domain_graph_edge.DomainGraphEdge`,
-an ``entity_resource`` edge built by :class:`~aoa.action_machine.graph.edges.entity_resource_graph_edge.EntityResourceGraphEdge`,
+a ``domain`` edge built by :class:`~aoa.action_machine.graph.edges.domain_graph_edge.DomainGraphEdge` from the domain
+the entity declares itself,
 ``entity_relation`` edges from :class:`~aoa.action_machine.graph.edges.entity_graph_edge.EntityGraphEdge`,
 :class:`~aoa.action_machine.graph.edges.lifecycle_graph_edge.LifeCycleGraphEdge`
 lifecycle compositions (:attr:`lifecycles`), and ``entity_field`` compositions from
@@ -22,8 +22,6 @@ for every alternative of every declared specialization axis (see :attr:`speciali
 
 State rows belong to each wired :class:`~aoa.action_machine.graph.nodes.lifecycle_graph_node.LifeCycleGraphNode`;
 the entity row contributes lifecycle vertices only.
-
-(the domain of the entity's resource: :meth:`~aoa.action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver.resolve_domain_type`).
 """
 
 from __future__ import annotations
@@ -38,13 +36,11 @@ from aoa.action_machine.graph.edges.domain_graph_edge import DomainGraphEdge
 from aoa.action_machine.graph.edges.entity_field_graph_edge import EntityFieldGraphEdge
 from aoa.action_machine.graph.edges.entity_graph_edge import EntityGraphEdge
 from aoa.action_machine.graph.edges.entity_reference_graph_edge import EntityReferenceGraphEdge
-from aoa.action_machine.graph.edges.entity_resource_graph_edge import EntityResourceGraphEdge
 from aoa.action_machine.graph.edges.entity_specialization_graph_edge import (
     EntitySpecializationGraphEdge,
 )
 from aoa.action_machine.graph.edges.lifecycle_graph_edge import LifeCycleGraphEdge
 from aoa.action_machine.graph.edges.parent_entity_graph_edge import ParentEntityGraphEdge
-from aoa.action_machine.graph.validators.entity_data_source_validator import validate_entity_data_sources
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
 from aoa.action_machine.graph.validators.entity_role_compatibility_validator import validate_entity_role_compatibility
@@ -88,13 +84,12 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
     """
     AI-CORE-BEGIN
     ROLE: Interchange bridge for ``BaseEntity`` host classes.
-    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`resource` / :attr:`relations` / :attr:`references` / :attr:`lifecycles` / :attr:`entity_field_edges` from scalar fields; :meth:`get_all_edges` lists domain, the ``entity_resource`` edge, relations, dictionary references, lifecycle compositions, and ``entity_field`` edges; :meth:`get_companion_nodes` returns lifecycle targets and :class:`EntityFieldGraphNode` targets. JSON omits nested ``fields``/``field_order`` on the entity row.
+    CONTRACT: Dotted-path ``id``, ``__name__`` label; :attr:`NODE_TYPE`; :attr:`domain` / :attr:`relations` / :attr:`references` / :attr:`lifecycles` / :attr:`entity_field_edges` from scalar fields; :meth:`get_all_edges` lists the entity's own domain edge, relations, dictionary references, lifecycle compositions, and ``entity_field`` edges; :meth:`get_companion_nodes` returns lifecycle targets and :class:`EntityFieldGraphNode` targets. JSON omits nested ``fields``/``field_order`` on the entity row.
     AI-CORE-END
     """
 
     NODE_TYPE: ClassVar[str] = "Entity"
     domain: DomainGraphEdge = field(init=False, repr=False, compare=False)
-    resource: EntityResourceGraphEdge = field(init=False, repr=False, compare=False)
     relations: list[EntityGraphEdge] = field(init=False)
     references: list[EntityReferenceGraphEdge] = field(init=False)
     specializations: list[EntitySpecializationGraphEdge] = field(init=False)
@@ -106,7 +101,6 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         validate_entity_fields([entity_cls])
         validate_entity_inverses([entity_cls])
         validate_entity_role_compatibility([entity_cls])
-        validate_entity_data_sources([entity_cls])
         description = EntityIntentResolver.resolve_description(entity_cls)
         field_edges = EntityFieldGraphEdge.get_entity_field_edges(entity_cls)
         kind = entity_kind_of(entity_cls)
@@ -126,7 +120,6 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
             node_obj=entity_cls,
         )
         object.__setattr__(self, "domain", DomainGraphEdge.from_entity_declared_host(entity_cls, self))
-        object.__setattr__(self, "resource", EntityResourceGraphEdge.from_entity(entity_cls))
         object.__setattr__(self, "relations", EntityGraphEdge.get_entity_relation_edges(entity_cls))
         object.__setattr__(self, "references", EntityReferenceGraphEdge.get_entity_reference_edges(entity_cls))
         object.__setattr__(
@@ -159,10 +152,9 @@ class EntityGraphNode(BaseGraphNode[type[TEntity]]):
         return [*lifecycle_targets, *field_targets]
 
     def get_all_edges(self) -> list[BaseGraphEdge]:
-        """Return ``domain``, ``entity_resource``, relations, references, specializations, generalizations, lifecycles and fields."""
+        """Return ``domain``, relations, references, specializations, generalizations, lifecycles and fields."""
         return [
             self.domain,
-            self.resource,
             *self.relations,
             *self.references,
             *self.specializations,

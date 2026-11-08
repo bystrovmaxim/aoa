@@ -27,7 +27,6 @@ _IMPORTS = textwrap.dedent(
         NoInverse,
     )
     from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
-    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
     from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
@@ -40,13 +39,8 @@ _IMPORTS = textwrap.dedent(
         description = "Entrypoint"
 
 
-    @meta(description="Where EntrypointStorage keeps its rows")
-    class EntrypointDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the entrypoint entities", domain=EntrypointDomain)
-    class EntrypointStorage(BaseStorage[EntrypointDataSource]):
+    @meta(description="Stores the entrypoint entities")
+    class EntrypointStorage(BaseStorage):
         pass
     """
 )
@@ -63,12 +57,12 @@ def test_a_graph_excluded_host_is_still_judged() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Target", resource=EntrypointStorage)
+        @entity(description="Target", domain=EntrypointDomain)
         class TargetCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Bare host", resource=EntrypointStorage)
+        @entity(description="Bare host", domain=EntrypointDomain)
         class BareCoreEntity(BaseCoreEntity):
             target: TargetCoreEntity = Field(description="Bare")
 
@@ -88,12 +82,12 @@ def test_direct_entity_graph_node_projection_is_refused() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Target", resource=EntrypointStorage)
+        @entity(description="Target", domain=EntrypointDomain)
         class TargetCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Bare host", resource=EntrypointStorage)
+        @entity(description="Bare host", domain=EntrypointDomain)
         class BareCoreEntity(BaseCoreEntity):
             target: TargetCoreEntity = Field(description="Bare")
 
@@ -113,11 +107,11 @@ def test_coordinator_build_refuses_an_invalid_declaration() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Target", resource=EntrypointStorage)
+        @entity(description="Target", domain=EntrypointDomain)
         class TargetCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
-        @entity(description="Bare host", resource=EntrypointStorage)
+        @entity(description="Bare host", domain=EntrypointDomain)
         class BareCoreEntity(BaseCoreEntity):
             target: TargetCoreEntity = Field(description="Bare")
 
@@ -137,12 +131,12 @@ def test_a_complete_declaration_builds_a_usable_coordinator() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="Target", resource=EntrypointStorage)
+        @entity(description="Target", domain=EntrypointDomain)
         class TargetCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
 
         @exclude_graph_model
-        @entity(description="Complete host", resource=EntrypointStorage)
+        @entity(description="Complete host", domain=EntrypointDomain)
         class CompleteCoreEntity(BaseCoreEntity):
             target: Annotated[AssociationOne[TargetCoreEntity], NoInverse()] = Field(description="Target")
 

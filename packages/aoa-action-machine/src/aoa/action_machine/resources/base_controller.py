@@ -39,12 +39,11 @@ The root validates canonical kind ancestry and descendant names.
 from abc import ABC
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.resources.base_data_source import TDataSource_co
 from aoa.action_machine.resources.base_resource import BaseResource
 
 
 @exclude_graph_model
-class BaseController(BaseResource[TDataSource_co], ABC):
+class BaseController(BaseResource, ABC):
     """
     AI-CORE-BEGIN
     ROLE: Root for internal resources whose lifecycle the process owns.

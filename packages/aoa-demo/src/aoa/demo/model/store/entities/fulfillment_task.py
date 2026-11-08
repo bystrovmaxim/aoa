@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Fulfillment task row", resource=StorefrontDatabaseStorage)
+@entity(description="Fulfillment task row", domain=StoreDomain)
 class FulfillmentTaskCoreEntity(BaseCoreEntity):
     id: str = Field(description="Task id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Fulfillment task lifecycle")
@@ -26,10 +26,7 @@ class FulfillmentTaskCoreEntity(BaseCoreEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Target order line"
-    )
-
+    ] = Field(description="Target order line")
 
 
 FulfillmentTaskCoreEntity.model_rebuild()

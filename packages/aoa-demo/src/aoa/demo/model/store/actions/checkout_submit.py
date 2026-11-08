@@ -22,17 +22,22 @@ from aoa.action_machine.model import BaseAction, BaseParams, BaseResult, BaseSta
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.demo.model.billing.actions.invoice_settle import InvoiceSettleAction
+from aoa.demo.model.databases import ShopDatabaseStorage
 from aoa.demo.model.messaging.actions.publish_transactional import PublishTransactionalOutboxAction
 from aoa.demo.model.roles import EditorRole
-from aoa.demo.model.store.resources import StorefrontDatabaseStorage, StorefrontSessionCacheStorage
+from aoa.demo.model.store.resources import StorefrontSessionCacheStorage
 from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @meta(description="Sample checkout with full decorator surface (graph demo)", domain=StoreDomain)
 @check_roles(EditorRole)
 @depends(InvoiceSettleAction, mode=UseCase.include, description="Charge through billing: its gateway is billing's own")
-@depends(PublishTransactionalOutboxAction, mode=UseCase.include, description="Notify through messaging: its gateway is messaging's own")
-@connection(StorefrontDatabaseStorage, key="db", description="DB connection")
+@depends(
+    PublishTransactionalOutboxAction,
+    mode=UseCase.include,
+    description="Notify through messaging: its gateway is messaging's own",
+)
+@connection(ShopDatabaseStorage, key="db", description="DB connection")
 @connection(StorefrontSessionCacheStorage, key="cache", description="Cache connection")
 class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSubmitAction.Result"]):
     class Params(BaseParams):
@@ -86,7 +91,9 @@ class CheckoutSubmitAction(BaseAction["CheckoutSubmitAction.Params", "CheckoutSu
     ) -> dict[str, Any]:
         settled = await box.run(
             InvoiceSettleAction,
-            InvoiceSettleAction.Params(invoice_id=f"checkout-{params.customer_id}", gross_cents=round(params.amount * 100)),
+            InvoiceSettleAction.Params(
+                invoice_id=f"checkout-{params.customer_id}", gross_cents=round(params.amount * 100)
+            ),
         )
         return {"txn_id": settled.capture_txn, "charged_amount": params.amount}
 

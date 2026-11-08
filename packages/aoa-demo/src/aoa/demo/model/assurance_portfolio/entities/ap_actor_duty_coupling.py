@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import AssuranceDutyTemplateAxisCoreEntity
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Join between actor and duty catalogue (user_has_role analogue)", resource=AssurancePortfolioStorage)
+@entity(description="Join between actor and duty catalogue (user_has_role analogue)", domain=AssurancePortfolioDomain)
 class AssuranceActorDutyCouplingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Coupling id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Coupling lifecycle")
@@ -27,16 +27,12 @@ class AssuranceActorDutyCouplingCoreEntity(BaseCoreEntity):
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Subject actor"
-    )
+    ] = Field(description="Subject actor")
 
     duty_axis: Annotated[
         AssociationOne[AssuranceDutyTemplateAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Assigned duty template"
-    )
+    ] = Field(description="Assigned duty template")
 
 
 AssuranceActorDutyCouplingCoreEntity.model_rebuild()

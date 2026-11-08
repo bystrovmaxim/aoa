@@ -293,7 +293,7 @@ different contracts.
 
 ## A lifecycle may be shared across databases
 
-A state type declares no resource of its own: it is stored with the entities whose `Lifecycle[...]` uses it. A lifecycle is a fact of the model, like a relation, so entities of any resources and data sources may share one state type, and each carries its own lifecycle.
+A state type declares no resource of its own: it is stored with the entities whose `Lifecycle[...]` uses it. A lifecycle is a fact of the model, like a relation, so entities of any databases may share one state type, and each carries its own lifecycle.
 
 [Script](../../examples/step_25_lifecycle/23_lifecycle_across_resources.py) · [Notebook](../../examples/step_25_lifecycle/23_lifecycle_across_resources.ipynb)
 

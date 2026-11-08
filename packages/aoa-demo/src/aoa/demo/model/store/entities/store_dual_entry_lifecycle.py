@@ -23,10 +23,8 @@ class StoreDualEntryStateEntity(BaseStateEntity):
     FULFILLED = value(code="fulfilled", display_name="Fulfilled", sort_order=4)
 
 
-
 class StoreDualEntryLifecycle(Lifecycle[StoreDualEntryStateEntity]):
     """Lifecycle with **two** initial states (online vs walk-in), converging to one path."""
-
 
     _template = (
         Lifecycle()

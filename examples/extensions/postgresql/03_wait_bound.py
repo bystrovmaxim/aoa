@@ -8,15 +8,11 @@ Run: uv run python examples/extensions/postgresql/03_wait_bound.py
 import asyncio
 
 from aoa.action_machine.exceptions import HandleError
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 
 
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
-
-
-class ExampleStorage(PostgresStorage[ExampleDataSource]):
-    """A PostgreSQL resource that works through the example's data source."""
+class ExampleStorage(PostgresStorage):
+    """A PostgreSQL resource that works through the example's pool."""
 
 
 class RecordingConnection:
@@ -71,14 +67,14 @@ class RecordingPool:
 
 async def main():
     """Run this case and verify its observable result."""
-    class QuickDataSource(ExampleDataSource):
+    class QuickPool(PostgresPool):
         """Use a short wait so this failure is quick to reproduce."""
         acquire_timeout = 0.01
-    class QuickStorage(PostgresStorage[QuickDataSource]):
-        """A resource that works through the quick data source."""
+    class QuickStorage(PostgresStorage):
+        """A resource that works through the quick pool."""
     pool = RecordingPool()
-    first = ExampleStorage(data_source=ExampleDataSource(pool=pool))
-    second = QuickStorage(data_source=QuickDataSource(pool=pool))
+    first = ExampleStorage(pool=PostgresPool(pool=pool))
+    second = QuickStorage(pool=QuickPool(pool=pool))
     await first.open()
     try:
         await second.open()

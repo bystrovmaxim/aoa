@@ -41,8 +41,8 @@ from aoa.action_machine.exceptions import HandleError
 from aoa.action_machine.resources.postgres.postgres_storage import PostgresStorage
 from aoa.action_machine.resources.sql.sql_storage_wrapper import SqlStorageWrapper
 
-from ...support.fake_data_source import pooled
 from ...support.fake_pool import FakeConnection, FakePool
+from ...support.pooled_storage import pooled
 
 
 async def _open(resource: PostgresStorage, pool: FakePool) -> FakeConnection:

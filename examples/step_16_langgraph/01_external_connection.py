@@ -119,7 +119,7 @@ class BillingAction(BaseAction[ResolveParams, ResolveResult]):
 # and @connection names that subclass.
 
 
-@meta(description="Ticket processing graph", domain=SupportDomain)
+@meta(description="Ticket processing graph")
 class TicketGraphController(LangGraphController):
     """The ticket graph this service connects its actions to."""
 

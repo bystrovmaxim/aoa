@@ -26,6 +26,7 @@ from aoa.action_machine.intents.check_roles import GuestRole, check_roles
 from aoa.action_machine.intents.checkers import result_float, result_string
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends import depends
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.intents.role_mode.role_mode_decorator import RoleMode, role_mode
 from aoa.action_machine.model.base_action import BaseAction
@@ -89,7 +90,7 @@ class PaymentClient:
         raise NotImplementedError("PaymentClient.refund() is not implemented")
 
 
-@meta(description="Payment gateway (test domain)", domain=TestDomain)
+@meta(description="Payment gateway (test domain)")
 class PaymentGateway(BaseGateway):
     """The gateway to the payment service: its methods are what the domain asks of it."""
 
@@ -118,7 +119,7 @@ class NotificationClient:
         raise NotImplementedError("NotificationClient.send() is not implemented")
 
 
-@meta(description="Notification gateway (test domain)", domain=TestDomain)
+@meta(description="Notification gateway (test domain)")
 class NotificationGateway(BaseGateway):
     """The gateway to the notification service: its methods are what the domain asks of it."""
 
@@ -143,8 +144,8 @@ def default_notification_gateway() -> NotificationGateway:
 
 @meta(
     description="Test database resource manager for order-scenario actions",
-    domain=OrdersDomain,
 )
+@entities()
 class OrdersStorage(BaseStorage):
     """Minimal manager; runtime tests use ``AsyncMock(spec=OrdersStorage)``."""
 

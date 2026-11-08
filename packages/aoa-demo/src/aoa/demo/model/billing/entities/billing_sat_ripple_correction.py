@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Settlement ripple memo on sweep branch", resource=BillingWarehouseStorage)
+@entity(description="Settlement ripple memo on sweep branch", domain=BillingDomain)
 class SettlementRippleCorrectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Memo id")
     lifecycle: BillingDenseLifecycle = Field(description="Ripple correction lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent sweep instruction"
-    )
+    ] = Field(description="Parent sweep instruction")
 
     ripple_sequence: int = Field(description="Monotonic ripple attempt within sweep", ge=0)
     ripple_amount_minor: int = Field(description="Memoized adjustment in minor units")

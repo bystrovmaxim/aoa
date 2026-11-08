@@ -7,10 +7,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseDetailEntity
 from aoa.action_machine.intents.entity import entity
-from aoa.demo.model.settlement_desks.resources.storage import SettlementDesksStorage
+from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
 
 
-@entity(description="Corporate clearing netting instruction", resource=SettlementDesksStorage)
+@entity(description="Corporate clearing netting instruction", domain=SettlementDesksDomain)
 class ClearingInstructionRowDetailEntity(BaseDetailEntity):
     instruction_key: str = Field(description="Reference into clearing charter")
     notional_ceiling_minor: int = Field(description="Maximum open notional in minor currency units", ge=0)

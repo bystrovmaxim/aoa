@@ -7,6 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_regulated_expectation_row import (
     AssuranceRegulatedExpectationRowDetailEntity,
@@ -14,12 +15,11 @@ from aoa.demo.model.assurance_portfolio.entities.ap_regulated_expectation_row im
 from aoa.demo.model.assurance_portfolio.entities.ap_scenario_instruction_line import (
     AssuranceScenarioInstructionLineDetailEntity,
 )
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
 @entity(
     description="Trace pin between choreography line and expectation entry (step_has_requirement analogue)",
-    resource=AssurancePortfolioStorage,
+    domain=AssurancePortfolioDomain,
 )
 class AssuranceInstructionExpectationAnchorCoreEntity(BaseCoreEntity):
     id: str = Field(description="Trace anchor id")
@@ -34,16 +34,12 @@ class AssuranceInstructionExpectationAnchorCoreEntity(BaseCoreEntity):
     instruction_line: Annotated[
         AssociationOne[AssuranceScenarioInstructionLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Scenario choreography row"
-    )
+    ] = Field(description="Scenario choreography row")
 
     expectation_row: Annotated[
         AssociationOne[AssuranceRegulatedExpectationRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Validated expectation corpus entry"
-    )
+    ] = Field(description="Validated expectation corpus entry")
 
 
 AssuranceInstructionExpectationAnchorCoreEntity.model_rebuild()

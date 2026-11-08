@@ -57,7 +57,7 @@ from aoa.fastapi import ConnectionRefusalError, FastApiAdapter, SocketChannelCon
 from .support import TestDomain
 
 
-@meta(description="Records which actions of the test route ran", domain=TestDomain)
+@meta(description="Records which actions of the test route ran")
 class RecorderController(BaseController):
     """In-memory list of what the test route's actions did."""
 
@@ -70,7 +70,7 @@ class RecorderController(BaseController):
         return None
 
 
-@meta(description="Receives the relayed messages of the test route", domain=TestDomain)
+@meta(description="Receives the relayed messages of the test route")
 class StubRelayController(BaseController):
     """Relay target that records every relayed message and echoes it as a volatile event."""
 

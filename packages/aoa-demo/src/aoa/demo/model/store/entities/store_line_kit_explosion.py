@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInvers
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Kit explosion child line trace", resource=StorefrontDatabaseStorage)
+@entity(description="Kit explosion child line trace", domain=StoreDomain)
 class KitExplosionLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="KitExplosionLineDetailEntity id")
     lifecycle: SalesOrderLineLifecycle = Field(description="KitExplosionLineDetailEntity lifecycle")
@@ -26,9 +26,7 @@ class KitExplosionLineDetailEntity(BaseDetailEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning order line anchor"
-    )
+    ] = Field(description="Owning order line anchor")
 
 
 KitExplosionLineDetailEntity.model_rebuild()

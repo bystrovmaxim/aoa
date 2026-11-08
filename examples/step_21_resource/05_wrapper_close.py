@@ -8,7 +8,7 @@ Run: uv run python examples/step_21_resource/05_wrapper_close.py
 import asyncio
 
 from aoa.action_machine.exceptions import TransactionProhibitedError
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 from aoa.action_machine.resources.sql import SqlStorageWrapper
 
 
@@ -63,18 +63,16 @@ class RecordingPool:
 
 
 
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleStorage(PostgresStorage[ExampleDataSource]):
-    """A PostgreSQL resource that works through the example's data source."""
+class ExampleStorage(PostgresStorage):
+    """A PostgreSQL resource that works through the example's pool."""
 
 
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    owner = ExampleStorage(data_source=ExampleDataSource(pool=pool))
+    owner = ExampleStorage(pool=PostgresPool(pool=pool))
     await owner.open()
     child_view = SqlStorageWrapper(owner)
     try:

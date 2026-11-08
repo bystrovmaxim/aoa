@@ -72,11 +72,11 @@ class _WrapperSqlResourceTestDomain(BaseDomain):
     description = "Domain for wrapper SQL resource-layer tests."
 
 
-def meta(description: str, domain: type[BaseDomain]):
-    """Test-local metadata decorator matching the graph metadata contract."""
+def meta(description: str):
+    """Test-local metadata decorator matching the graph metadata contract (a resource has no domain)."""
 
     def decorator(cls):
-        cls._meta_info = {"description": description, "domain": domain}
+        cls._meta_info = {"description": description, "domain": None}
         return cls
 
     return decorator
@@ -87,7 +87,7 @@ def meta(description: str, domain: type[BaseDomain]):
 # ======================================================================
 
 
-@meta(description="Wrapper SQL resource mock manager", domain=_WrapperSqlResourceTestDomain)
+@meta(description="Wrapper SQL resource mock manager")
 class MockConnectionStorage(SqlStorage):
     """
     Mock SqlStorage for testing SqlStorageWrapper.
@@ -139,7 +139,7 @@ class NotesStorageWrapper(SqlStorageWrapper):
             raise HandleError(f"Notes total failed: {error}") from error
 
 
-@meta(description="Notes domain resource with a proxy of its own", domain=_WrapperSqlResourceTestDomain)
+@meta(description="Notes domain resource with a proxy of its own")
 class NotesStorage(MockConnectionStorage):
     """A domain resource: one semantic method, and the proxy it wants nested actions to receive."""
 

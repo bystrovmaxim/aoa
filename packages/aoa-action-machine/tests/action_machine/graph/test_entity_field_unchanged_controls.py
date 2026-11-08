@@ -70,15 +70,9 @@ def test_scalar_schema_and_lifecycle_fields_pass() -> None:
             description = "Controls"
 
 
-        from aoa.action_machine.resources import InMemoryDataSource
 
-        @meta(description="Where ControlsStorage keeps its rows")
-        class ControlsStorageDataSource(InMemoryDataSource):
-            pass
-
-
-        @meta(description="Stores the controls entities", domain=ControlsDomain)
-        class ControlsStorage(BaseStorage[ControlsStorageDataSource]):
+        @meta(description="Stores the controls entities")
+        class ControlsStorage(BaseStorage):
             pass
 
         class DraftStateEntity(BaseStateEntity):
@@ -88,12 +82,12 @@ def test_scalar_schema_and_lifecycle_fields_pass() -> None:
             pass
 
         @exclude_graph_model
-        @entity(description="Schema host", resource=ControlsStorage)
+        @entity(description="Schema host", domain=ControlsDomain)
         class HostParams(BaseSchema):
             order_id: str = Field(description="Order identifier")
 
         @exclude_graph_model
-        @entity(description="Untouched host", resource=ControlsStorage)
+        @entity(description="Untouched host", domain=ControlsDomain)
         class OrdinaryCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             age: int | None = Field(default=None, description="Age")
@@ -116,22 +110,16 @@ def test_a_bare_state_field_keeps_its_refusal() -> None:
             description = "Controls"
 
 
-        from aoa.action_machine.resources import InMemoryDataSource
 
-        @meta(description="Where ControlsStorage keeps its rows")
-        class ControlsDataSource(InMemoryDataSource):
-            pass
-
-
-        @meta(description="Stores the controls entities", domain=ControlsDomain)
-        class ControlsStorage(BaseStorage[ControlsDataSource]):
+        @meta(description="Stores the controls entities")
+        class ControlsStorage(BaseStorage):
             pass
 
         class DraftStateEntity(BaseStateEntity):
             DRAFT = value(code="draft", display_name="Draft")
 
         @exclude_graph_model
-        @entity(description="State host", resource=ControlsStorage)
+        @entity(description="State host", domain=ControlsDomain)
         class StateFieldCoreEntity(BaseCoreEntity):
             stage: DraftStateEntity = Field(description="Stage")
 

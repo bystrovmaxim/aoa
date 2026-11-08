@@ -3,14 +3,25 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
-from aoa.demo.model.data_sources.generalization_shapes_data_source import GeneralizationShapesDataSource
-from aoa.demo.model.generalization_shapes.generalization_shapes_domain import GeneralizationShapesDomain
+from aoa.demo.model.generalization_shapes.entities.generalization_entities import (
+    GeneralizationHeadCoreEntity,
+    GeneralizationShapesKindEnumEntity,
+    GeneralizationVariantASpecEntity,
+    GeneralizationVariantBSpecEntity,
+)
 
 
-@meta(description="Stores the generalization shapes model (stub)", domain=GeneralizationShapesDomain)
-class GeneralizationShapesStorage(BaseStorage[GeneralizationShapesDataSource]):
+@meta(description="Stores the generalization shapes model (stub)")
+@entities(
+    GeneralizationShapesKindEnumEntity,
+    GeneralizationHeadCoreEntity,
+    GeneralizationVariantASpecEntity,
+    GeneralizationVariantBSpecEntity,
+)
+class GeneralizationShapesStorage(BaseStorage):
     """Hold the generalization shapes domain's entities; the demo never opens it."""
 
     @classmethod

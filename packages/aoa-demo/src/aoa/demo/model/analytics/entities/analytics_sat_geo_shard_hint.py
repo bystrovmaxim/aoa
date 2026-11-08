@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsFactLifecycle
 from aoa.demo.model.analytics.entities.analytics_sat_replay_watermark_stub import ReplayWatermarkStubCoreEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Geo shard hint chaining off replay watermark bridge", resource=AnalyticsStorage)
+@entity(description="Geo shard hint chaining off replay watermark bridge", domain=AnalyticsDomain)
 class GeoShardHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Shard hint id")
     lifecycle: AnalyticsFactLifecycle = Field(description="Geo shard hint lifecycle")
@@ -26,9 +26,7 @@ class GeoShardHintCoreEntity(BaseCoreEntity):
     replay_watermark: Annotated[
         AssociationOne[ReplayWatermarkStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream replay watermark row"
-    )
+    ] = Field(description="Upstream replay watermark row")
 
 
 GeoShardHintCoreEntity.model_rebuild()

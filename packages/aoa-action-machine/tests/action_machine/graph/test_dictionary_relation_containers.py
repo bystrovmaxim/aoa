@@ -33,7 +33,6 @@ from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -44,17 +43,12 @@ class ContainerDomain(BaseDomain):
     description = "Containers"
 
 
-@meta(description="Where ContainerStorage keeps its rows")
-class ContainerDataSource(InMemoryDataSource):
-    """The store ContainerStorage works with."""
-
-
-@meta(description="Stores the container entities", domain=ContainerDomain)
-class ContainerStorage(BaseStorage[ContainerDataSource]):
+@meta(description="Stores the container entities")
+class ContainerStorage(BaseStorage):
     """Hold the container entities."""
 
 
-@entity(description="Currency", resource=ContainerStorage)
+@entity(description="Currency", domain=ContainerDomain)
 class ContainerCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -65,7 +59,7 @@ class ContainerCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Host", resource=ContainerStorage)
+@entity(description="Host", domain=ContainerDomain)
 class ContainerHostCoreEntity(BaseCoreEntity):
     """A host selecting the dictionary through all six ordinary containers."""
 

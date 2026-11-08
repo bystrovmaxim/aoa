@@ -28,7 +28,6 @@ _IMPORTS = textwrap.dedent(
         NoGraphEdge,
     )
     from aoa.action_machine.domain.exceptions import RoleCompatibilityError
-    from aoa.action_machine.resources import InMemoryDataSource
     from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
     from aoa.action_machine.graph.validators.entity_role_compatibility_validator import (
         validate_entity_role_compatibility,
@@ -41,13 +40,8 @@ _IMPORTS = textwrap.dedent(
         description = "Compatibility"
 
 
-    @meta(description="Where CompatStorage keeps its rows")
-    class CompatDataSource(InMemoryDataSource):
-        pass
-
-
-    @meta(description="Stores the compat entities", domain=CompatDomain)
-    class CompatStorage(BaseStorage[CompatDataSource]):
+    @meta(description="Stores the compat entities")
+    class CompatStorage(BaseStorage):
         pass
     """
 )
@@ -63,14 +57,14 @@ def test_no_graph_edge_does_not_bypass_the_check() -> None:
     """A hidden edge on one endpoint still refuses the ownership/ownership pair."""
     out = _run(
         """
-        @entity(description="A", resource=CompatStorage)
+        @entity(description="A", domain=CompatDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a"), NoGraphEdge()] = Field(
                 description="B"
             )
 
-        @entity(description="B", resource=CompatStorage)
+        @entity(description="B", domain=CompatDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
@@ -92,13 +86,13 @@ def test_graph_exclusion_does_not_bypass_the_check() -> None:
     out = _run(
         """
         @exclude_graph_model
-        @entity(description="A", resource=CompatStorage)
+        @entity(description="A", domain=CompatDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
         @exclude_graph_model
-        @entity(description="B", resource=CompatStorage)
+        @entity(description="B", domain=CompatDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
@@ -119,17 +113,17 @@ def test_an_unchanged_inherited_pair_keeps_its_base_roles() -> None:
     """A child inheriting an ownership endpoint is judged by the base resolved role."""
     out = _run(
         """
-        @entity(description="A", resource=CompatStorage)
+        @entity(description="A", domain=CompatDomain)
         class ACoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             b: Annotated[CompositeOne[BCoreEntity], Inverse(field_name="a")] = Field(description="B")
 
-        @entity(description="B", resource=CompatStorage)
+        @entity(description="B", domain=CompatDomain)
         class BCoreEntity(BaseCoreEntity):
             id: str = Field(description="Identifier")
             a: Annotated[CompositeMany[ACoreEntity], Inverse(field_name="b")] = Field(description="A")
 
-        @entity(description="ChildA", resource=CompatStorage)
+        @entity(description="ChildA", domain=CompatDomain)
         class ChildACoreEntity(ACoreEntity):
             extra: str = Field(description="Extra")
 

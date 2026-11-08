@@ -38,6 +38,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
 from aoa.action_machine.intents.depends import depends
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
@@ -53,7 +54,9 @@ class ShopDomain(BaseDomain):
 
 
 # ── Two @depends resources (no rollup support → default check_rollup_support raises) ──
-@meta(description="Pricing service", domain=ShopDomain)
+
+
+@meta(description="Pricing service")
 class PricingServiceGateway(BaseGateway):
     def price(self, sku: str) -> float:
         return {"sku-1": 8990.0}.get(sku, 0.0)
@@ -63,7 +66,7 @@ class PricingServiceGateway(BaseGateway):
         return None
 
 
-@meta(description="Stock gateway", domain=ShopDomain)
+@meta(description="Stock gateway")
 class StockGateway(BaseGateway):
     async def reserve(self, sku: str, qty: int) -> str:
         raise NotImplementedError("real gateway — mocked in tests")
@@ -130,7 +133,10 @@ class CheckoutAction(BaseAction[CheckoutParams, CheckoutResult]):
 
 
 # ── 3/5 — a @connection journal that supports rollup ─────────────────────────
-@meta(description="Append-only journal", domain=ShopDomain)
+
+
+@meta(description="Append-only journal")
+@entities()
 class JournalStorage(BaseStorage):
     def __init__(self, rollup: bool = False) -> None:
         self._rollup = rollup

@@ -11,10 +11,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseEnumEntity, NoInverse, value
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -24,17 +24,7 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Currencies accepted by the shop", resource=ShopStorage)
+@entity(description="Currencies accepted by the shop", domain=ShopDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the shop's currency vocabulary."""
 
@@ -44,7 +34,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
     USD = value(code="usd", display_name="US dollar", symbol="$")
 
 
-@entity(description="Price tag", resource=ShopStorage)
+@entity(description="Price tag", domain=ShopDomain)
 class PriceTagCoreEntity(BaseCoreEntity):
     """Associate an amount with its currency."""
 
@@ -53,10 +43,19 @@ class PriceTagCoreEntity(BaseCoreEntity):
     currency: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Money unit")
 
 
+@meta(description="Stores the shop entities")
+@entities(
+    CurrencyEnumEntity,
+    PriceTagCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
+
+
 def main() -> None:
     """Run this one learning experiment."""
 
-    @entity(description="Another currency set", resource=ShopStorage)
+    @entity(description="Another currency set", domain=ShopDomain)
     class LocalCurrencyEnumEntity(CurrencyEnumEntity):
         """Reuse the currency fields with a separate vocabulary."""
 

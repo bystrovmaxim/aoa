@@ -1,13 +1,16 @@
 # packages/aoa-demo/tests/test_sql_resource_stubs.py
 """
-The eight demo stubs satisfy the SQL contract without an edit.
+The demo's SQL stubs satisfy the contract without an edit.
 
 The SQL contract gained ``close()`` with a concrete harmless body, and the point
-of that body is exactly this file: every ``SqlStorage`` subclass in the demo —
-four domains, eight classes — keeps working untouched. The generic query member
-then left the contract, and nothing here had to change for that either: a stub
-that holds no connection has no statement to run. None of them is PostgreSQL, and
-none of this needs a database.
+of that body is exactly this file: every ``SqlStorage`` subclass in the demo
+keeps working untouched. The generic query member then left the contract, and
+nothing here had to change for that either: a stub that holds no connection has
+no statement to run. None of them is PostgreSQL, and none of this needs a
+database.
+
+The storefront, the support desk and inventory share one database, so the demo
+has one stub for them — ``ShopDatabaseStorage`` — instead of three.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -20,7 +23,8 @@ ARCHITECTURE / DATA FLOW
         ├── catalog:   CatalogSearchSidecarStorage, CatalogObjectStoreStorage
         ├── messaging: OutboxPrimaryDatabaseStorage
         ├── billing:   BillingWarehouseStorage, BillingReadReplicaStorage
-        └── store:     StorefrontDatabaseStorage, StorefrontSessionCacheStorage
+        └── databases: ShopDatabaseStorage (store + support + inventory)
+                       StorefrontSessionCacheStorage
 
 """
 
@@ -33,8 +37,8 @@ from aoa.demo.model.billing.resources.billing_read_replica_storage import Billin
 from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 from aoa.demo.model.catalog.resources.catalog_search_sidecar_storage import CatalogSearchSidecarStorage
+from aoa.demo.model.databases import ShopDatabaseStorage
 from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
 from aoa.demo.model.store.resources.storefront_session_cache_storage import StorefrontSessionCacheStorage
 
 STUBS: list[type] = [
@@ -43,7 +47,7 @@ STUBS: list[type] = [
     OutboxPrimaryDatabaseStorage,
     BillingWarehouseStorage,
     BillingReadReplicaStorage,
-    StorefrontDatabaseStorage,
+    ShopDatabaseStorage,
     StorefrontSessionCacheStorage,
 ]
 

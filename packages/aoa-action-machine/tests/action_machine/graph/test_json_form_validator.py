@@ -27,7 +27,6 @@ from aoa.action_machine.graph.validators.json_form_validator import JsonFormErro
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseParams, BaseResult, JsonSchemaValue
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -42,24 +41,19 @@ class _JsonFormDomain(BaseDomain):
     description = "Entities for the build check tests"
 
 
-@meta(description="Where _JsonFormStorage keeps its rows")
-class _JsonFormDataSource(InMemoryDataSource):
-    """The store _JsonFormStorage works with."""
-
-
-@meta(description="Stores the json form entities", domain=_JsonFormDomain)
-class _JsonFormStorage(BaseStorage[_JsonFormDataSource]):
+@meta(description="Stores the json form entities")
+class _JsonFormStorage(BaseStorage):
     """Hold the json form entities."""
 
 
-@entity(description="Customer", resource=_JsonFormStorage)
+@entity(description="Customer", domain=_JsonFormDomain)
 class JsonFormCustomerCoreEntity(BaseCoreEntity):
     """A customer."""
 
     id: str = Field(description="Customer id")
 
 
-@entity(description="Order", resource=_JsonFormStorage)
+@entity(description="Order", domain=_JsonFormDomain)
 class JsonFormOrderCoreEntity(BaseCoreEntity):
     """An order with relations."""
 

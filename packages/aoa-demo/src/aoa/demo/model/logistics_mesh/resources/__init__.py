@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/logistics_mesh/resources/__init__.py
-"""Resources of the logistics mesh domain."""
+"""The logistics mesh model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.logistics_mesh.resources.storage import LogisticsMeshStorage
+
+__all__ = ["LogisticsMeshStorage"]

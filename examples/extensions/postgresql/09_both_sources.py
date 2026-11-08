@@ -1,13 +1,14 @@
-"""A PostgreSQL resource takes no connection parameters.
+"""A PostgreSQL resource takes exactly one of a pool and connection parameters.
 
-Connection parameters live only in a data source. A resource given them is refused.
+Both at once is refused when the resource is built.
 
 Run: uv run python examples/extensions/postgresql/09_both_sources.py
 """
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.exceptions import ConnectionValidationError
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 
 
 class RecordingConnection:
@@ -59,20 +60,18 @@ class RecordingPool:
             await connection.close()
         self.closed = True
 
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
 
 
-class ExampleStorage(PostgresStorage[ExampleDataSource]):
-    """A PostgreSQL resource that works through the example's data source."""
+class ExampleStorage(PostgresStorage):
+    """A PostgreSQL resource that works through the example's pool."""
 
 
 async def main():
     """Run this case and verify its observable result."""
     try:
-        ExampleStorage({"dsn": "example"}, data_source=ExampleDataSource(pool=RecordingPool()))
-    except TypeError:
-        print("TypeError")
+        ExampleStorage(pool=PostgresPool(pool=RecordingPool()), connection_params={"dsn": "example"})
+    except ConnectionValidationError as error:
+        print(type(error).__name__)
     else:
         raise AssertionError("Invalid construction was accepted")
 

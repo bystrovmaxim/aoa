@@ -2,8 +2,8 @@
 #
 # Installs the uv workspace with the [fastapi], [mcp] and [postgres] extras and serves
 # the declared entry point; no ``aoa-*`` package ever comes from PyPI. The identity
-# resource names a PostgreSQL data source, so the model imports the driver even
-# when no database is configured.
+# route reaches PostgreSQL through a pool when a database is configured, and the
+# image carries the driver for it.
 
 FROM python:3.12-slim AS runtime
 WORKDIR /repo

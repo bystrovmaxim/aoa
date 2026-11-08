@@ -20,10 +20,10 @@ from aoa.action_machine.domain import (
 )
 from aoa.action_machine.domain.exceptions import RoleCompatibilityError
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class CompositionDomain(BaseDomain):
@@ -33,17 +33,7 @@ class CompositionDomain(BaseDomain):
     description = "Composition"
 
 
-@meta(description="Where CompositionStorage keeps its rows")
-class CompositionDataSource(InMemoryDataSource):
-    """The store CompositionStorage works with."""
-
-
-@meta(description="Stores the composition entities", domain=CompositionDomain)
-class CompositionStorage(BaseStorage[CompositionDataSource]):
-    """Hold the composition entities."""
-
-
-@entity(description="Order", resource=CompositionStorage)
+@entity(description="Order", domain=CompositionDomain)
 class OrderCoreEntity(BaseCoreEntity):
     """An order owns many lines (CompositeMany / AssociationOne)."""
 
@@ -53,7 +43,7 @@ class OrderCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Order line", resource=CompositionStorage)
+@entity(description="Order line", domain=CompositionDomain)
 class OrderLineCoreEntity(BaseCoreEntity):
     """A line's reverse is an association, never another composite."""
 
@@ -63,7 +53,7 @@ class OrderLineCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Cart", resource=CompositionStorage)
+@entity(description="Cart", domain=CompositionDomain)
 class CartCoreEntity(BaseCoreEntity):
     """A cart owns one checkout (CompositeOne / AssociationMany)."""
 
@@ -73,7 +63,7 @@ class CartCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Checkout", resource=CompositionStorage)
+@entity(description="Checkout", domain=CompositionDomain)
 class CheckoutCoreEntity(BaseCoreEntity):
     """Many carts point back through an association."""
 
@@ -83,7 +73,7 @@ class CheckoutCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Composite A", resource=CompositionStorage)
+@entity(description="Composite A", domain=CompositionDomain)
 class CompositeACoreEntity(BaseCoreEntity):
     """A composite whose reverse is another composite — refused."""
 
@@ -91,7 +81,7 @@ class CompositeACoreEntity(BaseCoreEntity):
     b: Annotated[CompositeOne[CompositeBCoreEntity], Inverse(field_name="a")] = Field(description="Composite B")
 
 
-@entity(description="Composite B", resource=CompositionStorage)
+@entity(description="Composite B", domain=CompositionDomain)
 class CompositeBCoreEntity(BaseCoreEntity):
     """The second composite of the refused pair."""
 
@@ -99,7 +89,7 @@ class CompositeBCoreEntity(BaseCoreEntity):
     a: Annotated[CompositeMany[CompositeACoreEntity], Inverse(field_name="b")] = Field(description="Composite A")
 
 
-@entity(description="Composite over aggregate", resource=CompositionStorage)
+@entity(description="Composite over aggregate", domain=CompositionDomain)
 class CompositeOverAggregateCoreEntity(BaseCoreEntity):
     """A composite paired with an aggregate — refused."""
 
@@ -107,7 +97,7 @@ class CompositeOverAggregateCoreEntity(BaseCoreEntity):
     b: Annotated[AggregateOne[AggregateReverseCoreEntity], Inverse(field_name="a")] = Field(description="Aggregate")
 
 
-@entity(description="Aggregate reverse", resource=CompositionStorage)
+@entity(description="Aggregate reverse", domain=CompositionDomain)
 class AggregateReverseCoreEntity(BaseCoreEntity):
     """The aggregate side of the refused composite / aggregate pair."""
 
@@ -117,7 +107,7 @@ class AggregateReverseCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Corrected composite", resource=CompositionStorage)
+@entity(description="Corrected composite", domain=CompositionDomain)
 class CorrectedCompositeCoreEntity(BaseCoreEntity):
     """The corrected pair keeps one composite and one association."""
 
@@ -125,12 +115,29 @@ class CorrectedCompositeCoreEntity(BaseCoreEntity):
     b: Annotated[CompositeOne[CorrectedReverseCoreEntity], Inverse(field_name="a")] = Field(description="Reverse")
 
 
-@entity(description="Corrected reverse", resource=CompositionStorage)
+@entity(description="Corrected reverse", domain=CompositionDomain)
 class CorrectedReverseCoreEntity(BaseCoreEntity):
     """The reverse is an association, so the pair is permitted."""
 
     id: str = Field(description="Identifier")
     a: Annotated[AssociationOne[CorrectedCompositeCoreEntity], Inverse(field_name="b")] = Field(description="Composite")
+
+
+@meta(description="Stores the composition entities")
+@entities(
+    OrderCoreEntity,
+    OrderLineCoreEntity,
+    CartCoreEntity,
+    CheckoutCoreEntity,
+    CompositeACoreEntity,
+    CompositeBCoreEntity,
+    CompositeOverAggregateCoreEntity,
+    AggregateReverseCoreEntity,
+    CorrectedCompositeCoreEntity,
+    CorrectedReverseCoreEntity,
+)
+class CompositionStorage(BaseStorage):
+    """Hold the composition entities."""
 
 
 for model in (

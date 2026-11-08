@@ -26,7 +26,6 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -37,17 +36,12 @@ class SchemaDomain(BaseDomain):
     description = "Association schema"
 
 
-@meta(description="Where SchemaStorage keeps its rows")
-class SchemaDataSource(InMemoryDataSource):
-    """The store SchemaStorage works with."""
-
-
-@meta(description="Stores the schema entities", domain=SchemaDomain)
-class SchemaStorage(BaseStorage[SchemaDataSource]):
+@meta(description="Stores the schema entities")
+class SchemaStorage(BaseStorage):
     """Hold the schema entities."""
 
 
-@entity(description="Dated currency", resource=SchemaStorage)
+@entity(description="Dated currency", domain=SchemaDomain)
 class DatedCurrencyEnumEntity(BaseEnumEntity):
     """A dictionary whose date field carries its own serializer."""
 
@@ -62,7 +56,7 @@ class DatedCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Host", resource=SchemaStorage)
+@entity(description="Host", domain=SchemaDomain)
 class HostCoreEntity(BaseCoreEntity):
     """A host selecting a dated dictionary value."""
 

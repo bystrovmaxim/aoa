@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
-@entity(description="Throttle lease chaining from replay facilitation row", resource=OutboxPrimaryDatabaseStorage)
+@entity(description="Throttle lease chaining from replay facilitation row", domain=MessagingDomain)
 class ThrottleLeaseCoreEntity(BaseCoreEntity):
     id: str = Field(description="Lease id")
     lifecycle: MsgDenseLifecycle = Field(description="Throttle lifecycle")

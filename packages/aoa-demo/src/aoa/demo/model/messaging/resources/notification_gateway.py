@@ -1,10 +1,10 @@
 # packages/aoa-demo/src/aoa/demo/model/messaging/resources/notification_gateway.py
 """Notification service: a stub client and the gateway the domain reaches it through."""
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.data_sources.notification_gateway_data_source import NotificationGatewayDataSource
-from aoa.demo.model.messaging.domain import MessagingDomain
+from aoa.demo.model.messaging.entities.msg_recipient_device_seen import RecipientDeviceSeenCoreEntity
 
 
 class NotificationClient:
@@ -17,9 +17,11 @@ class NotificationClient:
 
 @meta(
     description="Notification service gateway (stub)",
-    domain=MessagingDomain,
 )
-class NotificationGateway(BaseGateway[NotificationGatewayDataSource]):
+@entities(
+    RecipientDeviceSeenCoreEntity,
+)
+class NotificationGateway(BaseGateway):
     """The gateway to the notification service: its methods are what the domain asks of it."""
 
     def __init__(self, client: NotificationClient) -> None:

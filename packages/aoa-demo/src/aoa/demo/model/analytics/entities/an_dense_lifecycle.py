@@ -18,13 +18,19 @@ class AnalyticsPipelineStateEntity(BaseStateEntity):
     COMMIT = value(code="commit", display_name="Committed", sort_order=3)
 
 
-
 class AnalyticsPipelineLifecycle(Lifecycle[AnalyticsPipelineStateEntity]):
     """ingest phases for linear spine."""
 
-
     _template = (
-        Lifecycle().state(AnalyticsPipelineStateEntity.INGEST).to(AnalyticsPipelineStateEntity.HYDRATE).initial().state(AnalyticsPipelineStateEntity.HYDRATE).to(AnalyticsPipelineStateEntity.COMMIT).intermediate().state(AnalyticsPipelineStateEntity.COMMIT).final()
+        Lifecycle()
+        .state(AnalyticsPipelineStateEntity.INGEST)
+        .to(AnalyticsPipelineStateEntity.HYDRATE)
+        .initial()
+        .state(AnalyticsPipelineStateEntity.HYDRATE)
+        .to(AnalyticsPipelineStateEntity.COMMIT)
+        .intermediate()
+        .state(AnalyticsPipelineStateEntity.COMMIT)
+        .final()
     )
 
 
@@ -38,11 +44,17 @@ class AnalyticsFactStateEntity(BaseStateEntity):
     FROZEN = value(code="frozen", display_name="Frozen", sort_order=3)
 
 
-
 class AnalyticsFactLifecycle(Lifecycle[AnalyticsFactStateEntity]):
     """wide hub satellites."""
 
-
     _template = (
-        Lifecycle().state(AnalyticsFactStateEntity.OPEN).to(AnalyticsFactStateEntity.INDEXED).initial().state(AnalyticsFactStateEntity.INDEXED).to(AnalyticsFactStateEntity.FROZEN).intermediate().state(AnalyticsFactStateEntity.FROZEN).final()
+        Lifecycle()
+        .state(AnalyticsFactStateEntity.OPEN)
+        .to(AnalyticsFactStateEntity.INDEXED)
+        .initial()
+        .state(AnalyticsFactStateEntity.INDEXED)
+        .to(AnalyticsFactStateEntity.FROZEN)
+        .intermediate()
+        .state(AnalyticsFactStateEntity.FROZEN)
+        .final()
     )

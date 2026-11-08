@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_canonical_telemetry_row import (
     AnalyticsCanonicalTelemetryRowDetailEntity,
 )
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Metric rollup staging chained from canonical row", resource=AnalyticsStorage)
+@entity(description="Metric rollup staging chained from canonical row", domain=AnalyticsDomain)
 class AnalyticsMetricRollupStagingCoreEntity(BaseCoreEntity):
     id: str = Field(description="Staging shard id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Rollup lifecycle")
@@ -28,9 +28,7 @@ class AnalyticsMetricRollupStagingCoreEntity(BaseCoreEntity):
     canonical_row: Annotated[
         AssociationOne[AnalyticsCanonicalTelemetryRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Canonical telemetry parent"
-    )
+    ] = Field(description="Canonical telemetry parent")
 
 
 AnalyticsMetricRollupStagingCoreEntity.model_rebuild()

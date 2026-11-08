@@ -50,7 +50,7 @@ ROLLUP LIFECYCLE
 ═══════════════════════════════════════════════════════════════════════════════
 
     # Caller creates manager with rollup=True:
-    db = PostgresStorage(params, rollup=True)
+    db = PostgresStorage(connection_params=params, rollup=True)
 
     # The domain's own method runs its statements through the driver's helpers:
     await db.open()
@@ -94,7 +94,6 @@ ARCHITECTURE / DATA FLOW
 from abc import ABC, abstractmethod
 
 from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_model
-from aoa.action_machine.resources.base_data_source import TDataSource_co
 from aoa.action_machine.resources.base_resource import BaseResource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.resources.sql.protocol_sql_resource import ProtocolSqlResource
@@ -102,7 +101,7 @@ from aoa.action_machine.resources.sql.sql_storage_wrapper import SqlStorageWrapp
 
 
 @exclude_graph_model
-class SqlStorage(BaseStorage[TDataSource_co], ProtocolSqlResource, ABC):
+class SqlStorage(BaseStorage, ProtocolSqlResource, ABC):
     """
     Abstract base class for transaction-capable SQL connection managers.
     """

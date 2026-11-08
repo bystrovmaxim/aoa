@@ -6,8 +6,8 @@ IdentityPostgresStorage — the identity domain over PostgreSQL, one connection 
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-This is the resource the demo route declares per call: ``IdentityPostgresStorage(data_source=…)``
-takes one connection from ``IdentityDataSource``, the identity database's pool, in
+This is the resource the demo route declares per call: ``IdentityPostgresStorage(pool=…)``
+takes one connection from ``IdentityPool``, the identity database's pool, in
 ``open()`` and gives it back in ``close()``, so two concurrent calls never share a
 session. The domain's
 two operations come from ``IdentityStorage``; the storage primitive is the
@@ -23,8 +23,8 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    IdentityPostgresStorage(IdentityStorage, PostgresStorage[IdentityDataSource])
-        │  open()/close()      -> data_source.acquire / release   (once per call)
+    IdentityPostgresStorage(IdentityStorage, PostgresStorage)
+        │  open()/close()      -> pool.acquire / release          (once per call)
         │  read_person(id)     -> self._fetchrow(…)
         │  _list_persons(…)    -> self._fetch(…)               (ordered, bounded page)
         │  _count_persons()    -> self._fetchval(…)
@@ -39,18 +39,17 @@ from typing import Any
 from aoa.action_machine.graph import exclude_graph_model
 from aoa.action_machine.resources.postgres import PostgresStorage
 
-from .identity_data_source import IdentityDataSource
 from .identity_storage import IdentityStorage
 
 
 # An implementation of IdentityStorage, the model's resource: the graph shows the resource once.
 @exclude_graph_model
-class IdentityPostgresStorage(IdentityStorage, PostgresStorage[IdentityDataSource]):
+class IdentityPostgresStorage(IdentityStorage, PostgresStorage):
     """
     AI-CORE-BEGIN
-        ROLE: The identity domain's PostgreSQL store, working through ``IdentityDataSource``.
-        CONTRACT: ``IdentityPostgresStorage(data_source=…)`` takes one connection per call; the domain's operations come from ``IdentityStorage``.
-        INVARIANTS: The resource never closes the data source's pool.
+        ROLE: The identity domain's PostgreSQL store, working through ``IdentityPool``.
+        CONTRACT: ``IdentityPostgresStorage(pool=…)`` takes one connection per call; the domain's operations come from ``IdentityStorage``.
+        INVARIANTS: The resource never closes the pool.
     AI-CORE-END
     """
 
@@ -72,8 +71,7 @@ class IdentityPostgresStorage(IdentityStorage, PostgresStorage[IdentityDataSourc
     async def _list_persons(self, limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
         """Read one ordered, bounded page of people through the driver's page helper."""
         rows = await self._fetch(
-            "SELECT id, email, display_name FROM identity_person_hub "
-            "ORDER BY display_name, id LIMIT $1 OFFSET $2",
+            "SELECT id, email, display_name FROM identity_person_hub ORDER BY display_name, id LIMIT $1 OFFSET $2",
             (limit, offset),
         )
         return [dict(row) for row in rows]

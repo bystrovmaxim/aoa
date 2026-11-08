@@ -71,7 +71,6 @@ from aoa.action_machine.graph.nodes.domain_graph_node import DomainGraphNode
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.system_core.type_introspection import TypeIntrospection
 
@@ -83,18 +82,13 @@ class SchemaDomain(BaseDomain):
     description = "schema"
 
 
-@meta(description="Where SchemaStorage keeps its rows")
-class SchemaDataSource(InMemoryDataSource):
-    """The store SchemaStorage works with."""
-
-
-@meta(description="Stores the schema entities", domain=SchemaDomain)
-class SchemaStorage(BaseStorage[SchemaDataSource]):
+@meta(description="Stores the schema entities")
+class SchemaStorage(BaseStorage):
     """Hold the schema entities."""
 
 
 @exclude_graph_model
-@entity(description="First variant", resource=SchemaStorage)
+@entity(description="First variant", domain=SchemaDomain)
 class SchemaFirstSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -105,7 +99,7 @@ class SchemaFirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Second variant", resource=SchemaStorage)
+@entity(description="Second variant", domain=SchemaDomain)
 class SchemaSecondSpecEntity(BaseSpecEntity):
     id: str = Field(description="id")
     rec: Annotated[
@@ -116,7 +110,7 @@ class SchemaSecondSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Kind of SchemaHeadCoreEntity", resource=SchemaStorage)
+@entity(description="Kind of SchemaHeadCoreEntity", domain=SchemaDomain)
 class SchemaHeadKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
@@ -125,7 +119,7 @@ class SchemaHeadKindEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="Head", resource=SchemaStorage)
+@entity(description="Head", domain=SchemaDomain)
 class SchemaHeadCoreEntity(BaseCoreEntity):
     id: str = Field(description="id")
     pack: Annotated[
@@ -194,7 +188,7 @@ def _payload(
         *(_specialization_rows() if specialization_rows is None else specialization_rows),
         *(_generalization_rows() if generalization_rows is None else generalization_rows),
     ]
-    return {"schema_version": "1.8", "nodes": nodes, "edges": [{**edge, "id": edge_id(edge)} for edge in edges]}
+    return {"schema_version": "2.0", "nodes": nodes, "edges": [{**edge, "id": edge_id(edge)} for edge in edges]}
 
 
 def _rejects(payload: dict[str, Any]) -> None:

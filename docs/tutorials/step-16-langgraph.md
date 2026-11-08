@@ -311,7 +311,7 @@ The graph runs inside a `@summary_aspect` of a host Action. The box comes from t
 
 ```python
 # Fragment: an outline; `...` marks what is left out.
-@meta(description="Ticket processing graph", domain=SupportDomain)
+@meta(description="Ticket processing graph")
 class TicketGraph(LangGraphController):
     """The ticket graph this service connects its actions to."""
 

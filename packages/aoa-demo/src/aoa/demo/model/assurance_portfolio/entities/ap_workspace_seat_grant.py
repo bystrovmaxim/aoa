@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_workspace_program_stub import (
     AssuranceWorkspaceProgramStubCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Actor ↔ workspace stewardship grant (test project role analogue)", resource=AssurancePortfolioStorage)
+@entity(description="Actor ↔ workspace stewardship grant (test project role analogue)", domain=AssurancePortfolioDomain)
 class AssuranceWorkspaceSeatGrantCoreEntity(BaseCoreEntity):
     id: str = Field(description="Seat grant id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Seat lifecycle")
@@ -29,16 +29,12 @@ class AssuranceWorkspaceSeatGrantCoreEntity(BaseCoreEntity):
     actor: Annotated[
         AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Seated actor"
-    )
+    ] = Field(description="Seated actor")
 
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Subject workspace capsule"
-    )
+    ] = Field(description="Subject workspace capsule")
 
 
 AssuranceWorkspaceSeatGrantCoreEntity.model_rebuild()

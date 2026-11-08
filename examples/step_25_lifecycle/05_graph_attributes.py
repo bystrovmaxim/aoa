@@ -10,10 +10,10 @@ import json
 from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity, BaseDomain, BaseStateEntity, Lifecycle, value
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -46,22 +46,20 @@ class ShopDomain(BaseDomain):
     description = "Small shop"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     """Attach the lifecycle to a model entity."""
 
     id: str = Field(description="Order identifier")
     lifecycle: OrderLifecycle = Field(description="Current order state")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    OrderCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 # Run the case.

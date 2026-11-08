@@ -20,10 +20,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class DictionaryDomain(BaseDomain):
@@ -33,17 +33,7 @@ class DictionaryDomain(BaseDomain):
     description = "Dictionary endpoints"
 
 
-@meta(description="Where DictionaryStorage keeps its rows")
-class DictionaryDataSource(InMemoryDataSource):
-    """The store DictionaryStorage works with."""
-
-
-@meta(description="Stores the dictionary entities", domain=DictionaryDomain)
-class DictionaryStorage(BaseStorage[DictionaryDataSource]):
-    """Hold the dictionary entities."""
-
-
-@entity(description="Currencies", resource=DictionaryStorage)
+@entity(description="Currencies", domain=DictionaryDomain)
 class CurrencyEnumEntity(BaseEnumEntity):
     """Declare the canonical currencies and an exported property."""
 
@@ -57,7 +47,7 @@ class CurrencyEnumEntity(BaseEnumEntity):
         return "Currency " + symbol
 
 
-@entity(description="Price list", resource=DictionaryStorage)
+@entity(description="Price list", domain=DictionaryDomain)
 class PriceListCoreEntity(BaseCoreEntity):
     """Demonstrate the six roles without a dictionary-only role restriction."""
 
@@ -69,6 +59,15 @@ class PriceListCoreEntity(BaseCoreEntity):
         default=None, description="Available currencies"
     )
     bundled: Annotated[CompositeMany[CurrencyEnumEntity], NoInverse()] = Field(description="Bundled currencies")
+
+
+@meta(description="Stores the dictionary entities")
+@entities(
+    CurrencyEnumEntity,
+    PriceListCoreEntity,
+)
+class DictionaryStorage(BaseStorage):
+    """Hold the dictionary entities."""
 
 
 def python_selection() -> None:

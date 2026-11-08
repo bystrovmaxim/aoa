@@ -58,8 +58,6 @@ service: an aspect never holds the raw client.
 from aoa.action_machine.intents.meta.meta_decorator import meta
 from aoa.action_machine.resources import BaseGateway
 
-from .domains import OrdersDomain
-
 
 class PaymentClient:
     """
@@ -102,7 +100,7 @@ class PaymentClient:
         raise NotImplementedError("PaymentClient.refund() is not implemented")
 
 
-@meta(description="Payment gateway of the orders domain", domain=OrdersDomain)
+@meta(description="Payment gateway of the orders domain")
 class PaymentGateway(BaseGateway):
     """Gateway of the orders domain to the payment provider."""
 
@@ -140,7 +138,7 @@ class NotificationClient:
         raise NotImplementedError("NotificationClient.send() is not implemented")
 
 
-@meta(description="Notification gateway of the orders domain", domain=OrdersDomain)
+@meta(description="Notification gateway of the orders domain")
 class NotificationGateway(BaseGateway):
     """Gateway of the orders domain to the notification service."""
 
@@ -191,7 +189,7 @@ class InventoryClient:
         raise NotImplementedError("InventoryClient.unreserve() is not implemented")
 
 
-@meta(description="Inventory gateway of the orders domain", domain=OrdersDomain)
+@meta(description="Inventory gateway of the orders domain")
 class InventoryGateway(BaseGateway):
     """Gateway of the orders domain to the inventory service."""
 

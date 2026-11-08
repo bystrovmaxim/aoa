@@ -3,7 +3,6 @@
 
 from aoa.action_machine.domain import BaseDomain
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -14,11 +13,6 @@ class CrossDomain(BaseDomain):
     description = "Cross-module"
 
 
-@meta(description="Where CrossStorage keeps its rows")
-class CrossDataSource(InMemoryDataSource):
-    """The store CrossStorage works with."""
-
-
-@meta(description="Stores the cross entities", domain=CrossDomain)
-class CrossStorage(BaseStorage[CrossDataSource]):
+@meta(description="Stores the cross entities")
+class CrossStorage(BaseStorage):
     """Hold the entities of CrossDomain."""

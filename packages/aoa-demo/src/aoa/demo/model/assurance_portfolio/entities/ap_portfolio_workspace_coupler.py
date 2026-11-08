@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_portfolio_lane_stub import AssurancePortfolioLaneStubCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_workspace_program_stub import (
     AssuranceWorkspaceProgramStubCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Associative linkage from lane to encapsulated workspace programs", resource=AssurancePortfolioStorage)
+@entity(description="Associative linkage from lane to encapsulated workspace programs", domain=AssurancePortfolioDomain)
 class AssurancePortfolioWorkspaceCouplerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Coupler id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Coupler lifecycle")
@@ -29,16 +29,12 @@ class AssurancePortfolioWorkspaceCouplerCoreEntity(BaseCoreEntity):
     portfolio_lane: Annotated[
         AssociationOne[AssurancePortfolioLaneStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Owning lane headline"
-    )
+    ] = Field(description="Owning lane headline")
 
     workspace_program: Annotated[
         AssociationOne[AssuranceWorkspaceProgramStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Contained workspace capsule"
-    )
+    ] = Field(description="Contained workspace capsule")
 
 
 AssurancePortfolioWorkspaceCouplerCoreEntity.model_rebuild()

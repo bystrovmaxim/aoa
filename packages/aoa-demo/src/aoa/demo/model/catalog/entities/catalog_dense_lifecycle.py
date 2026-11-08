@@ -20,11 +20,17 @@ class CatalogDenseStateEntity(BaseStateEntity):
     ARCHIVED = value(code="archived", display_name="Archived", sort_order=3)
 
 
-
 class CatalogDenseLifecycle(Lifecycle[CatalogDenseStateEntity]):
     """draft → staged → archived."""
 
-
     _template = (
-        Lifecycle().state(CatalogDenseStateEntity.DRAFT).to(CatalogDenseStateEntity.STAGED).initial().state(CatalogDenseStateEntity.STAGED).to(CatalogDenseStateEntity.ARCHIVED).intermediate().state(CatalogDenseStateEntity.ARCHIVED).final()
+        Lifecycle()
+        .state(CatalogDenseStateEntity.DRAFT)
+        .to(CatalogDenseStateEntity.STAGED)
+        .initial()
+        .state(CatalogDenseStateEntity.STAGED)
+        .to(CatalogDenseStateEntity.ARCHIVED)
+        .intermediate()
+        .state(CatalogDenseStateEntity.ARCHIVED)
+        .final()
     )

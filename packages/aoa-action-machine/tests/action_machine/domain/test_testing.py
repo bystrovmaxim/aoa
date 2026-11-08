@@ -26,7 +26,6 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.testing import make
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 from ...support.domain_model.entities import SampleCoreEntity
@@ -51,17 +50,12 @@ class _TestDomain(BaseDomain):
     description = "test domain for make()"
 
 
-@meta(description="Where _TestStorage keeps its rows")
-class _TestDataSource(InMemoryDataSource):
-    """The store _TestStorage works with."""
-
-
-@meta(description="Stores the test entities", domain=_TestDomain)
-class _TestStorage(BaseStorage[_TestDataSource]):
+@meta(description="Stores the test entities")
+class _TestStorage(BaseStorage):
     """Hold the test entities."""
 
 
-@entity(description="float default", resource=_TestStorage)
+@entity(description="float default", domain=_TestDomain)
 class _FloatDefaultCoreEntity(BaseCoreEntity):
     id: str = Field()
     amount: float = Field(ge=0)
@@ -72,7 +66,7 @@ def test_make_float_default() -> None:
     assert entity.amount == 1.0
 
 
-@entity(description="e", resource=_TestStorage)
+@entity(description="e", domain=_TestDomain)
 class _LifecycleGetterCoreEntity(BaseCoreEntity):
     id: str = Field()
     state: Lifecycle = Field()

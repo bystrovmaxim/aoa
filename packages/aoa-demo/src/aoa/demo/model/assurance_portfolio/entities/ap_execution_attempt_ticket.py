@@ -5,11 +5,11 @@ from pydantic import Field
 
 from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Concrete execution instantiation (test run analogue)", resource=AssurancePortfolioStorage)
+@entity(description="Concrete execution instantiation (test run analogue)", domain=AssurancePortfolioDomain)
 class AssuranceExecutionAttemptTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Execution attempt id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Execution lifecycle")

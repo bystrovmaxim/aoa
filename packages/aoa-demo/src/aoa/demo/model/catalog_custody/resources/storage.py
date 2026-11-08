@@ -3,14 +3,21 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseResource, BaseStorage
-from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustodyDomain
-from aoa.demo.model.data_sources.catalog_custody_data_source import CatalogCustodyDataSource
+from aoa.demo.model.catalog_custody.entities.custody_audit_event_entity import CustodyAuditEventCoreEntity
+from aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity import (
+    RegulatedStockKeepingUnitRowDetailEntity,
+)
 
 
-@meta(description="Stores the catalog custody model (stub)", domain=CatalogCustodyDomain)
-class CatalogCustodyStorage(BaseStorage[CatalogCustodyDataSource]):
+@meta(description="Stores the catalog custody model (stub)")
+@entities(
+    CustodyAuditEventCoreEntity,
+    RegulatedStockKeepingUnitRowDetailEntity,
+)
+class CatalogCustodyStorage(BaseStorage):
     """Hold the catalog custody domain's entities; the demo never opens it."""
 
     @classmethod

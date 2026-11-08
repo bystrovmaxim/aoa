@@ -9,10 +9,17 @@ database session can both be resources.
 
 ## Start with the public contract
 
-Subclass one of the three kinds — `BaseStorage`, `BaseGateway` or `BaseController` — supply `@meta(description=..., domain=...)`, and implement
+Subclass one of the three kinds — `BaseStorage`, `BaseGateway` or `BaseController` — supply `@meta(description=...)`, declare the entities it holds with `@entities(...)`, and implement
 `get_wrapper_class()`. Choose the operations your action needs, such as append or
 read_stock. BaseResource does not prescribe their names and does not require a
 connection lifecycle for a resource that has nothing to acquire.
+
+A public method answers only with the entities `@entities` lists: the machine walks every
+answer and refuses any other entity with `ResourceEntitiesError`. A relation that leads to an
+entity another database holds comes back unloaded — the id without the entity — and a helper
+whose name starts with `_` is not checked. Return model entities from public methods and keep
+raw rows in private helpers; [the cases](../tutorials/step-21-resource.md#the-machine-checks-what-a-resource-returns)
+show every pass and refusal.
 
 If the resource does acquire a handle, separate construction from acquisition.
 The constructor stores configuration; an asynchronous open acquires the handle;
@@ -36,13 +43,15 @@ from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseStorage
 from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
+from aoa.action_machine.intents.entities import entities
 
 class NotesDomain(BaseDomain):
     """Group the custom resource example."""
     name = "notes"
     description = "Notes transport"
 
-@meta(description="Append notes to a supplied store", domain=NotesDomain)
+@meta(description="Append notes to a supplied store")
+@entities()
 class NotesStorage(BaseStorage):
     """Expose storage access with an explicit usable interval."""
     def __init__(self, storage, events):
@@ -126,11 +135,11 @@ show both direct calls and automatic wrapping by box.run.
 
 ## If the implementation uses PostgreSQL
 
-Build the resource from the data source it names:
-`OrdersStorage(data_source=shop, rollup=False)` takes its connection from the pool of
-`class OrdersStorage(PostgresStorage[ShopDataSource])`. Connection parameters and the pool
-live only in the data source. Set acquire_timeout on the data source if the default
-30-second borrowing wait is inappropriate. The pool's capacity belongs to its
+Build the storage with one way to reach its database:
+`ShopDatabaseStorage(pool=pool, rollup=False)` takes its connection from a `PostgresPool`
+the application opened at startup, and `ShopDatabaseStorage(connection_params=dsn)` opens
+its own. The class names neither. Set acquire_timeout on a `PostgresPool` subclass if the
+default 30-second borrowing wait is inappropriate. The pool's capacity belongs to its
 creation at service startup; the per-call resource never closes it.
 
 The SQL base class has a harmless default close for implementations that hold no

@@ -7,17 +7,17 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
     AssuranceDutyTemplateAxisCoreEntity,
     AssurancePrivilegeGrainAxisCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
 @entity(
     description="Join between duties and fine-grained privileges (role_has_right analogue)",
-    resource=AssurancePortfolioStorage,
+    domain=AssurancePortfolioDomain,
 )
 class AssuranceDutyPrivilegeBridgeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bridge id")
@@ -32,16 +32,12 @@ class AssuranceDutyPrivilegeBridgeCoreEntity(BaseCoreEntity):
     duty_axis: Annotated[
         AssociationOne[AssuranceDutyTemplateAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Duty template anchoring grant"
-    )
+    ] = Field(description="Duty template anchoring grant")
 
     privilege_grain: Annotated[
         AssociationOne[AssurancePrivilegeGrainAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Granted privilege grain"
-    )
+    ] = Field(description="Granted privilege grain")
 
 
 AssuranceDutyPrivilegeBridgeCoreEntity.model_rebuild()

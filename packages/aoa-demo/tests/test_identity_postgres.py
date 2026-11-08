@@ -24,7 +24,7 @@ ARCHITECTURE / DATA FLOW
 
     identity_connection()
         │  no DSN  -> PerCallConnection(IdentityStubStorage)
-        └── DSN     -> PerCallConnection(IdentityPostgresStorage(data_source=holder.require()))
+        └── DSN     -> PerCallConnection(IdentityPostgresStorage(pool=holder.require()))
                               │
                               v
                         _FakePool -> _FakeConnection   (one call, one connection)
@@ -45,9 +45,9 @@ from aoa.action_machine.resources.connection_scope import connection_scope
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
 from aoa.demo.fastapi_mcp_services.infrastructure import (
     DEMO_DSN_ENV,
-    DataSourceHolder,
-    data_source_holder,
+    PoolHolder,
     identity_connection,
+    pool_holder,
     pool_lifespan,
 )
 from aoa.demo.model.identity.resources.identity_stub_storage import IdentityStubStorage
@@ -194,11 +194,11 @@ async def _unit_of_work(pool: _FakePool) -> None:
 
 
 def _postgres_store(pool: _FakePool) -> Any:
-    """Build the PostgreSQL store over a data source given the fake pool; the driver import is the caller's gate."""
-    from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
+    """Build the PostgreSQL store over an IdentityPool given the fake pool; the driver import is the caller's gate."""
+    from aoa.demo.model.identity.resources.identity_pool import IdentityPool
     from aoa.demo.model.identity.resources.identity_postgres_storage import IdentityPostgresStorage
 
-    return IdentityPostgresStorage(data_source=IdentityDataSource(pool=pool))
+    return IdentityPostgresStorage(pool=IdentityPool(pool=pool))
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -209,7 +209,7 @@ def _postgres_store(pool: _FakePool) -> Any:
 def test_the_holder_names_the_situation_before_it_is_filled() -> None:
     """Reading an unfilled holder is a named failure, not an attribute error."""
     with pytest.raises(HandleError, match="no database"):
-        DataSourceHolder().require()
+        PoolHolder().require()
 
 
 async def test_without_a_dsn_the_route_declares_the_in_memory_store(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -308,12 +308,12 @@ async def test_the_finalizer_runs_once_per_call() -> None:
     assert pool.held == 0
 
 
-def test_the_identity_data_source_states_its_wait_bound() -> None:
-    """FR-009's stated value lives on the data source: the pool's creation carries no wait bound."""
+def test_the_identity_pool_states_its_wait_bound() -> None:
+    """FR-009's stated value lives on the pool's class: the pool's creation carries no wait bound."""
     pytest.importorskip("asyncpg")
-    from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
+    from aoa.demo.model.identity.resources.identity_pool import IdentityPool
 
-    assert IdentityDataSource.acquire_timeout == 30.0
+    assert IdentityPool.acquire_timeout == 30.0
 
 
 async def test_the_pool_is_created_once_and_closed_on_shutdown(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -331,10 +331,10 @@ async def test_the_pool_is_created_once_and_closed_on_shutdown(monkeypatch: pyte
     monkeypatch.setenv(DEMO_DSN_ENV, "postgresql://example/db")
 
     async with pool_lifespan(None):
-        assert data_source_holder.require()._pool is pool
+        assert pool_holder.require()._pool is pool
 
     assert pool.closed is True
-    assert data_source_holder.data_source is None
+    assert pool_holder.pool is None
     assert seen["dsn"] == "postgresql://example/db"
     assert seen["kwargs"] == {"min_size": 1, "max_size": 10}
 

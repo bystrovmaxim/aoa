@@ -23,12 +23,17 @@ class ProjectionDemoCustomerStateEntity(BaseStateEntity):
     ARCHIVED = value(code="archived", display_name="Archived", sort_order=2)
 
 
-
 class ProjectionDemoCustomerLifecycle(Lifecycle[ProjectionDemoCustomerStateEntity]):
     """Two-state customer lifecycle for graph inspectors."""
 
-
-    _template = Lifecycle().state(ProjectionDemoCustomerStateEntity.ACTIVE).to(ProjectionDemoCustomerStateEntity.ARCHIVED).initial().state(ProjectionDemoCustomerStateEntity.ARCHIVED).final()
+    _template = (
+        Lifecycle()
+        .state(ProjectionDemoCustomerStateEntity.ACTIVE)
+        .to(ProjectionDemoCustomerStateEntity.ARCHIVED)
+        .initial()
+        .state(ProjectionDemoCustomerStateEntity.ARCHIVED)
+        .final()
+    )
 
 
 class ProjectionDemoOrderStateEntity(BaseStateEntity):
@@ -41,10 +46,8 @@ class ProjectionDemoOrderStateEntity(BaseStateEntity):
     CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=3)
 
 
-
 class ProjectionDemoOrderLifecycle(Lifecycle[ProjectionDemoOrderStateEntity]):
     """Order lifecycle aligned with storefront-style status names."""
-
 
     _template = (
         Lifecycle()

@@ -38,7 +38,6 @@ from aoa.action_machine.graph.validators.entity_specialization_validator import 
 )
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -47,13 +46,8 @@ class AxisDomain(BaseDomain):
     description = "axis"
 
 
-@meta(description="Where AxisStorage keeps its rows")
-class AxisDataSource(InMemoryDataSource):
-    """The store AxisStorage works with."""
-
-
-@meta(description="Stores the axis entities", domain=AxisDomain)
-class AxisStorage(BaseStorage[AxisDataSource]):
+@meta(description="Stores the axis entities")
+class AxisStorage(BaseStorage):
     """Hold the axis entities."""
 
 
@@ -67,7 +61,7 @@ def _refuses(classes: list[type[BaseEntity]], rule: str) -> str:
 
 
 @exclude_graph_model
-@entity(description="Kind", resource=AxisStorage)
+@entity(description="Kind", domain=AxisDomain)
 class _KindEnumEntity(BaseEnumEntity):
     """The dictionary most cases borrow from."""
 
@@ -86,7 +80,7 @@ class StrangerAxisAssocEntity(BaseAssocEntity):
 
 
 @exclude_graph_model
-@entity(description="Stranger head", resource=AxisStorage)
+@entity(description="Stranger head", domain=AxisDomain)
 class StrangerHeadCoreEntity(BaseCoreEntity):
     """Names a class the walk never sees."""
 
@@ -109,7 +103,7 @@ def test_an_alternative_that_is_not_a_declared_entity_is_refused() -> None:
 
 
 @exclude_graph_model
-@entity(description="Silent alternative", resource=AxisStorage)
+@entity(description="Silent alternative", domain=AxisDomain)
 class SilentSpecEntity(BaseSpecEntity):
     """Keeps the earlier marker form, so it names a code rather than a value."""
 
@@ -118,7 +112,7 @@ class SilentSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Silent head", resource=AxisStorage)
+@entity(description="Silent head", domain=AxisDomain)
 class SilentHeadCoreEntity(BaseCoreEntity):
     """One alternative answers with a code, not a value."""
 
@@ -136,7 +130,7 @@ def test_an_alternative_that_names_no_value_is_refused() -> None:
 
 
 @exclude_graph_model
-@entity(description="Alpha", resource=AxisStorage)
+@entity(description="Alpha", domain=AxisDomain)
 class _AlphaSpecEntity(BaseSpecEntity):
     """Names the first value."""
 
@@ -148,7 +142,7 @@ class _AlphaSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Uncovered head", resource=AxisStorage)
+@entity(description="Uncovered head", domain=AxisDomain)
 class UncoveredHeadCoreEntity(BaseCoreEntity):
     """Borrows two values but declares one alternative."""
 
@@ -171,7 +165,7 @@ def test_a_value_with_no_alternative_is_refused() -> None:
 
 
 @exclude_graph_model
-@entity(description="Unreachable", resource=AxisStorage)
+@entity(description="Unreachable", domain=AxisDomain)
 class UnreachableSpecEntity(BaseSpecEntity):
     """Declares no field that points back at its head."""
 
@@ -179,7 +173,7 @@ class UnreachableSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Unreachable head", resource=AxisStorage)
+@entity(description="Unreachable head", domain=AxisDomain)
 class UnreachableHeadCoreEntity(BaseCoreEntity):
     """One alternative cannot be reached from the head's side."""
 
@@ -196,7 +190,7 @@ def test_an_alternative_with_no_reverse_field_leaves_the_head_naming_a_value_nob
 
 
 @exclude_graph_model
-@entity(description="Two way", resource=AxisStorage)
+@entity(description="Two way", domain=AxisDomain)
 class TwoWaySpecEntity(BaseSpecEntity):
     """Points back through two fields, so the axis cannot tell which one declares its value."""
 
@@ -212,7 +206,7 @@ class TwoWaySpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Two way head", resource=AxisStorage)
+@entity(description="Two way head", domain=AxisDomain)
 class TwoWayHeadCoreEntity(BaseCoreEntity):
     """The head of the two-way alternative."""
 
@@ -229,7 +223,7 @@ def test_an_alternative_pointing_back_through_two_fields_is_refused() -> None:
 
 
 @exclude_graph_model
-@entity(description="Wrongly paired", resource=AxisStorage)
+@entity(description="Wrongly paired", domain=AxisDomain)
 class WronglyPairedSpecEntity(BaseSpecEntity):
     """Points back through a field the axis did not name."""
 
@@ -244,7 +238,7 @@ class WronglyPairedSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Wrongly paired head", resource=AxisStorage)
+@entity(description="Wrongly paired head", domain=AxisDomain)
 class WronglyPairedHeadCoreEntity(BaseCoreEntity):
     """The axis names a field the alternative does not use to point back."""
 
@@ -270,7 +264,7 @@ def test_an_alternative_paired_through_another_field_name_is_refused() -> None:
 
 
 @exclude_graph_model
-@entity(description="Good first", resource=AxisStorage)
+@entity(description="Good first", domain=AxisDomain)
 class _GoodFirstSpecEntity(BaseSpecEntity):
     """Names the first value."""
 
@@ -283,7 +277,7 @@ class _GoodFirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Good second", resource=AxisStorage)
+@entity(description="Good second", domain=AxisDomain)
 class _GoodSecondSpecEntity(BaseSpecEntity):
     """Names the second value."""
 
@@ -296,7 +290,7 @@ class _GoodSecondSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="Good head", resource=AxisStorage)
+@entity(description="Good head", domain=AxisDomain)
 class GoodHeadCoreEntity(BaseCoreEntity):
     """Every value the dictionary declares has exactly one alternative."""
 
@@ -317,7 +311,7 @@ def test_a_correct_declaration_passes() -> None:
 
 
 @exclude_graph_model
-@entity(description="No-inverse first", resource=AxisStorage)
+@entity(description="No-inverse first", domain=AxisDomain)
 class _NoInverseFirstSpecEntity(BaseSpecEntity):
     """Points back with a Classifier but no reciprocal Inverse."""
 
@@ -329,7 +323,7 @@ class _NoInverseFirstSpecEntity(BaseSpecEntity):
 
 
 @exclude_graph_model
-@entity(description="No-inverse head", resource=AxisStorage)
+@entity(description="No-inverse head", domain=AxisDomain)
 class NoInverseHeadCoreEntity(BaseCoreEntity):
     """Names the alternative's reverse field without that field naming the head back."""
 

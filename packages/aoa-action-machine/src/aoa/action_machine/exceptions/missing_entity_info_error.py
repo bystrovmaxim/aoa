@@ -8,7 +8,7 @@ PURPOSE
 
 Raised by :class:`~aoa.action_machine.intents.entity.entity_intent_resolver.EntityIntentResolver`
 when graph resolution needs a concrete ``@entity`` scratch value (typically
-``description`` or ``resource``) and ``_entity_info`` does not supply a usable value.
+``description`` or ``domain``) and ``_entity_info`` does not supply a usable value.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ class MissingEntityInfoError(ValueError):
     """
     AI-CORE-BEGIN
     ROLE: Fail fast when mandatory ``@entity`` data is absent for resolvers.
-    CONTRACT: Carries ``host_cls`` and ``key`` (scratch field name such as ``description`` or ``resource``).
+    CONTRACT: Carries ``host_cls`` and ``key`` (scratch field name such as ``description`` or ``domain``).
     AI-CORE-END
     """
 

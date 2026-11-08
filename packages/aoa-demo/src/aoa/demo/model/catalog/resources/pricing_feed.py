@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.catalog.domain import CatalogDomain
 
 
 class PricingFeedClient:
@@ -13,7 +12,6 @@ class PricingFeedClient:
 
 @meta(
     description="Pricing feed gateway (stub)",
-    domain=CatalogDomain,
 )
 class PricingFeedGateway(BaseGateway):
     """The gateway to the pricing feed: its methods are what the domain asks of it."""

@@ -69,7 +69,8 @@ def test_validate_meta_target_accepts_plain_class() -> None:
 
 
 def test_meta_decorator_attaches_meta_info_on_resource_manager() -> None:
-    @meta(description="resource meta", domain=_OrdersDomain)
+    """A resource takes no domain: its ``_meta_info`` names only the description."""
+    @meta(description="resource meta")
     class _MetaResourceController(BaseController):
         @classmethod
         def get_wrapper_class(cls):
@@ -77,5 +78,36 @@ def test_meta_decorator_attaches_meta_info_on_resource_manager() -> None:
 
     assert _MetaResourceController._meta_info == {
         "description": "resource meta",
-        "domain": _OrdersDomain,
+        "domain": None,
     }
+
+
+def test_meta_refuses_a_domain_on_a_resource() -> None:
+    """A resource is a database shared by domains; ``domain=`` on it is refused by name."""
+    with pytest.raises(TypeError, match="resource is a database shared by domains and takes no domain"):
+
+        @meta(description="resource with a domain", domain=_OrdersDomain)
+        class _DomainResourceController(BaseController):
+            @classmethod
+            def get_wrapper_class(cls):
+                return None
+
+
+def test_meta_still_requires_a_domain_on_a_non_resource_host() -> None:
+    """Every host but a resource keeps its mandatory domain."""
+
+    class Plain:
+        pass
+
+    with pytest.raises(TypeError, match="domain is required"):
+        meta(description="plain host")(Plain)
+
+
+def test_meta_still_attaches_the_domain_on_a_non_resource_host() -> None:
+    """An action keeps the domain it declares, exactly as before."""
+
+    class Plain:
+        pass
+
+    meta(description="plain host", domain=_OrdersDomain)(Plain)
+    assert Plain._meta_info == {"description": "plain host", "domain": _OrdersDomain}

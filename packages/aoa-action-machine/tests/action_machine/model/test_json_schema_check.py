@@ -34,7 +34,6 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model.base_result import BaseResult
 from aoa.action_machine.model.json_schema_value import JsonSchemaValue
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 ORDER_WIRE: dict[str, Any] = {
@@ -66,17 +65,12 @@ class _ChecksDomain(BaseDomain):
     description = "Entities for the JSON Schema check tests"
 
 
-@meta(description="Where _ChecksStorage keeps its rows")
-class _ChecksDataSource(InMemoryDataSource):
-    """The store _ChecksStorage works with."""
-
-
-@meta(description="Stores the checks entities", domain=_ChecksDomain)
-class _ChecksStorage(BaseStorage[_ChecksDataSource]):
+@meta(description="Stores the checks entities")
+class _ChecksStorage(BaseStorage):
     """Hold the checks entities."""
 
 
-@entity(description="Order", resource=_ChecksStorage)
+@entity(description="Order", domain=_ChecksDomain)
 class CheckOrderCoreEntity(BaseCoreEntity):
     """An order projected through a strict schema."""
 

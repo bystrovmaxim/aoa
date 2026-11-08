@@ -245,9 +245,9 @@ Anything that lives longer than a single call and is injected via DI (`@depends`
 
 ```python
 # Fragment: an outline; `...` marks what is left out.
-class OrdersDbManager(BaseStorage[OrdersDataSource]): ...        # PostgreSQL
-class SessionCacheResource(BaseStorage[SessionCacheDataSource]):  # Redis
-class EventQueueResource(BaseStorage[EventQueueDataSource]):      # Kafka / RabbitMQ
+class ShopDatabaseStorage(PostgresStorage): ... # PostgreSQL
+class SessionCacheResource(BaseStorage):  # Redis
+class EventQueueResource(BaseStorage):      # Kafka / RabbitMQ
 ```
 
 ---
@@ -284,28 +284,20 @@ class RuleEngineController(BaseController):     # an in-memory rules engine
 
 ---
 
-### `BaseDataSource` — the store several resources share
+### A resource is a database
 
-**Meaning:** one store — a database, an external service, a store kept in memory — and the physical place of the entities its resources store. The model has two axes: the logical one says what things are (domains, entities, the relations between them), the physical one says where they live (a resource and its data source). A data source keeps what its resources share at run time — the connection parameters and the pool, the service's address, credentials and client — while each resource keeps its own transaction.
+**Meaning:** a resource is one database — or one service, or one object the process owns — and it lists the entities that lie in it with `@entities`. The model has two sides: the logical one says what things are (domains, entities, the relations between them), and the resource says where they lie. An entity names only its domain; a database is shared by domains, so a resource's `@meta` takes no domain, and its domains are the domains of the entities it lists.
 
-**Constraint:** it is not a resource. An action never depends on it and reaches it only through a resource that names it. It belongs to no domain, because resources of several domains may share one store, one resource each: a domain reaches a data source through one resource. A resource that stores an entity names a data source; one that stores nothing, a gateway that only calls out, may name none. AOA gives a kind for each store — `PostgresDataSource`, `ExternalServiceDataSource`, `InMemoryDataSource` — and connection parameters live only in a data source.
-
-A resource names its data source as the type argument of its base. A relation is a fact of the logical model — it promises no foreign key, no join and no shared transaction — so it may join entities of any resources and data sources.
+**Constraint:** a resource answers only with the entities it lists. The machine checks every answer of a resource's public methods; a relation that leaves the database comes back as a reference — the id without the entity — and only an action glues the data of two databases. A relation is a fact of the logical model — it promises no foreign key, no join and no shared transaction — so it may join entities of any databases.
 
 ```python
 # Fragment: an outline; `...` marks what is left out.
-class ShopDataSource(PostgresDataSource): ...              # the shop database and its pool
-class OrdersStorage(PostgresResource[ShopDataSource]): ... # SalesDomain's part of it
-class SupportStorage(PostgresResource[ShopDataSource]): ...# SupportDomain's part of it
+@meta(description="The shop database")
+@entities(OrderCoreEntity, TicketCoreEntity)  # SalesDomain's and SupportDomain's entities
+class ShopDatabaseStorage(PostgresStorage): ...
 ```
 
-> **The connection policy belongs to the data source.** A data source only hands connections out and takes them back; a resource asks for a connection and gives it back. So the connection policy is the data source's alone:
->
-> - **one shared connection** — one client (an HTTP client with keep-alive, for one) that every resource of the data source works through;
-> - **separate connections** — a pool, one connection per request, with limits for the data source and for each resource;
-> - **mixed** — a shared client with one rate limit for all its resources, when a service gives a quota per key.
->
-> Changing the policy changes the data source only; its resources do not notice.
+> **How a resource connects is the application's choice.** The model has no pool. A PostgreSQL storage takes a connection from a `PostgresPool` (`pool=`) or opens its own (`connection_params=`), chosen when the application assembles it: a pool in a service's lifespan, an own connection in a script, a substitute pool in a test. The storage keeps its transaction either way, and changing how it connects changes no line of its class.
 
 ---
 
@@ -318,7 +310,7 @@ Is this input/output data or an execution snapshot?          → BaseSchema (Par
 Is this a business decision?                                 → Action
 Is this a domain-area model?                                 → Entity
 Do you need to store data that lives forever?                → BaseStorage
-Do several resources work with one database?                  → BaseDataSource
+Which entities lie in this database?                         → @entities on its resource
 Do you need to call someone else's service (SMS, payment, API)? → BaseGateway
 Do you need to run a local graph, FSM, or legacy engine?      → BaseController
 Is this an accomplished fact that others should learn of?     → BaseEvent
@@ -364,9 +356,8 @@ AOA
 ├── BaseObserver    — observes the machine (side effects only)
 ├── BaseIntent      — declares participation in AOA's grammar
 ├── Lifecycle       — a state machine
-├── BaseResource    — a managed, long-lived dependency
-│   ├── BaseStorage    — external, a store (I connect)
-│   ├── BaseGateway    — external, a service (I delegate)
-│   └── BaseController — internal (I own)
-└── BaseDataSource  — the store several resources share (optional for a resource)
+└── BaseResource    — a managed, long-lived dependency; it lists its entities with @entities
+    ├── BaseStorage    — external, a store (I connect)
+    ├── BaseGateway    — external, a service (I delegate)
+    └── BaseController — internal (I own)
 ```

@@ -34,7 +34,7 @@ class CounterDomain(BaseDomain):
 class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
-@meta(description="Count calls in memory", domain=CounterDomain)
+@meta(description="Count calls in memory")
 class CounterController(BaseController):
     """Keep a count and record lifecycle events."""
     def __init__(self, events):

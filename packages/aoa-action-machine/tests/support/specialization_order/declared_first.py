@@ -24,9 +24,9 @@ from aoa.action_machine.domain import (
     Specialization,
     value,
 )
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -37,17 +37,7 @@ class FirstOrderDomain(BaseDomain):
     description = "A part declared before the kinds"
 
 
-@meta(description="Where FirstOrderStorage keeps its rows")
-class FirstOrderDataSource(InMemoryDataSource):
-    """The store FirstOrderStorage works with."""
-
-
-@meta(description="Stores the first order entities", domain=FirstOrderDomain)
-class FirstOrderStorage(BaseStorage[FirstOrderDataSource]):
-    """Hold the first order entities."""
-
-
-@entity(description="A part the variants link to", resource=FirstOrderStorage)
+@entity(description="A part the variants link to", domain=FirstOrderDomain)
 class PartCoreEntity(BaseCoreEntity):
     """Declared before the kinds that link to it."""
 
@@ -58,7 +48,7 @@ class PartCoreEntity(BaseCoreEntity):
     others: Annotated[AssociationMany[OtherSpecEntity], Inverse(OtherSpecEntity, "parts")] = Field(description="Others")
 
 
-@entity(description="Kinds", resource=FirstOrderStorage)
+@entity(description="Kinds", domain=FirstOrderDomain)
 class KindEnumEntity(BaseEnumEntity):
     """The two kinds of a head."""
 
@@ -66,7 +56,7 @@ class KindEnumEntity(BaseEnumEntity):
     OTHER = value(code="other", display_name="Other")
 
 
-@entity(description="Head", resource=FirstOrderStorage)
+@entity(description="Head", domain=FirstOrderDomain)
 class HeadCoreEntity(BaseCoreEntity):
     """The common part, with two kinds."""
 
@@ -76,7 +66,7 @@ class HeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Variant", resource=FirstOrderStorage)
+@entity(description="Variant", domain=FirstOrderDomain)
 class VariantSpecEntity(BaseSpecEntity):
     """The first kind, linking to parts."""
 
@@ -87,7 +77,7 @@ class VariantSpecEntity(BaseSpecEntity):
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "variants")] = Field(description="Parts")
 
 
-@entity(description="Other variant", resource=FirstOrderStorage)
+@entity(description="Other variant", domain=FirstOrderDomain)
 class OtherSpecEntity(BaseSpecEntity):
     """The second kind, linking to parts."""
 
@@ -96,6 +86,12 @@ class OtherSpecEntity(BaseSpecEntity):
         Generalization[HeadCoreEntity], Classifier(variant=KindEnumEntity.OTHER), Inverse(HeadCoreEntity, "kind")
     ] = Field(description="Head")
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "others")] = Field(description="Parts")
+
+
+@meta(description="Stores the first order entities")
+@entities(PartCoreEntity, HeadCoreEntity, VariantSpecEntity, OtherSpecEntity)
+class FirstOrderStorage(BaseStorage):
+    """Hold the first order entities."""
 
 
 for _model in (HeadCoreEntity, VariantSpecEntity, OtherSpecEntity, PartCoreEntity):

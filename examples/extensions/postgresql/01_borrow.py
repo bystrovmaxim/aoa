@@ -7,15 +7,11 @@ Run: uv run python examples/extensions/postgresql/01_borrow.py
 
 import asyncio
 
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 
 
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
-
-
-class ExampleStorage(PostgresStorage[ExampleDataSource]):
-    """A PostgreSQL resource that works through the example's data source."""
+class ExampleStorage(PostgresStorage):
+    """A PostgreSQL resource that works through the example's pool."""
 
 
 class RecordingConnection:
@@ -71,7 +67,7 @@ class RecordingPool:
 async def main():
     """Run this case and verify its observable result."""
     pool = RecordingPool()
-    resource = ExampleStorage(data_source=ExampleDataSource(pool=pool))
+    resource = ExampleStorage(pool=PostgresPool(pool=pool))
     print("after construction:", len(pool.held))
     await resource.open()
     assert len(pool.held) == 1

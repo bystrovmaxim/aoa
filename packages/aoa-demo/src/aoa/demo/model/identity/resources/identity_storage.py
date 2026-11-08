@@ -40,15 +40,29 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlStorage
-from aoa.demo.model.identity.resources.identity_data_source import IdentityDataSource
+from aoa.demo.model.identity.entities.identity_credential_merge import IdentityCredentialMergeCorrelateCoreEntity
+from aoa.demo.model.identity.entities.identity_credential_rotation_stub import IdentityCredentialRotationStubCoreEntity
+from aoa.demo.model.identity.entities.identity_email_factor import IdentityEmailFactorCoreEntity
+from aoa.demo.model.identity.entities.identity_federated_linkage import IdentityFederatedLinkageCoreEntity
+from aoa.demo.model.identity.entities.identity_org_binding_stub import IdentityOrgBindingStubCoreEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
+from aoa.demo.model.identity.entities.identity_phone_factor import IdentityPhoneFactorCoreEntity
 
-from ..domain import IdentityDomain
 
-
-@meta(description="Identity store: read a person, record a login", domain=IdentityDomain)
-class IdentityStorage(SqlStorage[IdentityDataSource]):
+@meta(description="Identity store: read a person, record a login")
+@entities(
+    IdentityCredentialMergeCorrelateCoreEntity,
+    IdentityCredentialRotationStubCoreEntity,
+    IdentityEmailFactorCoreEntity,
+    IdentityFederatedLinkageCoreEntity,
+    IdentityOrgBindingStubCoreEntity,
+    IdentityPersonHubCoreEntity,
+    IdentityPhoneFactorCoreEntity,
+)
+class IdentityStorage(SqlStorage):
     """
     AI-CORE-BEGIN
         ROLE: The identity domain's storage semantics, independent of any driver.

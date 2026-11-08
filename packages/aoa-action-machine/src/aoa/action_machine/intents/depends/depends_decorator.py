@@ -68,20 +68,13 @@ def _validate_dependency_mode(klass: type, mode: str | None) -> str | None:
     Validate ``mode`` for ``klass`` and return the value stored on ``DependencyInfo``.
 
     Raises:
-        ValueError: ``BaseAction`` or a data source as target, illegal ``mode`` for target kind.
+        ValueError: ``BaseAction`` as target, or an illegal ``mode`` for the target kind.
     """
     from aoa.action_machine.model.base_action import BaseAction  # pylint: disable=import-outside-toplevel
-    from aoa.action_machine.resources.base_data_source import BaseDataSource  # pylint: disable=import-outside-toplevel
 
     if klass is BaseAction:
         msg = "@depends(BaseAction): use a concrete action subclass, not BaseAction itself."
         raise DependencyDeclarationError(msg)
-
-    if issubclass(klass, BaseDataSource):
-        raise DependencyDeclarationError(
-            f"@depends({klass.__name__}): a data source is not a dependency — an action reaches it only "
-            "through a resource that names it.",
-        )
 
     if _is_action_target(klass):
         if mode is None or mode not in VALID_USE_CASE_MODES:

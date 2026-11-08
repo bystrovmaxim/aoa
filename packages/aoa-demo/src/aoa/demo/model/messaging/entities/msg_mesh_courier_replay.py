@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_dead_letter_lifecycle import MsgDeadLetterLifecycle
 from aoa.demo.model.messaging.entities.msg_replay_ticket import ReplayTicketCoreEntity
-from aoa.demo.model.messaging.resources.outbox_primary_database_storage import OutboxPrimaryDatabaseStorage
 
 
 @entity(
-    description="Short-circuit between courier delivery spine and replay coordination queue", resource=OutboxPrimaryDatabaseStorage
+    description="Short-circuit between courier delivery spine and replay coordination queue", domain=MessagingDomain
 )
 class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
@@ -29,9 +29,7 @@ class MsgCourierReplayCorrelateCoreEntity(BaseCoreEntity):
     replay_ticket: Annotated[
         AssociationOne[ReplayTicketCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Replay ticket linkage"
-    )
+    ] = Field(description="Replay ticket linkage")
 
 
 MsgCourierReplayCorrelateCoreEntity.model_rebuild()

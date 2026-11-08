@@ -82,18 +82,13 @@ EXAMPLES
             build,
         value,
     )
+    from aoa.action_machine.intents.entities import entities
     from aoa.action_machine.intents.meta import meta
-    from aoa.action_machine.resources import BaseStorage, InMemoryDataSource
+    from aoa.action_machine.resources import BaseStorage
 
     class ShopDomain(BaseDomain):
         name = "shop"
         description = "E-commerce shop bounded context"
-
-    @meta(description="Where the shop's rows live")
-    class ShopDataSource(InMemoryDataSource): ...
-
-    @meta(description="Stores the shop model", domain=ShopDomain)
-    class ShopStorage(BaseStorage[ShopDataSource]): ...
 
     class OrderStateEntity(BaseStateEntity):
         sort_order: int = Field(default=0, description="Presentation order")
@@ -108,11 +103,15 @@ EXAMPLES
             .state(OrderStateEntity.DONE).final()
         )
 
-    @entity(description="Customer order", resource=ShopStorage)
+    @entity(description="Customer order", domain=ShopDomain)
     class OrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order identifier")
         amount: float = Field(description="Order total", ge=0)
         lifecycle: OrderLifecycle = Field(description="Order status axis")
+
+    @meta(description="Stores the shop model")          # a resource has no domain
+    @entities(OrderCoreEntity)
+    class ShopStorage(BaseStorage): ...
 
     order = build({"id": "123", "amount": 100.0}, OrderCoreEntity)
 """
@@ -128,7 +127,6 @@ from aoa.action_machine.domain.enum_entity import BaseEnumEntity
 from aoa.action_machine.domain.exceptions import (
     EntityDecoratorError,
     EntityFieldDeclarationError,
-    EntityResourceError,
     FieldNotLoadedError,
     ForeignStateError,
     LifecycleGraphError,
@@ -187,7 +185,6 @@ __all__ = [
     "EntityDecoratorError",
     "EntityFieldDeclarationError",
     "EntityIntent",
-    "EntityResourceError",
     "EntitySchemaMarker",
     "FieldNotLoadedError",
     "ForeignStateError",

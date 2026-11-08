@@ -10,10 +10,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderLineDetailEntity
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Warehouse pick linkage between order lines and heterogeneous parcel batches", resource=StorefrontDatabaseStorage)
+@entity(description="Warehouse pick linkage between order lines and heterogeneous parcel batches", domain=StoreDomain)
 class StoreLineParcelPickCoreEntity(BaseCoreEntity):
     id: str = Field(description="Pick id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Pick lifecycle")
@@ -27,16 +27,12 @@ class StoreLineParcelPickCoreEntity(BaseCoreEntity):
     order_line: Annotated[
         AssociationOne[SalesOrderLineDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Fulfilling order line artefact"
-    )
+    ] = Field(description="Fulfilling order line artefact")
 
     parcel: Annotated[
         AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Target parcel artefact"
-    )
+    ] = Field(description="Target parcel artefact")
 
 
 StoreLineParcelPickCoreEntity.model_rebuild()

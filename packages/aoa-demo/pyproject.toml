@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aoa-demo"
-version = "3.22.0"
+version = "3.23.0"
 description = "Example FastAPI and MCP services demonstrating ActionMachine."
 readme = "README.md"
 license = "Apache-2.0"
@@ -13,8 +13,8 @@ license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "@Bystrov.Maxim" }]
 dependencies = [
-    "aoa-action-machine>=1.5.0b1,<2.0.0",
-    "aoa-ocel>=1.1.0",
+    "aoa-action-machine>=1.6.0b1,<2.0.0",
+    "aoa-ocel>=1.2.0",
     "pydantic>=2.0,<3.0",
 ]
 
@@ -27,10 +27,10 @@ aoa-ocel = { workspace = true }
 [project.optional-dependencies]
 fastapi = [
     # 1.3.0 tags every GET with an ETag and answers 304, so Maxitor checks the graph-json cheaply (spec 029).
-    "aoa-fastapi-adapter>=1.4.0",
+    "aoa-fastapi-adapter>=1.5.0",
 ]
 mcp = [
-    "aoa-mcp-adapter>=1.3.0",
+    "aoa-mcp-adapter>=1.4.0",
 ]
 postgres = [
     "asyncpg>=0.29,<1.0",

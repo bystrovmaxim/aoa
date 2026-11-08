@@ -13,10 +13,10 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.domain.exceptions import EntityFieldDeclarationError
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class DirectionDomain(BaseDomain):
@@ -26,49 +26,51 @@ class DirectionDomain(BaseDomain):
     description = "Reciprocal directions"
 
 
-@meta(description="Where DirectionStorage keeps its rows")
-class DirectionDataSource(InMemoryDataSource):
-    """The store DirectionStorage works with."""
-
-
-@meta(description="Stores the direction entities", domain=DirectionDomain)
-class DirectionStorage(BaseStorage[DirectionDataSource]):
-    """Hold the direction entities."""
-
-
-@entity(description="Offer", resource=DirectionStorage)
+@entity(description="Offer", domain=DirectionDomain)
 class OfferCoreEntity(BaseCoreEntity):
     """Collect the regions offering this product."""
 
     regions: Annotated[AssociationMany[RegionCoreEntity], Inverse(field_name="offer")] = Field(description="Regions")
 
 
-@entity(description="Region", resource=DirectionStorage)
+@entity(description="Region", domain=DirectionDomain)
 class RegionCoreEntity(BaseCoreEntity):
     """Name the opposite endpoint explicitly."""
 
     offer: Annotated[AssociationOne[OfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
 
 
-@entity(description="One-way bookmark", resource=DirectionStorage)
+@entity(description="One-way bookmark", domain=DirectionDomain)
 class BookmarkCoreEntity(BaseCoreEntity):
     """Keep an intentional unpaired link."""
 
     offer: Annotated[AssociationOne[OfferCoreEntity], NoInverse()] = Field(description="Bookmarked offer")
 
 
-@entity(description="Old reverse endpoint", resource=DirectionStorage)
+@entity(description="Old reverse endpoint", domain=DirectionDomain)
 class OldOfferCoreEntity(BaseCoreEntity):
     """Keep the previous unpaired reverse declaration."""
 
     regions: Annotated[AssociationMany[OldRegionCoreEntity], NoInverse()] = Field(description="Regions")
 
 
-@entity(description="Old forward endpoint", resource=DirectionStorage)
+@entity(description="Old forward endpoint", domain=DirectionDomain)
 class OldRegionCoreEntity(BaseCoreEntity):
     """Demonstrate the one-sided inverse refusal."""
 
     offer: Annotated[AssociationOne[OldOfferCoreEntity], Inverse(field_name="regions")] = Field(description="Offer")
+
+
+@meta(description="Stores the direction entities")
+@entities(
+    OfferCoreEntity,
+    RegionCoreEntity,
+    BookmarkCoreEntity,
+    OldOfferCoreEntity,
+    OldRegionCoreEntity,
+)
+class DirectionStorage(BaseStorage):
+    """Hold the direction entities."""
 
 
 for model in (OfferCoreEntity, RegionCoreEntity, OldOfferCoreEntity, OldRegionCoreEntity):

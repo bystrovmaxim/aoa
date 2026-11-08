@@ -7,16 +7,16 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_facility_actor import AssuranceFacilityActorCoreEntity
 from aoa.demo.model.assurance_portfolio.entities.ap_lifecycle import AssurancePortfolioLifecycle
 from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
     AssuranceCheckpointToneAxisCoreEntity,
     AssuranceDelegationIntentAxisCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Dual-actor delegated assignment with intent + checkpoint hues", resource=AssurancePortfolioStorage)
+@entity(description="Dual-actor delegated assignment with intent + checkpoint hues", domain=AssurancePortfolioDomain)
 class AssuranceDelegatedWorkTicketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Delegated ticket id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Delegated ticket lifecycle")
@@ -30,30 +30,22 @@ class AssuranceDelegatedWorkTicketCoreEntity(BaseCoreEntity):
     assignee_actor: Annotated[
         AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Actor owed the deliverable"
-    )
+    ] = Field(description="Actor owed the deliverable")
 
     delegator_actor: Annotated[
         AssociationOne[AssuranceFacilityActorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Actor dispatching workload"
-    )
+    ] = Field(description="Actor dispatching workload")
 
     intent_axis: Annotated[
         AssociationOne[AssuranceDelegationIntentAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Delegation intent flavour"
-    )
+    ] = Field(description="Delegation intent flavour")
 
     checkpoint_tone: Annotated[
         AssociationOne[AssuranceCheckpointToneAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Current checkpoint disposition"
-    )
+    ] = Field(description="Current checkpoint disposition")
 
 
 AssuranceDelegatedWorkTicketCoreEntity.model_rebuild()

@@ -15,7 +15,7 @@ package, one file each, and the entity base holds the hierarchy rules.
 USAGE
 ═══════════════════════════════════════════════════════════════════════════════
 
-    @entity(description="Customer order", resource=ShopDatabase)
+    @entity(description="Customer order", domain=ShopDomain)
     class SalesOrderCoreEntity(BaseCoreEntity):
         id: str = Field(description="Order id")
 """

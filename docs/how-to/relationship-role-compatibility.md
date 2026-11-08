@@ -25,7 +25,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
+from aoa.action_machine.intents.entities import entities
 
 
 class PartsDomain(BaseDomain):
@@ -34,28 +34,27 @@ class PartsDomain(BaseDomain):
     description = "Owners and parts"
 
 
-@meta(description="Where PartsStorage keeps its rows")
-class PartsDataSource(InMemoryDataSource):
-    """The store PartsStorage works with."""
-
-
-@meta(description="Stores the parts entities", domain=PartsDomain)
-class PartsStorage(BaseStorage[PartsDataSource]):
-    """Hold the parts entities."""
-
-
-@entity(description="Owner", resource=PartsStorage)
+@entity(description="Owner", domain=PartsDomain)
 class OwnerCoreEntity(BaseCoreEntity):
     """Keep one composition endpoint."""
     id: str = Field(description="Owner identifier")
     parts: Annotated[CompositeMany[PartDetailEntity], Inverse(field_name="owner")] = Field(description="Owned parts")
 
 
-@entity(description="Part", resource=PartsStorage)
+@entity(description="Part", domain=PartsDomain)
 class PartDetailEntity(BaseDetailEntity):
     """Point back through an association."""
     id: str = Field(description="Part identifier")
     owner: Annotated[AssociationOne[OwnerCoreEntity], Inverse(field_name="parts")] = Field(description="Owner")
+
+
+@meta(description="Stores the parts entities")
+@entities(
+    OwnerCoreEntity,
+    PartDetailEntity,
+)
+class PartsStorage(BaseStorage):
+    """Hold the parts entities."""
 
 
 OwnerCoreEntity.model_rebuild()

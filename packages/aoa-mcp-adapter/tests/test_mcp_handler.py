@@ -101,14 +101,14 @@ from aoa.mcp.adapter import (
 )
 from aoa.mcp.route_record import McpRouteRecord
 
-from .support import AdminRole, PingAction, SimpleAction, TestDomain
+from .support import AdminRole, PingAction, SimpleAction
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stub resource (``resolve_connections`` requires ``BaseResource`` instances)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-@meta(description="MCP handler connection test resource", domain=TestDomain)
+@meta(description="MCP handler connection test resource")
 class _McpHandlerTestController(BaseController):
     """Minimal ``BaseResource`` for connection resolution assertions."""
 

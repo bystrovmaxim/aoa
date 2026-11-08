@@ -1,4 +1,6 @@
 # packages/aoa-demo/src/aoa/demo/model/assurance_portfolio/resources/__init__.py
-"""Resources of the assurance portfolio domain."""
+"""The assurance portfolio model's resource: the database its entities lie in."""
 
-__all__: list[str] = []
+from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
+
+__all__ = ["AssurancePortfolioStorage"]

@@ -37,11 +37,11 @@ class _SqlResourceTestDomain(BaseDomain):
     description = "Domain for SQL resource-layer tests."
 
 
-def meta(description: str, domain: type[BaseDomain]):
-    """Test-local metadata decorator matching the graph metadata contract."""
+def meta(description: str):
+    """Test-local metadata decorator matching the graph metadata contract (a resource has no domain)."""
 
     def decorator(cls):
-        cls._meta_info = {"description": description, "domain": domain}
+        cls._meta_info = {"description": description, "domain": None}
         return cls
 
     return decorator
@@ -52,7 +52,7 @@ def meta(description: str, domain: type[BaseDomain]):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-@meta(description="SQL resource test connection manager", domain=_SqlResourceTestDomain)
+@meta(description="SQL resource test connection manager")
 class _TestConnectionStorage(SqlStorage):
     """Minimal concrete implementation for testing SqlStorage behavior."""
 
@@ -84,7 +84,7 @@ class _TestConnectionStorage(SqlStorage):
         self.committed = True
 
 
-@meta(description="SQL resource test manager without super init", domain=_SqlResourceTestDomain)
+@meta(description="SQL resource test manager without super init")
 class _NoSuperInitStorage(SqlStorage):
     """Subclass that intentionally skips super().__init__()."""
 
@@ -212,7 +212,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_open(self) -> None:
         """Subclass missing open() cannot be instantiated."""
 
-        @meta(description="Incomplete SQL resource missing open", domain=_SqlResourceTestDomain)
+        @meta(description="Incomplete SQL resource missing open")
         class _IncompleteStorage(SqlStorage):
             @classmethod
             def get_wrapper_class(cls):
@@ -230,7 +230,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_begin(self) -> None:
         """Subclass missing begin() cannot be instantiated."""
 
-        @meta(description="Incomplete SQL resource missing begin", domain=_SqlResourceTestDomain)
+        @meta(description="Incomplete SQL resource missing begin")
         class _IncompleteStorage(SqlStorage):
             @classmethod
             def get_wrapper_class(cls):
@@ -248,7 +248,7 @@ class TestAbstractMethods:
     def test_cannot_instantiate_without_rollback(self) -> None:
         """Subclass missing rollback() cannot be instantiated."""
 
-        @meta(description="Incomplete SQL resource missing rollback", domain=_SqlResourceTestDomain)
+        @meta(description="Incomplete SQL resource missing rollback")
         class _IncompleteStorage(SqlStorage):
             @classmethod
             def get_wrapper_class(cls):
@@ -266,7 +266,7 @@ class TestAbstractMethods:
     def test_a_subclass_with_the_three_abstract_members_is_concrete(self) -> None:
         """open, begin and rollback are the whole obligation; commit comes from the base (FR-004)."""
 
-        @meta(description="SQL resource with the three abstract members", domain=_SqlResourceTestDomain)
+        @meta(description="SQL resource with the three abstract members")
         class _CompleteStorage(SqlStorage):
             @classmethod
             def get_wrapper_class(cls):

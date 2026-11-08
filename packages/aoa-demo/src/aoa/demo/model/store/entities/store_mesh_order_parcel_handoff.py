@@ -10,12 +10,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.shipment_parcel import ShipmentParcelCoreEntity
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
 @entity(
     description="Junction aligning header orders with parcel fulfilment subgraph (dense mesh cue)",
-    resource=StorefrontDatabaseStorage,
+    domain=StoreDomain,
 )
 class StoreOrderParcelHandoffCoreEntity(BaseCoreEntity):
     id: str = Field(description="Link id")
@@ -30,16 +30,12 @@ class StoreOrderParcelHandoffCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Referenced order aggregate"
-    )
+    ] = Field(description="Referenced order aggregate")
 
     parcel: Annotated[
         AssociationOne[ShipmentParcelCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Referenced shipment parcel artefact"
-    )
+    ] = Field(description="Referenced shipment parcel artefact")
 
 
 StoreOrderParcelHandoffCoreEntity.model_rebuild()

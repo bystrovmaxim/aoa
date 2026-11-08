@@ -1,16 +1,15 @@
 # packages/aoa-action-machine/src/aoa/action_machine/intents/meta/meta_decorator.py
 """
-``@meta`` — human-readable description and **mandatory** domain binding on a
-class.
+``@meta`` — human-readable description and a domain binding on a class.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
-Part of the ActionMachine intent grammar. Stores a non-empty description and a
-``BaseDomain`` subclass on the class. Metadata feeds the coordinator graph and
-logging via ``resolve_domain``. Typical hosts are actions and resource managers,
-but the decorator only requires a class target.
+Part of the ActionMachine intent grammar. Stores a non-empty description and, on
+every host but a resource, a ``BaseDomain`` subclass. Metadata feeds the
+coordinator graph and logging via ``resolve_domain``. Typical hosts are actions
+and resources, but the decorator only requires a class target.
 
 ═══════════════════════════════════════════════════════════════════════════════
 PARAMETERS
@@ -21,10 +20,12 @@ PARAMETERS
     whitespace-only → ``ValueError``.
 
 ``domain : type[BaseDomain]``
-    Keyword-only. Required on every host but a data source: there it is omitted
-    or ``None`` → ``TypeError`` when the class is decorated. Must be a ``BaseDomain``
-    subclass; a wrong type → ``TypeError``. A data source (``BaseDataSource``) has
-    no domain, and one given → ``TypeError``.
+    Keyword-only. Required on every host but a resource: there it is omitted or
+    ``None`` → ``TypeError`` when the class is decorated. Must be a ``BaseDomain``
+    subclass; a wrong type → ``TypeError``. A resource (``BaseResource``) is a
+    database shared by domains, so it has none of its own: its domains are the
+    domains of the entities it lists with ``@entities``, and a ``domain`` given to
+    a resource → ``TypeError``.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ARCHITECTURE / DATA FLOW
@@ -41,6 +42,10 @@ ARCHITECTURE / DATA FLOW
         │
         ▼  ``NodeGraphCoordinator.build()``
     Action node enriched; domain node with ``belongs_to`` edge.
+
+    @meta(description="The shop database")          # no domain: a resource has none
+    class ShopDatabaseStorage(BaseStorage):
+        ...
 
 """
 
@@ -89,15 +94,15 @@ def _validate_meta_target(cls: Any) -> None:
 
 
 def _validate_meta_host_domain(cls: type, domain: Any) -> None:
-    """A data source has no domain; every other host has one."""
-    # Imported here: the resources package itself imports this decorator's intent.
-    from aoa.action_machine.resources.base_data_source import BaseDataSource  # pylint: disable=import-outside-toplevel
+    """A resource is a database shared by domains and takes no domain; every other host has one."""
+    # Imported here: the resources package imports this decorator's intent.
+    from aoa.action_machine.resources.base_resource import BaseResource  # pylint: disable=import-outside-toplevel
 
-    if issubclass(cls, BaseDataSource):
+    if issubclass(cls, BaseResource):
         if domain is not None:
             raise DecoratorArgumentTypeError(
-                f"@meta on {cls.__name__}: a data source has no domain — it is physical, and resources "
-                "of several domains may share it. Remove domain=."
+                f"@meta on {cls.__name__}: a resource is a database shared by domains and takes no domain — "
+                "its domains are the domains of the entities it lists with @entities. Remove domain=."
             )
         return
     _validate_meta_domain(domain)
@@ -111,7 +116,7 @@ def meta(
     """
     Class decorator: attach ``_meta_info`` with description and domain.
 
-    ``domain`` is required on every host but a data source (``BaseDataSource``), which has none.
+    ``domain`` is required on every host but a resource, which has none.
 
     :class:`~aoa.action_machine.intents.meta.meta_intent_resolver.MetaIntentResolver` and
     action graph export consume the same scratch written here.
@@ -119,7 +124,7 @@ def meta(
     AI-CORE-BEGIN
     ROLE: Write class-level metadata consumed by graph/runtime inspectors.
     CONTRACT: Validate arguments and attach ``_meta_info`` to target class.
-    INVARIANTS: Applies only to classes.
+    INVARIANTS: Applies only to classes; a resource takes no domain, every other host requires one.
     AI-CORE-END
     """
     _validate_meta_description(description)

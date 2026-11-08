@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvPipelineLifecycle
 from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
-from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Storage aisle row inside a warehouse facility", resource=InventoryStorage)
+@entity(description="Storage aisle row inside a warehouse facility", domain=InventoryDomain)
 class StorageAisleRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Aisle id")
     lifecycle: InvPipelineLifecycle = Field(description="Aisle lifecycle")
@@ -26,9 +26,7 @@ class StorageAisleRowDetailEntity(BaseDetailEntity):
     facility: Annotated[
         AssociationOne[FacilityWarehouseCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent facility warehouse"
-    )
+    ] = Field(description="Parent facility warehouse")
 
 
 StorageAisleRowDetailEntity.model_rebuild()

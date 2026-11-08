@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Shipment parcel row", resource=StorefrontDatabaseStorage)
+@entity(description="Shipment parcel row", domain=StoreDomain)
 class ShipmentParcelCoreEntity(BaseCoreEntity):
     id: str = Field(description="Parcel id")
     lifecycle: SalesOrderLifecycle = Field(description="Shipment lifecycle")
@@ -26,10 +26,7 @@ class ShipmentParcelCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Shipped order"
-    )
-
+    ] = Field(description="Shipped order")
 
 
 ShipmentParcelCoreEntity.model_rebuild()

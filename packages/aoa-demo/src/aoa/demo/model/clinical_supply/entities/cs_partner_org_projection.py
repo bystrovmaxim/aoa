@@ -7,15 +7,15 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_ownership_anchor import ClinicalOwnershipAnchorCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
-from aoa.demo.model.clinical_supply.resources.storage import ClinicalSupplyStorage
 
 
 @entity(
     description="Institutional subtype facts hanging off the partner hub (organization analogue)",
-    resource=ClinicalSupplyStorage,
+    domain=ClinicalSupplyDomain,
 )
 class ClinicalPartnerOrgProjectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Org projection row id")
@@ -30,16 +30,12 @@ class ClinicalPartnerOrgProjectionCoreEntity(BaseCoreEntity):
     partner_hub: Annotated[
         AssociationOne[ClinicalPartnerHubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent partner aggregate"
-    )
+    ] = Field(description="Parent partner aggregate")
 
     ownership_anchor: Annotated[
         AssociationOne[ClinicalOwnershipAnchorCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Corporate form catalog"
-    )
+    ] = Field(description="Corporate form catalog")
 
 
 ClinicalPartnerOrgProjectionCoreEntity.model_rebuild()

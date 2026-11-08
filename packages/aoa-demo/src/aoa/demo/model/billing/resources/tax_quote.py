@@ -3,7 +3,6 @@
 
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway
-from aoa.demo.model.billing.domain import BillingDomain
 
 
 class TaxQuoteClient:
@@ -13,7 +12,6 @@ class TaxQuoteClient:
 
 @meta(
     description="Tax quote gateway (stub)",
-    domain=BillingDomain,
 )
 class TaxQuoteGateway(BaseGateway):
     """The gateway to the tax quote service: its methods are what the domain asks of it."""

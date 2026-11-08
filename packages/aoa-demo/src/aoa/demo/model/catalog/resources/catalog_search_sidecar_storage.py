@@ -17,14 +17,18 @@ ARCHITECTURE / DATA FLOW
 
     Domain actions and entities -> CatalogSearchSidecarStorage -> SqlStorage contract
 """
+
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.sql import SqlStorage
-from aoa.demo.model.catalog.domain import CatalogDomain
-from aoa.demo.model.data_sources.catalog_search_data_source import CatalogSearchDataSource
+from aoa.demo.model.catalog.entities.catalog_search_boost_weight import SearchBoostWeightCoreEntity
 
 
-@meta(description="Search sidecar index (stub)", domain=CatalogDomain)
-class CatalogSearchSidecarStorage(SqlStorage[CatalogSearchDataSource]):
+@meta(description="Search sidecar index (stub)")
+@entities(
+    SearchBoostWeightCoreEntity,
+)
+class CatalogSearchSidecarStorage(SqlStorage):
     """
     AI-CORE-BEGIN
     ROLE: Database-free storage for the demo domain.
@@ -32,6 +36,7 @@ class CatalogSearchSidecarStorage(SqlStorage[CatalogSearchDataSource]):
     INVARIANTS: The class retains its Storage kind and domain metadata.
     AI-CORE-END
     """
+
     def __init__(self, rollup: bool = False) -> None:
         """Preserve the SQL contract’s rollup configuration."""
         super().__init__(rollup=rollup)

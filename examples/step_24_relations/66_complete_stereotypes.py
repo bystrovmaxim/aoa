@@ -22,10 +22,10 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.validators.entity_field_validator import validate_entity_fields
 from aoa.action_machine.graph.validators.entity_inverse_validator import validate_entity_inverses
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class KindDomain(BaseDomain):
@@ -35,31 +35,21 @@ class KindDomain(BaseDomain):
     description = "Complete relationship fields"
 
 
-@meta(description="Where KindStorage keeps its rows")
-class KindDataSource(InMemoryDataSource):
-    """The store KindStorage works with."""
-
-
-@meta(description="Stores the kind entities", domain=KindDomain)
-class KindStorage(BaseStorage[KindDataSource]):
-    """Hold the kind entities."""
-
-
-@entity(description="Region catalogue", resource=KindStorage)
+@entity(description="Region catalogue", domain=KindDomain)
 class RegionEnumEntity(BaseEnumEntity):
     """Provide a shared selection target."""
 
     EU = value(code="eu", display_name="Europe")
 
 
-@entity(description="Offer", resource=KindStorage)
+@entity(description="Offer", domain=KindDomain)
 class OfferCoreEntity(BaseCoreEntity):
     """Select a dictionary value from a Core host."""
 
     region: Annotated[AssociationOne[RegionEnumEntity], NoInverse()] = Field(description="Sales region")
 
 
-@entity(description="Technical offer link", resource=KindStorage)
+@entity(description="Technical offer link", domain=KindDomain)
 class OfferAssocEntity(BaseAssocEntity):
     """Link technical endpoints with explicit directions."""
 
@@ -67,14 +57,14 @@ class OfferAssocEntity(BaseAssocEntity):
     related: Annotated[AssociationMany[OfferCoreEntity], NoInverse()] = Field(description="Other offers")
 
 
-@entity(description="Offer detail", resource=KindStorage)
+@entity(description="Offer detail", domain=KindDomain)
 class OfferDetailEntity(BaseDetailEntity):
     """Name the owner through an association."""
 
     owner: Annotated[AssociationOne[OfferCoreEntity], NoInverse()] = Field(description="Owning offer")
 
 
-@entity(description="Offer variant data", resource=KindStorage)
+@entity(description="Offer variant data", domain=KindDomain)
 class OfferSpecEntity(BaseSpecEntity):
     """Use ordinary links alongside variant-specific data."""
 
@@ -82,6 +72,18 @@ class OfferSpecEntity(BaseSpecEntity):
     detail: Annotated[CompositeOne[OfferDetailEntity] | None, NoInverse()] = Field(
         default=None, description="Extra detail"
     )
+
+
+@meta(description="Stores the kind entities")
+@entities(
+    RegionEnumEntity,
+    OfferCoreEntity,
+    OfferAssocEntity,
+    OfferDetailEntity,
+    OfferSpecEntity,
+)
+class KindStorage(BaseStorage):
+    """Hold the kind entities."""
 
 
 def main() -> None:

@@ -21,19 +21,15 @@ class StorefrontSessionStateEntity(BaseStateEntity):
     PAYMENT_PENDING = value(code="payment_pending", display_name="Payment pending", sort_order=2)
     CONFIRMED = value(code="confirmed", display_name="Confirmed", sort_order=3)
     REWORK = value(code="rework", display_name="Rework", sort_order=4)
-    PENDING_FULFILLMENT = value(
-        code="pending_fulfillment", display_name="Pending fulfillment", sort_order=5
-    )
+    PENDING_FULFILLMENT = value(code="pending_fulfillment", display_name="Pending fulfillment", sort_order=5)
     SHIPPED = value(code="shipped", display_name="Shipped", sort_order=6)
     OUT_FOR_DELIVERY = value(code="out_for_delivery", display_name="Out for delivery", sort_order=7)
     DELIVERED = value(code="delivered", display_name="Delivered", sort_order=8)
     CANCELLED = value(code="cancelled", display_name="Cancelled", sort_order=9)
 
 
-
 class StorefrontSessionLifecycle(Lifecycle[StorefrontSessionStateEntity]):
     """Demo sales-order lifecycle."""
-
 
     _template = (
         Lifecycle()

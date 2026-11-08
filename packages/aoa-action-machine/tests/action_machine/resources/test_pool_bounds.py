@@ -14,7 +14,7 @@ ARCHITECTURE / DATA FLOW
 
 ::
 
-    pooled(pool) — PostgresStorage over a data source ──open()──> FakePool ──> FakeConnection
+    pooled(pool) — PostgresStorage over a pool ──open()──> FakePool ──> FakeConnection
                                      │
                                      ├── at max_size the caller waits
                                      ├── the wait ends named, at the stated bound
@@ -30,9 +30,10 @@ import time
 import pytest
 
 from aoa.action_machine.exceptions import HandleError
+from aoa.action_machine.resources.postgres import PostgresPool
 
-from ...support.fake_data_source import FakeDataSource, PooledStorage, pooled
 from ...support.fake_pool import FakePool, PoolAcquireTimeoutError
+from ...support.pooled_storage import PooledStorage, pooled
 
 pytestmark = pytest.mark.benchmark
 
@@ -89,9 +90,9 @@ async def test_a_wait_that_never_frees_ends_in_a_named_failure() -> None:
     holder = pooled(pool)
     await holder.open()
 
-    narrow = FakeDataSource(pool=pool)
+    narrow = PostgresPool(pool=pool)
     narrow.acquire_timeout = 0.05
-    waiter = PooledStorage(data_source=narrow)
+    waiter = PooledStorage(pool=narrow)
     started = time.monotonic()
     with pytest.raises(HandleError) as caught:
         await waiter.open()

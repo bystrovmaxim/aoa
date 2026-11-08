@@ -32,7 +32,6 @@ from aoa.action_machine.graph.core.exclude_graph_model import exclude_graph_mode
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_relation_intent_resolver import gather_entity_relation_intent_resolvers
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -41,18 +40,13 @@ class _OptionalDomain(BaseDomain):
     description = "Fixtures for optional relation ends"
 
 
-@meta(description="Where _OptionalStorage keeps its rows")
-class _OptionalDataSource(InMemoryDataSource):
-    """The store _OptionalStorage works with."""
-
-
-@meta(description="Stores the optional entities", domain=_OptionalDomain)
-class _OptionalStorage(BaseStorage[_OptionalDataSource]):
+@meta(description="Stores the optional entities")
+class _OptionalStorage(BaseStorage):
     """Hold the optional entities."""
 
 
 @exclude_graph_model
-@entity(description="A currency", resource=_OptionalStorage)
+@entity(description="A currency", domain=_OptionalDomain)
 class _OptionalCurrencyEnumEntity(BaseEnumEntity):
     """Two codes, as a dictionary has."""
 
@@ -61,7 +55,7 @@ class _OptionalCurrencyEnumEntity(BaseEnumEntity):
 
 
 @exclude_graph_model
-@entity(description="An order", resource=_OptionalStorage)
+@entity(description="An order", domain=_OptionalDomain)
 class _OptionalOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Identifier")
     billed_in: Annotated[AssociationOne[_OptionalCurrencyEnumEntity] | None, NoInverse()] = Field(

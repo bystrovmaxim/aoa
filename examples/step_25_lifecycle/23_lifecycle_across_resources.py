@@ -14,9 +14,10 @@ from pydantic import Field
 from aoa.action_machine.domain import BaseCoreEntity, BaseStateEntity, Lifecycle, value
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import BaseDataSource, BaseStorage
+from aoa.action_machine.resources import BaseStorage
 
 
 class StoreDomain(BaseDomain):
@@ -31,36 +32,6 @@ class SupportDomain(BaseDomain):
 
     name = "support"
     description = "Support"
-
-
-@meta(description="Storefront database")
-class StorefrontDataSource(BaseDataSource):
-    """The database the orders live in."""
-
-
-@meta(description="Support desk database")
-class SupportDataSource(BaseDataSource):
-    """Another database: the one the returns live in."""
-
-
-@meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
-    """The orders, in the storefront database."""
-
-    @classmethod
-    def get_wrapper_class(cls):
-        """No wrapper: this example never opens the resource."""
-        return None
-
-
-@meta(description="Support desk store", domain=SupportDomain)
-class SupportDatabaseStorage(BaseStorage[SupportDataSource]):
-    """The returns, in the support desk database."""
-
-    @classmethod
-    def get_wrapper_class(cls):
-        """No wrapper: this example never opens the resource."""
-        return None
 
 
 class OrderStateEntity(BaseStateEntity):
@@ -80,7 +51,7 @@ class OrderLifecycle(Lifecycle[OrderStateEntity]):
     )
 
 
-@entity(description="Customer order", resource=StorefrontDatabaseStorage)
+@entity(description="Customer order", domain=StoreDomain)
 class SalesOrderCoreEntity(BaseCoreEntity):
     """An order with a status."""
 
@@ -88,7 +59,20 @@ class SalesOrderCoreEntity(BaseCoreEntity):
     lifecycle: OrderLifecycle = Field(description="Order status")
 
 
-@entity(description="Return", resource=SupportDatabaseStorage)
+@meta(description="Primary relational store")
+@entities(
+    SalesOrderCoreEntity,
+)
+class StorefrontDatabaseStorage(BaseStorage):
+    """The orders, in the storefront database."""
+
+    @classmethod
+    def get_wrapper_class(cls):
+        """No wrapper: this example never opens the resource."""
+        return None
+
+
+@entity(description="Return", domain=SupportDomain)
 class ReturnCoreEntity(BaseCoreEntity):
     """A return in the other database that reuses the order's statuses."""
 
@@ -96,10 +80,23 @@ class ReturnCoreEntity(BaseCoreEntity):
     lifecycle: OrderLifecycle = Field(description="Return status")
 
 
+@meta(description="Support desk store")
+@entities(
+    ReturnCoreEntity,
+)
+class SupportDatabaseStorage(BaseStorage):
+    """The returns, in the support desk database."""
+
+    @classmethod
+    def get_wrapper_class(cls):
+        """No wrapper: this example never opens the resource."""
+        return None
+
+
 # Run the case.
 graph = json.loads(create_node_graph_coordinator().to_json())
 short = {node["id"]: node["label"] for node in graph["nodes"]}
 for edge in graph["edges"]:
-    if edge["type"] == "entity_resource" and short[edge["source_id"]] in ("SalesOrderCoreEntity", "ReturnCoreEntity"):
+    if edge["type"] == "domain" and short[edge["source_id"]] in ("SalesOrderCoreEntity", "ReturnCoreEntity"):
         states = sorted(node["label"] for node in graph["nodes"] if node["type"].startswith("State") and node["id"].startswith(edge["source_id"] + ":"))
         print(short[edge["source_id"]], "in", short[edge["target_id"]] + ":", ", ".join(states))

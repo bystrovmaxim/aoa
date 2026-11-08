@@ -10,12 +10,12 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.support.entities.support_participant_row import SupportParticipantCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateCoreEntity
-from aoa.demo.model.support.resources.storage import SupportStorage
+from aoa.demo.model.support.support_domain import SupportDomain
 
 
 @entity(
     description="Associative pairing on sparse support graph (triangle completion on ticket spine)",
-    resource=SupportStorage,
+    domain=SupportDomain,
 )
 class SupportTicketParticipantPairCoreEntity(BaseCoreEntity):
     id: str = Field(description="Assoc id")
@@ -30,16 +30,12 @@ class SupportTicketParticipantPairCoreEntity(BaseCoreEntity):
     ticket: Annotated[
         AssociationOne[SupportTicketAggregateCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Ticket aggregate anchor"
-    )
+    ] = Field(description="Ticket aggregate anchor")
 
     participant: Annotated[
         AssociationOne[SupportParticipantCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Participant row anchor"
-    )
+    ] = Field(description="Participant row anchor")
 
 
 SupportTicketParticipantPairCoreEntity.model_rebuild()

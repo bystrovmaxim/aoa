@@ -17,12 +17,13 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
 from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.per_call_connection import PerCallConnection
-from aoa.action_machine.resources.postgres import PostgresDataSource, PostgresStorage
+from aoa.action_machine.resources.postgres import PostgresPool, PostgresStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.tools_box import ToolsBox
 from aoa.fastapi import FastApiAdapter
@@ -78,8 +79,6 @@ class RecordingPool:
         self.closed = True
 
 
-
-
 class NotesDomain(BaseDomain):
     """Group the connection lesson."""
     name = "notes"
@@ -88,13 +87,11 @@ class NotesDomain(BaseDomain):
 class EmptyParams(BaseParams):
     """No input fields are needed for this case."""
 
-@meta(description="The notes database")
-class ExampleDataSource(PostgresDataSource):
-    """The database of this example: it hands out the recording pool's connections."""
 
 
-@meta(description="SQL statements for the notes example", domain=NotesDomain)
-class NotesStorage(PostgresStorage[ExampleDataSource]):
+@meta(description="SQL statements for the notes example")
+@entities()
+class NotesStorage(PostgresStorage):
     """Use the standard PostgreSQL lifecycle."""
 
     async def add_note(self, text: str) -> str:
@@ -116,17 +113,14 @@ class QueryAction(BaseAction[EmptyParams, StatusResult]):
         return StatusResult(status=await connections["db"].add_note("one note"))
 
 
-
-
-
 class PoolHolder:
-    """Expose the service's data source only after startup."""
-    data_source = None
+    """Expose the service's pool only after startup."""
+    pool = None
     def require(self):
         """Return the running pool or report missing startup."""
-        if self.data_source is None:
+        if self.pool is None:
             raise RuntimeError("Pool is not started")
-        return self.data_source
+        return self.pool
 
 
 async def main():
@@ -137,16 +131,16 @@ async def main():
     async def lifespan(app):
         """Own the pool for the whole service lifetime."""
         pool = RecordingPool(size=2)
-        holder.data_source = ExampleDataSource(pool=pool)
+        holder.pool = PostgresPool(pool=pool)
         created.append(pool)
         try:
             yield
         finally:
             await pool.close()
-            holder.data_source = None
+            holder.pool = None
     app = (FastApiAdapter(machine=ActionProductMachine(loggers=[]), auth_coordinator=NoAuthCoordinator(context=Context()))
         .post("/query", QueryAction, connections={"db": PerCallConnection(
-            factory=lambda: NotesStorage(data_source=holder.require()),
+            factory=lambda: NotesStorage(pool=holder.require()),
             finalize=lambda resource: resource.close(),
         )}).build(lifespan=lifespan))
     with TestClient(app) as client:
@@ -155,7 +149,7 @@ async def main():
         assert not created[0].held and not created[0].closed
         print(response.json())
         print("returned after request:", len(created[0].held) == 0)
-    assert created[0].closed and holder.data_source is None
+    assert created[0].closed and holder.pool is None
     print("pool closed after shutdown:", created[0].closed)
 
 

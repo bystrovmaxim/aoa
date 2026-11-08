@@ -27,10 +27,10 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Registered customer", resource=StorefrontDatabaseStorage)
+@entity(description="Registered customer", domain=StoreDomain)
 class CustomerAccountCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
     lifecycle: CustomerAccountLifecycle = Field(description="Account lifecycle")
@@ -45,12 +45,10 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
     orders: Annotated[
         AssociationMany[SalesOrderCoreEntity],
         Inverse(SalesOrderCoreEntity, "customer"),
-    ] = Field(
-        description="Orders"
-    )
+    ] = Field(description="Orders")
 
 
-@entity(description="Customer order", resource=StorefrontDatabaseStorage)
+@entity(description="Customer order", domain=StoreDomain)
 class SalesOrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     amount: float = Field(description="Total", ge=0)
@@ -63,20 +61,15 @@ class SalesOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[
         AssociationOne[CustomerAccountCoreEntity],
         Inverse(CustomerAccountCoreEntity, "orders"),
-    ] = Field(
-        description="Customer"
-    )
+    ] = Field(description="Customer")
 
     order_lines: Annotated[
         CompositeMany[SalesOrderLineDetailEntity],
         Inverse(SalesOrderLineDetailEntity, "order"),
-    ] = Field(
-        description="Line items"
-    )
+    ] = Field(description="Line items")
 
 
-
-@entity(description="Order line", resource=StorefrontDatabaseStorage)
+@entity(description="Order line", domain=StoreDomain)
 class SalesOrderLineDetailEntity(BaseDetailEntity):
     id: str = Field(description="Item id")
     lifecycle: SalesOrderLineLifecycle = Field(description="Line lifecycle")
@@ -91,9 +84,7 @@ class SalesOrderLineDetailEntity(BaseDetailEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         Inverse(SalesOrderCoreEntity, "order_lines"),
-    ] = Field(
-        description="Parent order"
-    )
+    ] = Field(description="Parent order")
 
 
 CustomerAccountCoreEntity.model_rebuild()

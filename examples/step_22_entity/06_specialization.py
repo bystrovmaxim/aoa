@@ -22,10 +22,10 @@ from aoa.action_machine.domain import (
     value,
 )
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 
 
@@ -36,24 +36,14 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Kind of CounterpartyCoreEntity", resource=ShopStorage)
+@entity(description="Kind of CounterpartyCoreEntity", domain=ShopDomain)
 class CounterpartyKindEnumEntity(BaseEnumEntity):
     """Declare the codes the axis borrows."""
 
     ORGANISATION = value(code="organisation", display_name="Organisation")
 
 
-@entity(description="Counterparty", resource=ShopStorage)
+@entity(description="Counterparty", domain=ShopDomain)
 class CounterpartyCoreEntity(BaseCoreEntity):
     """Hold the common identity and the selected counterparty kind."""
 
@@ -64,7 +54,7 @@ class CounterpartyCoreEntity(BaseCoreEntity):
     ] = Field(description="Variant-specific data")
 
 
-@entity(description="Organisation data of a counterparty", resource=ShopStorage)
+@entity(description="Organisation data of a counterparty", domain=ShopDomain)
 class OrganisationSpecEntity(BaseSpecEntity):
     """Add organisation data to the same counterparty."""
 
@@ -75,6 +65,16 @@ class OrganisationSpecEntity(BaseSpecEntity):
         Classifier(variant=CounterpartyKindEnumEntity.ORGANISATION),
         Inverse(CounterpartyCoreEntity, "details"),
     ] = Field(description="Common counterparty data")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    CounterpartyKindEnumEntity,
+    CounterpartyCoreEntity,
+    OrganisationSpecEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 CounterpartyCoreEntity.model_rebuild()

@@ -52,6 +52,7 @@ ALLOWED_ACTION_MACHINE_MODULES: frozenset[str] = frozenset(
         f"{_AM}.intents.connection",
         f"{_AM}.intents.context_requires",
         f"{_AM}.intents.depends",
+        f"{_AM}.intents.entities",
         f"{_AM}.intents.entity",
         f"{_AM}.intents.meta",
         f"{_AM}.intents.on",

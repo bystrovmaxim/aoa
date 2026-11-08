@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.billing_sweep_instruction import BillingSweepInstructionCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Funding window anchored on sweep instruction", resource=BillingWarehouseStorage)
+@entity(description="Funding window anchored on sweep instruction", domain=BillingDomain)
 class FundingWindowHintCoreEntity(BaseCoreEntity):
     id: str = Field(description="Window id")
     lifecycle: BillingDenseLifecycle = Field(description="Liquidity facet lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     sweep: Annotated[
         AssociationOne[BillingSweepInstructionCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent sweep instruction surface"
-    )
+    ] = Field(description="Parent sweep instruction surface")
 
     window_label: str = Field(description="Human-visible liquidity lane label")
     opens_at_iso: str = Field(description="Window opens (UTC ISO-8601)")

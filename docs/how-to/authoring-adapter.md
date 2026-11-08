@@ -145,7 +145,7 @@ class GreetingDomain(BaseDomain):
     description = "Greetings domain"
 
 
-@meta(description="Supply a greeting prefix", domain=GreetingDomain)
+@meta(description="Supply a greeting prefix")
 class GreetingController(BaseController):
     """Represent a handle owned by one dispatcher call."""
     def __init__(self, events):
@@ -187,8 +187,6 @@ class GreetAction(BaseAction[GreetParams, GreetResult]):
         """Combine the prefix and requested name."""
         prefix = connections["greeting"].prefix()
         return GreetResult(message=f"{prefix}, {params.name}!")
-
-
 
 
 async def main():

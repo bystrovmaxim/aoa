@@ -20,11 +20,17 @@ class SupportSparseStateEntity(BaseStateEntity):
     DONE = value(code="done", display_name="Done", sort_order=3)
 
 
-
 class SupportSparseLifecycle(Lifecycle[SupportSparseStateEntity]):
     """intake → working → done."""
 
-
     _template = (
-        Lifecycle().state(SupportSparseStateEntity.INTAKE).to(SupportSparseStateEntity.WORKING).initial().state(SupportSparseStateEntity.WORKING).to(SupportSparseStateEntity.DONE).intermediate().state(SupportSparseStateEntity.DONE).final()
+        Lifecycle()
+        .state(SupportSparseStateEntity.INTAKE)
+        .to(SupportSparseStateEntity.WORKING)
+        .initial()
+        .state(SupportSparseStateEntity.WORKING)
+        .to(SupportSparseStateEntity.DONE)
+        .intermediate()
+        .state(SupportSparseStateEntity.DONE)
+        .final()
     )

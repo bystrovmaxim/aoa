@@ -33,7 +33,6 @@ from aoa.action_machine.domain import (
 from aoa.action_machine.domain.exceptions import RelationNotLoadedError
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -44,17 +43,12 @@ class _ProtocolsDomain(BaseDomain):
     description = "Entities for the relation container protocol tests"
 
 
-@meta(description="Where _ProtocolsStorage keeps its rows")
-class _ProtocolsDataSource(InMemoryDataSource):
-    """The store _ProtocolsStorage works with."""
-
-
-@meta(description="Stores the protocols entities", domain=_ProtocolsDomain)
-class _ProtocolsStorage(BaseStorage[_ProtocolsDataSource]):
+@meta(description="Stores the protocols entities")
+class _ProtocolsStorage(BaseStorage):
     """Hold the protocols entities."""
 
 
-@entity(description="Customer", resource=_ProtocolsStorage)
+@entity(description="Customer", domain=_ProtocolsDomain)
 class ProtocolCustomerCoreEntity(BaseCoreEntity):
     """A customer an order points at."""
 
@@ -66,7 +60,7 @@ class ProtocolCustomerCoreEntity(BaseCoreEntity):
         return self.name
 
 
-@entity(description="Order", resource=_ProtocolsStorage)
+@entity(description="Order", domain=_ProtocolsDomain)
 class ProtocolOrderCoreEntity(BaseCoreEntity):
     """An order with one relation to its customer."""
 
@@ -74,7 +68,7 @@ class ProtocolOrderCoreEntity(BaseCoreEntity):
     customer: Annotated[AssociationOne[ProtocolCustomerCoreEntity], NoInverse()] = Field(description="Customer")
 
 
-@entity(description="Currencies", resource=_ProtocolsStorage)
+@entity(description="Currencies", domain=_ProtocolsDomain)
 class ProtocolCurrencyEnumEntity(BaseEnumEntity):
     """A closed dictionary of currencies."""
 
@@ -82,7 +76,7 @@ class ProtocolCurrencyEnumEntity(BaseEnumEntity):
     EUR = value(code="eur", display_name="Euro", symbol="€")
 
 
-@entity(description="Prices", resource=_ProtocolsStorage)
+@entity(description="Prices", domain=_ProtocolsDomain)
 class ProtocolPricesCoreEntity(BaseCoreEntity):
     """An entity with a dictionary reference."""
 

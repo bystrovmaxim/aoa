@@ -15,9 +15,10 @@ from pydantic import Field
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.graph.node_graph_coordinator_factory import create_node_graph_coordinator
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import BaseDataSource, BaseStorage
+from aoa.action_machine.resources import BaseStorage
 
 
 class StoreDomain(BaseDomain):
@@ -34,18 +35,18 @@ class SupportDomain(BaseDomain):
     description = "Support"
 
 
-@meta(description="Storefront database")
-class StorefrontDataSource(BaseDataSource):
-    """The database the orders live in."""
+@entity(description="Customer order", domain=StoreDomain)
+class SalesOrderCoreEntity(BaseCoreEntity):
+    """A customer's order."""
+
+    id: str = Field(description="Order identifier")
 
 
-@meta(description="Support desk database")
-class SupportDataSource(BaseDataSource):
-    """Another database: the one the support tickets live in."""
-
-
-@meta(description="Primary relational store", domain=StoreDomain)
-class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
+@meta(description="Primary relational store")
+@entities(
+    SalesOrderCoreEntity,
+)
+class StorefrontDatabaseStorage(BaseStorage):
     """The orders, in the storefront database."""
 
     @classmethod
@@ -54,8 +55,19 @@ class StorefrontDatabaseStorage(BaseStorage[StorefrontDataSource]):
         return None
 
 
-@meta(description="Support desk store", domain=SupportDomain)
-class SupportDatabaseStorage(BaseStorage[SupportDataSource]):
+@entity(description="Support ticket", domain=SupportDomain)
+class SupportTicketCoreEntity(BaseCoreEntity):
+    """A ticket about an order of the other database."""
+
+    id: str = Field(description="Ticket identifier")
+    order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
+
+
+@meta(description="Support desk store")
+@entities(
+    SupportTicketCoreEntity,
+)
+class SupportDatabaseStorage(BaseStorage):
     """The support tickets, in the support desk database."""
 
     @classmethod
@@ -64,26 +76,11 @@ class SupportDatabaseStorage(BaseStorage[SupportDataSource]):
         return None
 
 
-@entity(description="Customer order", resource=StorefrontDatabaseStorage)
-class SalesOrderCoreEntity(BaseCoreEntity):
-    """A customer's order."""
-
-    id: str = Field(description="Order identifier")
-
-
-@entity(description="Support ticket", resource=SupportDatabaseStorage)
-class SupportTicketCoreEntity(BaseCoreEntity):
-    """A ticket about an order of the other database."""
-
-    id: str = Field(description="Ticket identifier")
-    order: Annotated[AssociationOne[SalesOrderCoreEntity], NoInverse()] = Field(description="Order")
-
-
 SupportTicketCoreEntity.model_rebuild()
 
 # Run the case.
 graph = json.loads(create_node_graph_coordinator().to_json())
 short = {node["id"]: node["label"] for node in graph["nodes"]}
 for edge in graph["edges"]:
-    if edge["type"] in ("resource_data_source", "entity_relation"):
+    if edge["type"] == "entity_relation":
         print(edge["type"] + ":", short[edge["source_id"]], "->", short[edge["target_id"]])

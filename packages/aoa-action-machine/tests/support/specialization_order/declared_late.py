@@ -25,9 +25,9 @@ from aoa.action_machine.domain import (
     Specialization,
     value,
 )
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
-from aoa.action_machine.resources import InMemoryDataSource
 from aoa.action_machine.resources.base_storage import BaseStorage
 
 
@@ -38,17 +38,7 @@ class LateOrderDomain(BaseDomain):
     description = "A part declared after the kinds"
 
 
-@meta(description="Where LateOrderStorage keeps its rows")
-class LateOrderDataSource(InMemoryDataSource):
-    """The store LateOrderStorage works with."""
-
-
-@meta(description="Stores the late order entities", domain=LateOrderDomain)
-class LateOrderStorage(BaseStorage[LateOrderDataSource]):
-    """Hold the late order entities."""
-
-
-@entity(description="Kinds", resource=LateOrderStorage)
+@entity(description="Kinds", domain=LateOrderDomain)
 class KindEnumEntity(BaseEnumEntity):
     """The two kinds of a head."""
 
@@ -56,7 +46,7 @@ class KindEnumEntity(BaseEnumEntity):
     OTHER = value(code="other", display_name="Other")
 
 
-@entity(description="Head", resource=LateOrderStorage)
+@entity(description="Head", domain=LateOrderDomain)
 class HeadCoreEntity(BaseCoreEntity):
     """The common part, with two kinds."""
 
@@ -66,7 +56,7 @@ class HeadCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Variant", resource=LateOrderStorage)
+@entity(description="Variant", domain=LateOrderDomain)
 class VariantSpecEntity(BaseSpecEntity):
     """The first kind, linking to parts."""
 
@@ -77,7 +67,7 @@ class VariantSpecEntity(BaseSpecEntity):
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "variants")] = Field(description="Parts")
 
 
-@entity(description="Other variant", resource=LateOrderStorage)
+@entity(description="Other variant", domain=LateOrderDomain)
 class OtherSpecEntity(BaseSpecEntity):
     """The second kind, linking to parts."""
 
@@ -88,7 +78,7 @@ class OtherSpecEntity(BaseSpecEntity):
     parts: Annotated[AssociationMany[PartCoreEntity], Inverse(PartCoreEntity, "others")] = Field(description="Parts")
 
 
-@entity(description="A part the variants link to", resource=LateOrderStorage)
+@entity(description="A part the variants link to", domain=LateOrderDomain)
 class PartCoreEntity(BaseCoreEntity):
     """Declared after the kinds that link to it."""
 
@@ -97,6 +87,12 @@ class PartCoreEntity(BaseCoreEntity):
         description="Variants"
     )
     others: Annotated[AssociationMany[OtherSpecEntity], Inverse(OtherSpecEntity, "parts")] = Field(description="Others")
+
+
+@meta(description="Stores the late order entities")
+@entities(HeadCoreEntity, VariantSpecEntity, OtherSpecEntity, PartCoreEntity)
+class LateOrderStorage(BaseStorage):
+    """Hold the late order entities."""
 
 
 for _model in (HeadCoreEntity, VariantSpecEntity, OtherSpecEntity, PartCoreEntity):

@@ -24,6 +24,7 @@ from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.cache import cache_invalidate, cache_key, cache_read, cache_write
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.emits import emits
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging import Channel, sensitive
@@ -32,7 +33,7 @@ from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_event import BaseEvent
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -58,16 +59,6 @@ class StoreDomain(BaseDomain):
     description = "Storefront operations"
 
 
-@meta(description="Where StoreStorage keeps its rows")
-class StoreDataSource(InMemoryDataSource):
-    """The store StoreStorage works with."""
-
-
-@meta(description="Stores the store entities", domain=StoreDomain)
-class StoreStorage(BaseStorage[StoreDataSource]):
-    """Hold the store entities."""
-
-
 class Params(BaseParams):
     pass
 
@@ -76,9 +67,17 @@ class Result(BaseResult):
     source: str = Field(description="Who answered")
 
 
-@entity(description="A card charge", resource=StoreStorage)
+@entity(description="A card charge", domain=StoreDomain)
 class ChargeCoreEntity(BaseCoreEntity):
     id: str = Field(description="Charge id")
+
+
+@meta(description="Stores the store entities")
+@entities(
+    ChargeCoreEntity,
+)
+class StoreStorage(BaseStorage):
+    """Hold the store entities."""
 
 
 @meta(description="Charge a card, cached", domain=StoreDomain)

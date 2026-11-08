@@ -10,10 +10,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationMany, AssociationOne, BaseCoreEntity, BaseDomain, Inverse
 from aoa.action_machine.graph.nodes.entity_graph_node import EntityGraphNode
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class AssociationDomain(BaseDomain):
@@ -23,17 +23,7 @@ class AssociationDomain(BaseDomain):
     description = "Plain associations"
 
 
-@meta(description="Where AssociationStorage keeps its rows")
-class AssociationDataSource(InMemoryDataSource):
-    """The store AssociationStorage works with."""
-
-
-@meta(description="Stores the association entities", domain=AssociationDomain)
-class AssociationStorage(BaseStorage[AssociationDataSource]):
-    """Hold the association entities."""
-
-
-@entity(description="Customer", resource=AssociationStorage)
+@entity(description="Customer", domain=AssociationDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     """One customer points at one account (AssociationOne / AssociationOne)."""
 
@@ -43,7 +33,7 @@ class CustomerCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Account", resource=AssociationStorage)
+@entity(description="Account", domain=AssociationDomain)
 class AccountCoreEntity(BaseCoreEntity):
     """One account points back at one customer."""
 
@@ -53,7 +43,7 @@ class AccountCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Team", resource=AssociationStorage)
+@entity(description="Team", domain=AssociationDomain)
 class TeamCoreEntity(BaseCoreEntity):
     """One team holds many members (AssociationOne / AssociationMany)."""
 
@@ -63,7 +53,7 @@ class TeamCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Member", resource=AssociationStorage)
+@entity(description="Member", domain=AssociationDomain)
 class MemberCoreEntity(BaseCoreEntity):
     """Many members each belong to one team."""
 
@@ -73,7 +63,7 @@ class MemberCoreEntity(BaseCoreEntity):
     )
 
 
-@entity(description="Group", resource=AssociationStorage)
+@entity(description="Group", domain=AssociationDomain)
 class GroupCoreEntity(BaseCoreEntity):
     """Many groups share many peer groups (AssociationMany / AssociationMany)."""
 
@@ -81,7 +71,7 @@ class GroupCoreEntity(BaseCoreEntity):
     peers: Annotated[AssociationMany[PeerCoreEntity], Inverse(field_name="groups")] = Field(description="Peer groups")
 
 
-@entity(description="Peer", resource=AssociationStorage)
+@entity(description="Peer", domain=AssociationDomain)
 class PeerCoreEntity(BaseCoreEntity):
     """Many peers belong to many groups."""
 
@@ -89,6 +79,19 @@ class PeerCoreEntity(BaseCoreEntity):
     groups: Annotated[AssociationMany[GroupCoreEntity], Inverse(field_name="peers")] = Field(
         description="Groups this peer belongs to"
     )
+
+
+@meta(description="Stores the association entities")
+@entities(
+    CustomerCoreEntity,
+    AccountCoreEntity,
+    TeamCoreEntity,
+    MemberCoreEntity,
+    GroupCoreEntity,
+    PeerCoreEntity,
+)
+class AssociationStorage(BaseStorage):
+    """Hold the association entities."""
 
 
 for model in (

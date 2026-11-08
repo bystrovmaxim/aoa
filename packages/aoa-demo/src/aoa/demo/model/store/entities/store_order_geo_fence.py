@@ -9,10 +9,10 @@ from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
-from aoa.demo.model.store.resources.storefront_database_storage import StorefrontDatabaseStorage
+from aoa.demo.model.store.store_domain import StoreDomain
 
 
-@entity(description="Geo compliance fence row", resource=StorefrontDatabaseStorage)
+@entity(description="Geo compliance fence row", domain=StoreDomain)
 class OrderGeoFenceCoreEntity(BaseCoreEntity):
     id: str = Field(description="OrderGeoFenceCoreEntity id")
     lifecycle: SalesOrderLifecycle = Field(description="OrderGeoFenceCoreEntity lifecycle")
@@ -26,9 +26,7 @@ class OrderGeoFenceCoreEntity(BaseCoreEntity):
     order: Annotated[
         AssociationOne[SalesOrderCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent sales order anchor"
-    )
+    ] = Field(description="Parent sales order anchor")
 
 
 OrderGeoFenceCoreEntity.model_rebuild()

@@ -20,7 +20,7 @@ attaches `_entity_info` at class creation time.
 ERRORS / LIMITATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
-- **EntityDecoratorError** — invalid `@entity` usage (description, resource,
+- **EntityDecoratorError** — invalid `@entity` usage (description, domain,
   missing `BaseEntity` inheritance).
 - **NamingSuffixError** — class name must end with `Entity`.
 - **ValidationError** — Pydantic validation on construct / dump where tested.
@@ -35,7 +35,7 @@ from aoa.action_machine.domain import BaseCoreEntity
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.entity.entity_decorator import EntityDecoratorError
 
-from ...support.domain_model.entities import SampleCoreEntity, TestStorage
+from ...support.domain_model.entities import SampleCoreEntity, TestDomain
 
 
 class TestEntityDecorator:
@@ -44,35 +44,27 @@ class TestEntityDecorator:
     def test_valid_entity_creation(self):
         """Happy path: decorated entity gets `_entity_info`."""
 
-        @entity(description="Test entity fixture", resource=TestStorage)
+        @entity(description="Test entity fixture", domain=TestDomain)
         class ValidCoreEntity(BaseCoreEntity):
             id: str
             name: str
 
         assert hasattr(ValidCoreEntity, "_entity_info")
         assert ValidCoreEntity._entity_info["description"] == "Test entity fixture"
-        assert ValidCoreEntity._entity_info["resource"] is TestStorage
+        assert ValidCoreEntity._entity_info["domain"] is TestDomain
 
     def test_missing_description(self):
         """Empty description is rejected."""
         with pytest.raises(EntityDecoratorError, match="description cannot be empty"):
 
-            @entity(description="", resource=TestStorage)
-            class InvalidEntity:
-                id: str
-
-    def test_invalid_resource(self):
-        """A ``resource`` that is not a resource class is rejected."""
-        with pytest.raises(EntityDecoratorError, match="must be a BaseResource subclass"):
-
-            @entity(description="Test", resource="not_a_resource")  # type: ignore[arg-type]
+            @entity(description="", domain=TestDomain)
             class InvalidEntity:
                 id: str
 
     def test_plain_class_without_base_entity_allowed(self):
         """``@entity`` does not require ``BaseEntity``; inspector/graph may still filter."""
 
-        @entity(description="Test", resource=TestStorage)
+        @entity(description="Test", domain=TestDomain)
         class LooseEntity:
             id: str
 

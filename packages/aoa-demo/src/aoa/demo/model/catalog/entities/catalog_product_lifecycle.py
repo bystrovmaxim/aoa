@@ -20,11 +20,17 @@ class CatalogProductStateEntity(BaseStateEntity):
     RETIRED = value(code="retired", display_name="Retired", sort_order=3)
 
 
-
 class CatalogProductLifecycle(Lifecycle[CatalogProductStateEntity]):
     """Three states: draft → active → retired."""
 
-
     _template = (
-        Lifecycle().state(CatalogProductStateEntity.DRAFT).to(CatalogProductStateEntity.ACTIVE).initial().state(CatalogProductStateEntity.ACTIVE).to(CatalogProductStateEntity.RETIRED).intermediate().state(CatalogProductStateEntity.RETIRED).final()
+        Lifecycle()
+        .state(CatalogProductStateEntity.DRAFT)
+        .to(CatalogProductStateEntity.ACTIVE)
+        .initial()
+        .state(CatalogProductStateEntity.ACTIVE)
+        .to(CatalogProductStateEntity.RETIRED)
+        .intermediate()
+        .state(CatalogProductStateEntity.RETIRED)
+        .final()
     )

@@ -296,18 +296,6 @@ class EntityFieldDeclarationError(Exception):
 
 
 
-class EntityResourceError(Exception):
-    """
-    AI-CORE-BEGIN
-        ROLE: Fail-fast signal for an entity without a physical place: its resource names no data source.
-        CONTRACT: The message names the resource and the entities it stores.
-        INVARIANTS: Raised while the model is built, before a graph node is gathered.
-    AI-CORE-END
-
-    A relation is a fact of the logical model and joins entities of any stores. In exchange
-    every stored entity has a physical place: the resource that stores it names a data source.
-    """
-
 class RoleCompatibilityError(Exception):
     """
     AI-CORE-BEGIN

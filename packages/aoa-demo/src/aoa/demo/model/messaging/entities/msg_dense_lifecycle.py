@@ -20,13 +20,19 @@ class MsgDenseStateEntity(BaseStateEntity):
     DRAINED = value(code="drained", display_name="Drained", sort_order=3)
 
 
-
 class MsgDenseLifecycle(Lifecycle[MsgDenseStateEntity]):
     """queued → routed → drained."""
 
-
     _template = (
-        Lifecycle().state(MsgDenseStateEntity.QUEUED).to(MsgDenseStateEntity.ROUTED).initial().state(MsgDenseStateEntity.ROUTED).to(MsgDenseStateEntity.DRAINED).intermediate().state(MsgDenseStateEntity.DRAINED).final()
+        Lifecycle()
+        .state(MsgDenseStateEntity.QUEUED)
+        .to(MsgDenseStateEntity.ROUTED)
+        .initial()
+        .state(MsgDenseStateEntity.ROUTED)
+        .to(MsgDenseStateEntity.DRAINED)
+        .intermediate()
+        .state(MsgDenseStateEntity.DRAINED)
+        .final()
     )
 
 
@@ -39,9 +45,14 @@ class MsgWebhookStateEntity(BaseStateEntity):
     VERIFIED = value(code="verified", display_name="Verified", sort_order=2)
 
 
-
 class MsgWebhookLifecycle(Lifecycle[MsgWebhookStateEntity]):
     """received → verified."""
 
-
-    _template = Lifecycle().state(MsgWebhookStateEntity.RECEIVED).to(MsgWebhookStateEntity.VERIFIED).initial().state(MsgWebhookStateEntity.VERIFIED).final()
+    _template = (
+        Lifecycle()
+        .state(MsgWebhookStateEntity.RECEIVED)
+        .to(MsgWebhookStateEntity.VERIFIED)
+        .initial()
+        .state(MsgWebhookStateEntity.VERIFIED)
+        .final()
+    )

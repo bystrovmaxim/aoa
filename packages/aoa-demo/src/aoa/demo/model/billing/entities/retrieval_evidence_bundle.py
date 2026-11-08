@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.chargeback_ticket import ChargebackTicketCoreEntity
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Retrieval / representment bundle", resource=BillingWarehouseStorage)
+@entity(description="Retrieval / representment bundle", domain=BillingDomain)
 class RetrievalEvidenceBundleCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bundle id")
     lifecycle: BillingDenseLifecycle = Field(description="Bundle lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     chargeback_ticket: Annotated[
         AssociationOne[ChargebackTicketCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent dispute ticket"
-    )
+    ] = Field(description="Parent dispute ticket")
 
     bundle_kind: str = Field(description="Evidence bundle category")
     retrieval_deadline_iso: str = Field(description="Cutoff for representment package (UTC)")

@@ -47,7 +47,9 @@ class CrossEdgeObservabilityPorticoAction(
         routed: bool = Field(default=False, description="Composite routing acknowledgement")
 
     @summary_aspect("Cross-edge observability portico")
-    async def portico_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: Connections) -> Result:
+    async def portico_summary(
+        self, params: Params, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> Result:
         _ = (params, state, box, connections)
         await box.run(StreamNormalizationPassThreeAction, StreamNormalizationPassThreeAction.Params())
         return self.Result()

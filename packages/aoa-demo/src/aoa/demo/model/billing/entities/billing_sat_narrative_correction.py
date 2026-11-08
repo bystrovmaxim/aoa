@@ -7,25 +7,25 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.domain import BillingDomain
 from aoa.demo.model.billing.entities.billing_canonical_row_artifact import BillingCanonicalRowArtifactCoreEntity
 from aoa.demo.model.billing.entities.billing_dense_lifecycle import BillingDenseLifecycle
 from aoa.demo.model.billing.entities.currency_enum import CurrencyEnumEntity
-from aoa.demo.model.billing.resources.billing_warehouse_storage import BillingWarehouseStorage
 
 
-@entity(description="Narrative correction attached to canonical ingest row", resource=BillingWarehouseStorage)
+@entity(description="Narrative correction attached to canonical ingest row", domain=BillingDomain)
 class NarrativeCorrectionCoreEntity(BaseCoreEntity):
     id: str = Field(description="Row id")
     lifecycle: BillingDenseLifecycle = Field(description="Correction lifecycle")
 
     legal_entity_ref: str = Field(description="Debtor / posting-company anchor")
-    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(description="Declared ISO-4217 money unit")
+    currency_iso: Annotated[AssociationOne[CurrencyEnumEntity], NoInverse()] = Field(
+        description="Declared ISO-4217 money unit"
+    )
     canonical_row: Annotated[
         AssociationOne[BillingCanonicalRowArtifactCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Parent canonical ingest artifact"
-    )
+    ] = Field(description="Parent canonical ingest artifact")
 
     correction_reason_code: str = Field(description="Reason vocabulary key")
     editor_actor_id: str = Field(description="Actor approving narrative delta")

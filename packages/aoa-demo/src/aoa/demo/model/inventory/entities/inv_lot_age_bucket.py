@@ -7,12 +7,12 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.inventory.domain import InventoryDomain
 from aoa.demo.model.inventory.entities.inv_dense_lifecycle import InvDenseLifecycle
 from aoa.demo.model.inventory.entities.inv_lot_quality_hold import LotQualityHoldCoreEntity
-from aoa.demo.model.inventory.resources.storage import InventoryStorage
 
 
-@entity(description="Age stratification terminating physical operations spine", resource=InventoryStorage)
+@entity(description="Age stratification terminating physical operations spine", domain=InventoryDomain)
 class LotAgeBucketCoreEntity(BaseCoreEntity):
     id: str = Field(description="Bucket id")
     lifecycle: InvDenseLifecycle = Field(description="Age bucket lifecycle")
@@ -26,9 +26,7 @@ class LotAgeBucketCoreEntity(BaseCoreEntity):
     quality_hold: Annotated[
         AssociationOne[LotQualityHoldCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Upstream hold row"
-    )
+    ] = Field(description="Upstream hold row")
 
 
 LotAgeBucketCoreEntity.model_rebuild()

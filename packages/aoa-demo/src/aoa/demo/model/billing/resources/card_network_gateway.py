@@ -3,14 +3,17 @@
 
 from __future__ import annotations
 
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources import BaseGateway, BaseResource
-from aoa.demo.model.billing.domain import BillingDomain
-from aoa.demo.model.data_sources.card_network_data_source import CardNetworkDataSource
+from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
 
 
-@meta(description="Card network gateway (stub)", domain=BillingDomain)
-class CardNetworkGateway(BaseGateway[CardNetworkDataSource]):
+@meta(description="Card network gateway (stub)")
+@entities(
+    PaymentEventLogCoreEntity,
+)
+class CardNetworkGateway(BaseGateway):
     """Hold the payment events the card network reports; the demo never calls it."""
 
     @classmethod

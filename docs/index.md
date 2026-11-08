@@ -82,7 +82,7 @@ The guide moves from a practical entry point to the complete project architectur
 > **The big problem:** how to describe the domain — entities, relations, lifecycle — without binding to tables and an ORM.
 
 - **[Resource](tutorials/step-21-resource.md)** — the boundary with the external world: PostgreSQL, APIs, queues, test fixtures; pure transport separated from logic
-- **[Entity](tutorials/step-22-entity.md)** — a domain object without ties to storage: one class, any data source
+- **[Entity](tutorials/step-22-entity.md)** — a domain object without ties to storage: one class, any database
 - **[Closed dictionaries](tutorials/step-23-dictionaries.md)** — declarations, references and validation: allowed values declared in the class body
 - **[Relations](tutorials/step-24-relations.md)** — ownership, explicit reverse links, partial loading, and a step-by-step introduction to common record information with variant-specific details
 - **[Lifecycle](tutorials/step-25-lifecycle.md)** — a state graph with transition validation: an inconsistent graph does not let the system start
@@ -143,7 +143,7 @@ The framework's extension points. The principle everywhere is the same: you impl
 - **[Your own plugin](how-to/authoring-plugin.md)** — a lifecycle observer over the machine's events
 - **[Your own logger](how-to/authoring-logger.md)** — delivery of `box` business events to Kafka, Slack, PagerDuty
 - **[Your own cache adapter](how-to/authoring-cache-adapter.md)** — Redis and other stores behind the cache declarations
-- **[Your own resource](how-to/authoring-resource.md)** — a new data source behind the `BaseResource` interface
+- **[Your own resource](how-to/authoring-resource.md)** — a new database or service behind the `BaseResource` interface
 - **[Connection lifecycle failures](how-to/connection-lifecycle-failures.md)** — separate runnable cases for failed construction, opening, execution, cancellation and cleanup
 - **[Extending Context](how-to/authoring-context-extension.md)** — your own call-environment fields and access to them through `@context_requires`
 - **[Your own intent](how-to/authoring-intent.md)** — your own rule as a graph node: decorator → node → inspector → registration

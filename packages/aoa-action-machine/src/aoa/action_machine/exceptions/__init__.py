@@ -23,7 +23,6 @@ from aoa.action_machine.exceptions.connection_not_open_error import ConnectionNo
 from aoa.action_machine.exceptions.connection_validation_error import ConnectionValidationError
 from aoa.action_machine.exceptions.context_access_error import ContextAccessError
 from aoa.action_machine.exceptions.cyclic_dependency_error import CyclicDependencyError
-from aoa.action_machine.exceptions.data_source_declaration_error import DataSourceDeclarationError
 from aoa.action_machine.exceptions.declaration_structure_error import DeclarationStructureError
 from aoa.action_machine.exceptions.decorator_argument_type_error import DecoratorArgumentTypeError
 from aoa.action_machine.exceptions.decorator_argument_value_error import DecoratorArgumentValueError
@@ -35,6 +34,7 @@ from aoa.action_machine.exceptions.domain_graph_edge_resolution_error import Dom
 from aoa.action_machine.exceptions.duplicate_access_decide_error import DuplicateAccessDecideError
 from aoa.action_machine.exceptions.duplicate_declaration_error import DuplicateDeclarationError
 from aoa.action_machine.exceptions.duplicate_summary_aspect_error import DuplicateSummaryAspectError
+from aoa.action_machine.exceptions.entities_decorator_error import EntitiesDecoratorError
 from aoa.action_machine.exceptions.event_contract_error import EventContractError
 from aoa.action_machine.exceptions.graph_edge_resolution_error import GraphEdgeResolutionError
 from aoa.action_machine.exceptions.handle_error import HandleError
@@ -51,6 +51,7 @@ from aoa.action_machine.exceptions.naming_suffix_error import NamingSuffixError
 from aoa.action_machine.exceptions.on_error_handler_error import OnErrorHandlerError
 from aoa.action_machine.exceptions.params_graph_edge_resolution_error import ParamsGraphEdgeResolutionError
 from aoa.action_machine.exceptions.resource_contract_violation_error import ResourceContractViolationError
+from aoa.action_machine.exceptions.resource_entities_error import ResourceEntitiesError
 from aoa.action_machine.exceptions.result_graph_edge_resolution_error import ResultGraphEdgeResolutionError
 from aoa.action_machine.exceptions.role_mode_declaration_error import RoleModeDeclarationError
 from aoa.action_machine.exceptions.role_spec_type_error import RoleSpecTypeError
@@ -81,7 +82,6 @@ __all__ = [
     "ConnectionValidationError",
     "ContextAccessError",
     "CyclicDependencyError",
-    "DataSourceDeclarationError",
     "DeclarationStructureError",
     "DecoratorArgumentTypeError",
     "DecoratorArgumentValueError",
@@ -93,6 +93,7 @@ __all__ = [
     "DuplicateAccessDecideError",
     "DuplicateDeclarationError",
     "DuplicateSummaryAspectError",
+    "EntitiesDecoratorError",
     "EventContractError",
     "GraphEdgeResolutionError",
     "HandleError",
@@ -109,6 +110,7 @@ __all__ = [
     "OnErrorHandlerError",
     "ParamsGraphEdgeResolutionError",
     "ResourceContractViolationError",
+    "ResourceEntitiesError",
     "ResultGraphEdgeResolutionError",
     "RoleModeDeclarationError",
     "RoleSpecTypeError",

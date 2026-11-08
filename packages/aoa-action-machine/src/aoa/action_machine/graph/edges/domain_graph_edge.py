@@ -9,8 +9,8 @@ PURPOSE
 Centralize ``edge_name=\"domain\"`` plus fixed DAG semantics for edges whose
 target is :class:`~aoa.action_machine.graph.nodes.domain_graph_node.DomainGraphNode` (``NODE_TYPE`` ``\"Domain\"``).
 Requires explicit ``domain_cls`` in the constructor; factories :meth:`from_meta_declared_host` /
-:meth:`from_entity_declared_host` resolve it from ``@meta`` scratch — an entity's domain is its
-resource's ``@meta`` domain.
+:meth:`from_entity_declared_host` resolve it from the host's declaration scratch — an action's
+domain is its ``@meta`` one, an entity's its own ``@entity`` one.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ class DomainGraphEdge(AggregationGraphEdge):
     INVARIANTS: Frozen via ``AggregationGraphEdge`` base; ``target_node`` resolves lazily elsewhere (``None`` stub).
     FAILURES:
         :exc:`~aoa.action_machine.exceptions.MissingMetaError` from :meth:`from_meta_declared_host` when meta resolution fails;
-        :exc:`~aoa.action_machine.exceptions.MissingEntityInfoError` from :meth:`from_entity_declared_host` when ``@entity`` names no usable resource; :exc:`~aoa.action_machine.exceptions.MissingMetaError` when that resource declares no domain.
+        :exc:`~aoa.action_machine.exceptions.MissingEntityInfoError` from :meth:`from_entity_declared_host` when ``@entity`` names no usable domain.
     AI-CORE-END
     """
 
@@ -76,7 +76,7 @@ class DomainGraphEdge(AggregationGraphEdge):
         source_cls: type,
         _source_node: BaseGraphNode[Any],
     ) -> DomainGraphEdge:
-        """Materialize using :meth:`EntityIntentResolver.resolve_domain_type`: the domain of the entity's resource."""
+        """Materialize using :meth:`EntityIntentResolver.resolve_domain_type`: the domain the entity declares."""
         return cls(
             source_cls,
             EntityIntentResolver.resolve_domain_type(source_cls),

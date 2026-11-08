@@ -47,6 +47,7 @@ from aoa.action_machine.intents.aspects import regular_aspect, summary_aspect
 from aoa.action_machine.intents.check_roles import check_roles
 from aoa.action_machine.intents.checkers import result_instance, result_string
 from aoa.action_machine.intents.connection import connection
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
@@ -66,7 +67,8 @@ class AuthDomain(BaseDomain):
     description = "Login and token issuance"
 
 
-@meta(description="Transport to the user credential store.", domain=AuthDomain)
+@meta(description="Transport to the user credential store.")
+@entities()
 class UserStoreStorage(BaseStorage):
     def __init__(self, users: dict[str, tuple[str, list[str]]]) -> None:
         self._users = users
@@ -98,6 +100,8 @@ class LoginResult(BaseResult):
 
 
 # ── Phase 1: login as an MCP tool -- this part WORKS, transport-agnostic ────
+
+
 @meta(description="Authenticate a username/password pair and issue a JWT.", domain=AuthDomain)
 @check_roles(GuestRole)
 @connection(UserStoreStorage, key="user_store")

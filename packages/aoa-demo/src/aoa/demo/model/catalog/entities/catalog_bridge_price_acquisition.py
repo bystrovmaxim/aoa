@@ -7,14 +7,14 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.catalog.domain import CatalogDomain
 from aoa.demo.model.catalog.entities.catalog_acquisition_channel_ledger import AcquisitionChannelLedgerCoreEntity
 from aoa.demo.model.catalog.entities.catalog_dense_lifecycle import CatalogDenseLifecycle
 from aoa.demo.model.catalog.entities.catalog_price_ribbon_snapshot import PriceRibbonSnapshotCoreEntity
-from aoa.demo.model.catalog.resources.catalog_object_store_storage import CatalogObjectStoreStorage
 
 
 @entity(
-    description="Associative stitching between attribution ledger and elasticity ribbon subgraph", resource=CatalogObjectStoreStorage
+    description="Associative stitching between attribution ledger and elasticity ribbon subgraph", domain=CatalogDomain
 )
 class CatalogPriceAcquisitionLinkCoreEntity(BaseCoreEntity):
     id: str = Field(description="Link id")
@@ -29,16 +29,12 @@ class CatalogPriceAcquisitionLinkCoreEntity(BaseCoreEntity):
     price_ribbon: Annotated[
         AssociationOne[PriceRibbonSnapshotCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Ribbon spine anchor"
-    )
+    ] = Field(description="Ribbon spine anchor")
 
     acquisition_ledger: Annotated[
         AssociationOne[AcquisitionChannelLedgerCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Acquisition ledger anchor"
-    )
+    ] = Field(description="Acquisition ledger anchor")
 
 
 CatalogPriceAcquisitionLinkCoreEntity.model_rebuild()

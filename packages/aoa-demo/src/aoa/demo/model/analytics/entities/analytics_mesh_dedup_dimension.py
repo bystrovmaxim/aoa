@@ -7,13 +7,13 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_dedup_bloom_row import AnalyticsDedupBloomRowDetailEntity
 from aoa.demo.model.analytics.entities.analytics_sat_dimension_slice_stub import DimensionSliceStubCoreEntity
-from aoa.demo.model.analytics.resources.storage import AnalyticsStorage
 
 
-@entity(description="Tie row connecting dedupe spine ingress with parallel dimension branching", resource=AnalyticsStorage)
+@entity(description="Tie row connecting dedupe spine ingress with parallel dimension branching", domain=AnalyticsDomain)
 class AnalyticsDedupDimensionCorrelateCoreEntity(BaseCoreEntity):
     id: str = Field(description="Correlator id")
     lifecycle: AnalyticsPipelineLifecycle = Field(description="Correlator lifecycle")
@@ -27,16 +27,12 @@ class AnalyticsDedupDimensionCorrelateCoreEntity(BaseCoreEntity):
     dedup_row: Annotated[
         AssociationOne[AnalyticsDedupBloomRowDetailEntity],
         NoInverse(),
-    ] = Field(
-        description="Dedup bloom anchor"
-    )
+    ] = Field(description="Dedup bloom anchor")
 
     dimension_stub: Annotated[
         AssociationOne[DimensionSliceStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Dimension slice anchor"
-    )
+    ] = Field(description="Dimension slice anchor")
 
 
 AnalyticsDedupDimensionCorrelateCoreEntity.model_rebuild()

@@ -27,6 +27,8 @@ class CrossDockRelayAdapterAction(
         patched: bool = Field(default=False, description="Adaptor patch acknowledgement")
 
     @summary_aspect("Cross-dock relay adapter")
-    async def adapter_summary(self, params: Params, state: BaseState, box: ToolsBox, connections: Connections) -> Result:
+    async def adapter_summary(
+        self, params: Params, state: BaseState, box: ToolsBox, connections: Connections
+    ) -> Result:
         _ = (params, state, box, connections)
         return self.Result()

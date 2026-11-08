@@ -11,10 +11,10 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, BaseDetailEntity, CompositeMany, Inverse
 from aoa.action_machine.domain.base_domain import BaseDomain
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.resources.base_storage import BaseStorage
-from aoa.action_machine.resources import InMemoryDataSource
 
 
 class ShopDomain(BaseDomain):
@@ -24,17 +24,7 @@ class ShopDomain(BaseDomain):
     description = "Shop model"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="Customer order", resource=ShopStorage)
+@entity(description="Customer order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     """Own the lines of one order."""
 
@@ -42,7 +32,7 @@ class OrderCoreEntity(BaseCoreEntity):
     lines: Annotated[CompositeMany["OrderLineDetailEntity"], Inverse(field_name="order")] = Field(description="Owned lines")
 
 
-@entity(description="One line of an order", resource=ShopStorage)
+@entity(description="One line of an order", domain=ShopDomain)
 class OrderLineDetailEntity(BaseDetailEntity):
     """Identify a part within its particular order."""
 
@@ -50,6 +40,15 @@ class OrderLineDetailEntity(BaseDetailEntity):
     number: int = Field(description="Line number within the order")
     quantity: int = Field(gt=0, description="Ordered quantity")
     order: Annotated[AssociationOne[OrderCoreEntity], Inverse(OrderCoreEntity, "lines")] = Field(description="Owning order")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    OrderCoreEntity,
+    OrderLineDetailEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 OrderCoreEntity.model_rebuild()

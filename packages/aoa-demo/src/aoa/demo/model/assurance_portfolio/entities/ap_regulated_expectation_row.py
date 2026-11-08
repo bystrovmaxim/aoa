@@ -7,6 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.assurance_portfolio.domain import AssurancePortfolioDomain
 from aoa.demo.model.assurance_portfolio.entities.ap_expectation_catalog_stub import (
     AssuranceExpectationCatalogStubCoreEntity,
 )
@@ -15,10 +16,9 @@ from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
     AssuranceExpectationGenreAxisCoreEntity,
     AssuranceExpectationPhaseAxisCoreEntity,
 )
-from aoa.demo.model.assurance_portfolio.resources.storage import AssurancePortfolioStorage
 
 
-@entity(description="Versioned expectation corpus entry (requirement analogue)", resource=AssurancePortfolioStorage)
+@entity(description="Versioned expectation corpus entry (requirement analogue)", domain=AssurancePortfolioDomain)
 class AssuranceRegulatedExpectationRowDetailEntity(BaseDetailEntity):
     id: str = Field(description="Expectation entry id")
     lifecycle: AssurancePortfolioLifecycle = Field(description="Expectation row lifecycle")
@@ -32,23 +32,17 @@ class AssuranceRegulatedExpectationRowDetailEntity(BaseDetailEntity):
     catalog_bucket: Annotated[
         AssociationOne[AssuranceExpectationCatalogStubCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Containing catalog"
-    )
+    ] = Field(description="Containing catalog")
 
     genre_axis: Annotated[
         AssociationOne[AssuranceExpectationGenreAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Expectation genre discriminator"
-    )
+    ] = Field(description="Expectation genre discriminator")
 
     phase_axis: Annotated[
         AssociationOne[AssuranceExpectationPhaseAxisCoreEntity],
         NoInverse(),
-    ] = Field(
-        description="Expectation lifecycle phase"
-    )
+    ] = Field(description="Expectation lifecycle phase")
 
 
 AssuranceRegulatedExpectationRowDetailEntity.model_rebuild()

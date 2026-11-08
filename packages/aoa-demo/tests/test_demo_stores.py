@@ -6,7 +6,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from aoa.action_machine.intents.entities import EntitiesIntentResolver
+from aoa.demo.model.billing.entities.payment_event_log import PaymentEventLogCoreEntity
+from aoa.demo.model.billing.resources.card_network_gateway import CardNetworkGateway
 from aoa.demo.model.interchange_demo_coordinator import build_registered_interchange_coordinator
+from aoa.demo.model.store.resources.card_gateway import StorefrontCardGateway
 
 
 def _graph() -> dict[str, Any]:
@@ -20,30 +24,32 @@ def _short(node_id: str) -> str:
 
 def _targets(graph: dict[str, Any], edge_type: str) -> dict[str, str]:
     """Each source of an ``edge_type`` edge, by short name, mapped to its target's short name."""
-    return {_short(edge["source_id"]): _short(edge["target_id"]) for edge in graph["edges"] if edge["type"] == edge_type}
+    return {
+        _short(edge["source_id"]): _short(edge["target_id"]) for edge in graph["edges"] if edge["type"] == edge_type
+    }
 
 
 def test_a_chargeback_relates_to_an_order_of_another_database() -> None:
-    """The billing warehouse's chargeback ticket points at the shop database's order."""
+    """The billing chargeback ticket points at the shop's order, an entity of another domain."""
     graph = _graph()
-    stored_in = _targets(graph, "entity_resource")
-    source_of = _targets(graph, "resource_data_source")
+    domain_of = _targets(graph, "domain")
     relation = next(
         edge
         for edge in graph["edges"]
-        if edge["type"] == "entity_relation" and _short(edge["source_id"]) == "ChargebackTicketCoreEntity" and edge["properties"].get("field_name") == "order"
+        if edge["type"] == "entity_relation"
+        and _short(edge["source_id"]) == "ChargebackTicketCoreEntity"
+        and edge["properties"].get("field_name") == "order"
     )
     assert _short(relation["target_id"]) == "SalesOrderCoreEntity"
-    assert stored_in["ChargebackTicketCoreEntity"] == "BillingWarehouseStorage"
-    assert stored_in["SalesOrderCoreEntity"] == "StorefrontDatabaseStorage"
-    assert source_of[stored_in["ChargebackTicketCoreEntity"]] == "BillingWarehouseDataSource"
-    assert source_of[stored_in["SalesOrderCoreEntity"]] == "ShopDataSource"
+    assert domain_of["ChargebackTicketCoreEntity"] == "BillingDomain"
+    assert domain_of["SalesOrderCoreEntity"] == "StoreDomain"
 
 
-def test_the_card_network_is_one_service_of_two_domains() -> None:
-    """Billing and the storefront each reach the card network through one resource of their own."""
+def test_the_card_network_gateway_lists_the_payment_events_it_reports() -> None:
+    """The billing gateway yields payment events; the storefront gateway yields none and names no domain."""
     graph = _graph()
     domain_of = _targets(graph, "domain")
-    resources = sorted(resource for resource, source in _targets(graph, "resource_data_source").items() if source == "CardNetworkDataSource")
-    assert resources == ["CardNetworkGateway", "StorefrontCardGateway"]
-    assert sorted(domain_of[resource] for resource in resources) == ["BillingDomain", "StoreDomain"]
+    assert EntitiesIntentResolver.resolve_entities(CardNetworkGateway) == (PaymentEventLogCoreEntity,)
+    assert domain_of["PaymentEventLogCoreEntity"] == "BillingDomain"
+    assert EntitiesIntentResolver.resolve_entities(StorefrontCardGateway) == ()
+    assert "StorefrontCardGateway" not in domain_of

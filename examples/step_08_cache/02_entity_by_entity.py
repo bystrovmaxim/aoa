@@ -22,12 +22,13 @@ from aoa.action_machine.domain.base_domain import BaseDomain
 from aoa.action_machine.intents.aspects import summary_aspect
 from aoa.action_machine.intents.cache import CacheLayout, cache_entity_key, cache_invalidate, cache_key, cache_write
 from aoa.action_machine.intents.check_roles import check_roles
+from aoa.action_machine.intents.entities import entities
 from aoa.action_machine.intents.entity import entity
 from aoa.action_machine.intents.meta import meta
 from aoa.action_machine.logging.log_coordinator import LogCoordinator
 from aoa.action_machine.model import BaseAction, BaseParams, BaseResult
 from aoa.action_machine.model.base_state import BaseState
-from aoa.action_machine.resources import Connections, InMemoryDataSource
+from aoa.action_machine.resources import Connections
 from aoa.action_machine.resources.base_storage import BaseStorage
 from aoa.action_machine.runtime.action_product_machine import ActionProductMachine
 from aoa.action_machine.runtime.cache_coordinator import CacheCoordinator
@@ -49,25 +50,24 @@ class ShopDomain(BaseDomain):
     description = "Shop domain"
 
 
-@meta(description="Where ShopStorage keeps its rows")
-class ShopDataSource(InMemoryDataSource):
-    """The store ShopStorage works with."""
-
-
-@meta(description="Stores the shop entities", domain=ShopDomain)
-class ShopStorage(BaseStorage[ShopDataSource]):
-    """Hold the shop entities."""
-
-
-@entity(description="An order", resource=ShopStorage)
+@entity(description="An order", domain=ShopDomain)
 class OrderCoreEntity(BaseCoreEntity):
     id: str = Field(description="Order id")
     total: float = Field(description="Total")
 
 
-@entity(description="A customer, owner of a list of orders", resource=ShopStorage)
+@entity(description="A customer, owner of a list of orders", domain=ShopDomain)
 class CustomerCoreEntity(BaseCoreEntity):
     id: str = Field(description="Customer id")
+
+
+@meta(description="Stores the shop entities")
+@entities(
+    OrderCoreEntity,
+    CustomerCoreEntity,
+)
+class ShopStorage(BaseStorage):
+    """Hold the shop entities."""
 
 
 class OrderIdParams(BaseParams):
