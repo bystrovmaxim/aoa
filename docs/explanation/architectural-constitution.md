@@ -151,16 +151,16 @@ class ConsoleLogger(BaseLogger): ...  # box.info → stdout
 class KafkaLogger(BaseLogger): ...  # box.info → Kafka
 
 
-class Plugin(OnIntent, BaseObserver, ABC): ...  # root of all plugins
+class BasePlugin(OnIntent, BaseObserver, ABC): ...  # root of all plugins
 
 
-class OpenTelemetryPlugin(Plugin): ...  # traces and metrics
+class OpenTelemetryPlugin(BasePlugin): ...  # traces and metrics
 
 
-class OcelPlugin(Plugin): ...  # object-centric event log
+class OcelPlugin(BasePlugin): ...  # object-centric event log
 ```
 
-`LogCoordinator` and `PluginCoordinator` remain `BaseCoordinator` — they manage the bus and the lifecycle. `BaseLogger` and `Plugin` are observers: they only receive events and react.
+`LogCoordinator` and `PluginCoordinator` remain `BaseCoordinator` — they manage the bus and the lifecycle. `BaseLogger` and `BasePlugin` are observers: they only receive events and react.
 
 | | `BaseCoordinator` | `BaseObserver` |
 |---|---|---|

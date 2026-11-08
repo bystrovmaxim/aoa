@@ -9,7 +9,7 @@ whether or not a database is running.
 | Piece | What it is |
 | --- | --- |
 | `resources/identity_store_base.py` | What the domain asks of storage — `read_person`, `record_login` — stated once over two primitives it declares itself (`_read_person`, `_write_login`), with no driver imported |
-| `resources/identity_store.py` | The PostgreSQL store: `IdentityStoreBase` mixed with `PostgresResource`, built from a pool, one connection per call; beside the domain's primitives it has two private reads — `_list_persons` through `_fetch` and `_count_persons` through `_fetchval` |
+| `resources/identity_store.py` | The PostgreSQL store: `IdentityStoreBase` mixed with `PostgresStorage`, built from a pool, one connection per call; beside the domain's primitives it has two private reads — `_list_persons` through `_fetch` and `_count_persons` through `_fetchval` |
 | `resources/identity_store_stub.py` | The same two operations in memory, so the demo runs with no database and no driver |
 | `actions/identity_lookup.py` | `IdentityLookupAction` — declares `@connection(IdentityStoreBase, key="identity")` and never learns how the store was supplied |
 

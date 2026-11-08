@@ -7,7 +7,7 @@ PURPOSE
 ═══════════════════════════════════════════════════════════════════════════════
 
 ``OnIntent`` is a marker mixin indicating class support for ``@on`` event
-subscriptions. It is used by ``Plugin`` and its subclasses.
+subscriptions. It is used by ``BasePlugin`` and its subclasses.
 
 Presence of ``OnIntent`` in class MRO documents contract:
 "this class may define @on event handler methods".
@@ -28,11 +28,11 @@ OR-logic is achieved by multiple ``@on`` decorators on one method.
 ARCHITECTURE / DATA FLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
-    class Plugin(OnIntent):           <- intent: @on grammar on methods
+    class BasePlugin(OnIntent):       <- intent: @on grammar on methods
         async def get_initial_state(self) -> Any:
             ...
 
-    class CounterPlugin(Plugin):
+    class CounterPlugin(BasePlugin):
 
         async def get_initial_state(self) -> dict:
             return {}

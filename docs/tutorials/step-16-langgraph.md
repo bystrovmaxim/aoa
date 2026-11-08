@@ -307,7 +307,7 @@ assert result["category"] == "billing"
 
 The graph runs inside a `@summary_aspect` of a host Action. The box comes from the machine.
 
-**Option 1 — an external graph through `@connection`** (one graph for every call). `LangGraphController` is a library resource and stays out of the model graph, like `PostgresResource`; the service declares its graph as a subclass with `@meta`, and `@connection` names that subclass:
+**Option 1 — an external graph through `@connection`** (one graph for every call). `LangGraphController` is a library resource and stays out of the model graph, like `PostgresStorage`; the service declares its graph as a subclass with `@meta`, and `@connection` names that subclass:
 
 ```python
 # Fragment: an outline; `...` marks what is left out.
