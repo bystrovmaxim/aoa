@@ -30,7 +30,7 @@ The full example: [03_custom_plugin.py](../../examples/how_to/03_custom_plugin.p
 
 ## The contract: two things
 
-Subclass `Plugin` (`from aoa.action_machine.plugin.core import Plugin`) and implement:
+Subclass `BasePlugin` (`from aoa.action_machine.plugin.core import BasePlugin`) and implement:
 
 1. **`async get_initial_state()`** — fresh state for one run;
 2. one or more **`@on(EventClass, ...)`** handlers with a fixed 4-argument signature:
@@ -77,7 +77,7 @@ Need to accumulate **between** runs (a counter, an OCEL file, a metrics client) 
 
 ```python
 # Fragment: its imports are left out.
-class CallAuditPlugin(Plugin):
+class CallAuditPlugin(BasePlugin):
     def __init__(self, sink: list) -> None:
         super().__init__()
         self._sink = sink            # outlives the runs
@@ -103,7 +103,7 @@ Then operations run as usual — they know nothing about the plugin.
 
 Two levels of narrowing, both optional:
 
-- **The `Plugin` constructor** — `super().__init__(watch_actions=..., watch_events=...)`: `watch_actions` (by `event.action_class`, via `issubclass` — subclasses count too) and `watch_events` (via `isinstance`). Did not call `super().__init__()` — you inherit `None` (no filtering).
+- **The `BasePlugin` constructor** — `super().__init__(watch_actions=..., watch_events=...)`: `watch_actions` (by `event.action_class`, via `issubclass` — subclasses count too) and `watch_events` (via `isinstance`). Did not call `super().__init__()` — you inherit `None` (no filtering).
 - **`@on(...)`** — additional filters: `action_class`, `action_name_pattern`, `aspect_name_pattern`, `nest_level`, `domain`, `predicate=lambda e: ...`, `ignore_exceptions`. **Within one `@on` — AND**; several `@on` on one method give **OR**.
 
 ```python

@@ -36,11 +36,11 @@ class ProtocolSqlResource(Protocol):
 
 ## 2. Concrete Manager
 
-Subclass `BaseResource` and implement the protocol (e.g. `SqlResource`). Provide real behaviour (connect, transactions, queries). Implement `get_wrapper_class()` → returns the wrapper class used for nested actions.
+Subclass the base of the resource's kind — a store of data takes `BaseStorage` — and implement the protocol (e.g. `SqlStorage`). Provide real behaviour (connect, transactions, queries). Implement the class method `get_wrapper_class()` → returns the wrapper class used for nested actions.
 
 ```python
 # Fragment: its imports are left out.
-class SqlResource(BaseResource, ProtocolSqlResource):
+class SqlStorage(BaseStorage, ProtocolSqlResource):
     def __init__(self, rollup: bool = False):
         self._rollup = rollup
 
@@ -51,8 +51,9 @@ class SqlResource(BaseResource, ProtocolSqlResource):
     async def check_rollup_support(self) -> bool:
         return True
 
-    def get_wrapper_class(self) -> type["BaseResource"] | None:
-        return WrapperSqlResource
+    @classmethod
+    def get_wrapper_class(cls) -> type["BaseResource"] | None:
+        return SqlStorageWrapper
 
     async def open(self) -> None: ...
 
@@ -67,11 +68,11 @@ class SqlResource(BaseResource, ProtocolSqlResource):
 
 ## 3. Wrapper
 
-Subclass `BaseResource` and implement the same protocol. **Do not subclass the concrete manager**. Hold an inner `Protocol…` instance; `rollup` and `check_rollup_support` delegate to it; `execute` delegates; `open` / `begin` / `commit` / `rollback` raise `TransactionProhibitedError`. `get_wrapper_class()` returns the wrapper class again for deeper nesting.
+Subclass the same kind, `BaseStorage`, and implement the same protocol. **Do not subclass the concrete manager**. Hold an inner `Protocol…` instance; `rollup` and `check_rollup_support` delegate to it; `execute` delegates; `open` / `begin` / `commit` / `rollback` raise `TransactionProhibitedError`. `get_wrapper_class()` returns the wrapper class again for deeper nesting.
 
 ```python
 # Fragment: its imports are left out.
-class WrapperSqlResource(BaseResource, ProtocolSqlResource):
+class SqlStorageWrapper(BaseStorage, ProtocolSqlResource):
     def __init__(self, inner: ProtocolSqlResource):
         self._inner = inner
 
@@ -97,8 +98,9 @@ class WrapperSqlResource(BaseResource, ProtocolSqlResource):
     async def rollback(self):
         raise TransactionProhibitedError("Rollback not allowed in nested action")
 
-    def get_wrapper_class(self):
-        return WrapperSqlResource
+    @classmethod
+    def get_wrapper_class(cls):
+        return SqlStorageWrapper
 ```
 
 ## Why a Wrapper?
@@ -114,14 +116,14 @@ Child actions receive connections via `ToolsBox.run(..., connections)`. The runt
 
 ```text
 Root action:
-    manager = SqlResource(rollup=False)
+    manager = SqlStorage(rollup=False)
     connections = {"db": manager}
     await run(...)   # passes connections to child action
 
        │
        ▼
 ToolsBox.run() wraps each manager:
-    wrapped = WrapperSqlResource(manager)
+    wrapped = SqlStorageWrapper(manager)
     connections = {"db": wrapped}
     calls child action
 
@@ -136,7 +138,7 @@ Child action:
        │
        ▼
 If child action itself runs a deeper action:
-    wrapped.get_wrapper_class() → WrapperSqlResource
-    new action gets WrapperSqlResource(wrapped)
+    wrapped.get_wrapper_class() → SqlStorageWrapper
+    new action gets SqlStorageWrapper(wrapped)
     and so on – transaction control always blocked, rollup propagated through the chain.
 ```

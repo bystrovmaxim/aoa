@@ -56,14 +56,14 @@ They are wired the same way — as a list on the machine; the `Action` business 
 
 ```python
 # Fragment: its imports are left out.
-from aoa.ocel import OcelPlugin, OcelFrame, InMemoryOcelStoreResource, OCEL_FRAMES_KEY
+from aoa.ocel import OcelPlugin, OcelFrame, InMemoryOcelStorage, OCEL_FRAMES_KEY
 
 machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True)])
 ```
 
 ## OCEL: an event log for process mining
 
-`OcelPlugin` turns operation runs into an object-centric event log. An aspect that wants to participate in process mining returns `OcelFrame` rows under the key `OCEL_FRAMES_KEY`; the plugin serializes them, and the store (`InMemoryOcelStoreResource`) writes JSON on `close()`:
+`OcelPlugin` turns operation runs into an object-centric event log. An aspect that wants to participate in process mining returns `OcelFrame` rows under the key `OCEL_FRAMES_KEY`; the plugin serializes them, and the store (`InMemoryOcelStorage`) writes JSON on `close()`:
 
 ```python
 # Fragment: its imports are left out.

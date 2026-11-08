@@ -88,7 +88,7 @@ from aoa.action_machine.model import BaseParams
 from aoa.action_machine.resources import BaseResource
 from aoa.action_machine.model import BaseState
 from aoa.action_machine.runtime.tools_box import ToolsBox
-from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin, InMemoryOcelStoreResource
+from aoa.ocel import OCEL_FRAMES_KEY, OcelFrame, OcelPlugin, InMemoryOcelStorage
 
 @regular_aspect("Validation")
 @result_string("validated_id", required=True)
@@ -101,11 +101,11 @@ async def validate_aspect(self, params: BaseParams, state: BaseState, box: Tools
     }
 ```
 
-The store is attached as a resource with an `open()`/`close()` lifecycle; `InMemoryOcelStoreResource` accumulates events in memory and writes OCEL-2.0 JSON on `close()`:
+The store is attached as a resource with an `open()`/`close()` lifecycle; `InMemoryOcelStorage` accumulates events in memory and writes OCEL-2.0 JSON on `close()`:
 
 ```python
 # Fragment: its imports are left out.
-store = InMemoryOcelStoreResource(output_file="ocel_log.json")
+store = InMemoryOcelStorage(output_file="ocel_log.json")
 machine = ActionProductMachine(plugins=[OcelPlugin(store=store, short_names=True)])
 await store.open()
 # ... machine.run(...) — each run appends an event ...
@@ -122,7 +122,7 @@ await store.close()   # write the file
 
 `OcelPlugin(store, *, short_names=False)`:
 
-- `store` — an `OcelStoreProtocol` implementation (for example, `InMemoryOcelStoreResource`).
+- `store` — an `OcelStoreProtocol` implementation (for example, `InMemoryOcelStorage`).
 - `short_names` — strips the `Action`/`Entity`/`Lifecycle` suffixes from event and object types (`CreateOrderAction` → `CreateOrder`).
 
 ## What's inside the example

@@ -37,7 +37,7 @@ from aoa.action_machine.context import Context
 from aoa.action_machine.intents.connection import connection
 from aoa.langgraph import LangGraphController
 
-# LangGraphController stays out of the model graph, like PostgresResource;
+# LangGraphController stays out of the model graph, like PostgresStorage;
 # the service declares its graph as a subclass with @meta and connects to that.
 
 
