@@ -10,6 +10,7 @@ from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.analytics.domain import AnalyticsDomain
 from aoa.demo.model.analytics.entities.an_dense_lifecycle import AnalyticsPipelineLifecycle
 from aoa.demo.model.analytics.entities.analytics_sampling_policy import AnalyticsSamplingPolicyCoreEntity
+from aoa.demo.model.billing.entities.billing_file_ingest_manifest import BillingFileIngestManifestCoreEntity
 
 
 @entity(description="Sketch aggregate stub following sampling policy (two-node branch)", domain=AnalyticsDomain)
@@ -27,6 +28,10 @@ class AnalyticsAggregateSketchStubCoreEntity(BaseCoreEntity):
         AssociationOne[AnalyticsSamplingPolicyCoreEntity],
         NoInverse(),
     ] = Field(description="Parent sampling policy")
+    billing_manifest: Annotated[
+        AssociationOne[BillingFileIngestManifestCoreEntity],
+        NoInverse(),
+    ] = Field(description="The billing file the sketch was computed from")
 
 
 AnalyticsAggregateSketchStubCoreEntity.model_rebuild()

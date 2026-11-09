@@ -7,6 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.messaging.domain import MessagingDomain
 from aoa.demo.model.messaging.entities.msg_batching_fence import BatchingFenceCoreEntity
 from aoa.demo.model.messaging.entities.msg_dense_lifecycle import MsgDenseLifecycle
@@ -27,6 +28,10 @@ class CourierAttemptLedgerCoreEntity(BaseCoreEntity):
         AssociationOne[BatchingFenceCoreEntity],
         NoInverse(),
     ] = Field(description="Owning batch coordination fence row")
+    recipient: Annotated[
+        AssociationOne[IdentityPersonHubCoreEntity],
+        NoInverse(),
+    ] = Field(description="The person the message was sent to")
 
 
 CourierAttemptLedgerCoreEntity.model_rebuild()

@@ -22,8 +22,11 @@ from aoa.action_machine.domain import (
     BaseDetailEntity,
     CompositeMany,
     Inverse,
+    NoInverse,
 )
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.store.entities.customer_account_lifecycle import CustomerAccountLifecycle
 from aoa.demo.model.store.entities.sales_order_lifecycle import SalesOrderLifecycle
 from aoa.demo.model.store.entities.sales_order_line_lifecycle import SalesOrderLineLifecycle
@@ -46,6 +49,10 @@ class CustomerAccountCoreEntity(BaseCoreEntity):
         AssociationMany[SalesOrderCoreEntity],
         Inverse(SalesOrderCoreEntity, "customer"),
     ] = Field(description="Orders")
+    person: Annotated[
+        AssociationOne[IdentityPersonHubCoreEntity],
+        NoInverse(),
+    ] = Field(description="The person who owns the account")
 
 
 @entity(description="Customer order", domain=StoreDomain)
@@ -85,6 +92,10 @@ class SalesOrderLineDetailEntity(BaseDetailEntity):
         AssociationOne[SalesOrderCoreEntity],
         Inverse(SalesOrderCoreEntity, "order_lines"),
     ] = Field(description="Parent order")
+    product: Annotated[
+        AssociationOne[CatalogProductCoreEntity],
+        NoInverse(),
+    ] = Field(description="The catalog product the line orders")
 
 
 CustomerAccountCoreEntity.model_rebuild()

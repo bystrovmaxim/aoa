@@ -1116,6 +1116,23 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity|entity_relation|billing_manifest",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The billing file the sketch was computed from",
+        "field_name": "billing_manifest",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity",
+      "target_id": "aoa.demo.model.billing.entities.billing_file_ingest_manifest.BillingFileIngestManifestCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.analytics.entities.analytics_aggregate_sketch_stub.AnalyticsAggregateSketchStubCoreEntity|entity_relation|policy",
       "is_dag": false,
       "properties": {
@@ -6641,6 +6658,23 @@
       "source_id": "aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket.AssuranceDelegatedWorkTicketCoreEntity",
       "target_id": "aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket.AssuranceDelegatedWorkTicketCoreEntity:scenario_ref",
       "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket.AssuranceDelegatedWorkTicketCoreEntity|entity_relation|assignee",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The person the work is delegated to",
+        "field_name": "assignee",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket.AssuranceDelegatedWorkTicketCoreEntity",
+      "target_id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity",
+      "type": "entity_relation"
     },
     {
       "id": "aoa.demo.model.assurance_portfolio.entities.ap_delegated_work_ticket.AssuranceDelegatedWorkTicketCoreEntity|entity_relation|assignee_actor",
@@ -23651,6 +23685,23 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.catalog_custody.entities.custody_audit_event_entity.CustodyAuditEventCoreEntity|entity_relation|actor",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The person whose action the event records",
+        "field_name": "actor",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.catalog_custody.entities.custody_audit_event_entity.CustodyAuditEventCoreEntity",
+      "target_id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.catalog_custody.entities.custody_audit_event_entity.CustodyAuditEventCoreEntity|entity_relation|subject_sku_row",
       "is_dag": false,
       "properties": {
@@ -23735,6 +23786,23 @@
       "source_id": "aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity.RegulatedStockKeepingUnitRowDetailEntity",
       "target_id": "aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity.RegulatedStockKeepingUnitRowDetailEntity:sku_code",
       "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity.RegulatedStockKeepingUnitRowDetailEntity|entity_relation|product",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The catalog product the custody rules apply to",
+        "field_name": "product",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity.RegulatedStockKeepingUnitRowDetailEntity",
+      "target_id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity",
+      "type": "entity_relation"
     },
     {
       "id": "aoa.demo.model.catalog_custody.resources.storage.CatalogCustodyStorage|resource_entity|aoa.demo.model.catalog_custody.entities.custody_audit_event_entity.CustodyAuditEventCoreEntity",
@@ -24145,6 +24213,23 @@
       "source_id": "aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row.ClinicalConsumableSkuCoreEntity",
       "target_id": "aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row.ClinicalConsumableSkuCoreEntity:temperature_ceiling_k",
       "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row.ClinicalConsumableSkuCoreEntity|entity_relation|catalog_product",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The catalog product the consumable is sold as",
+        "field_name": "catalog_product",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row.ClinicalConsumableSkuCoreEntity",
+      "target_id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity",
+      "type": "entity_relation"
     },
     {
       "id": "aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row.ClinicalConsumableSkuCoreEntity|entity_relation|material_anchor",
@@ -24606,6 +24691,23 @@
       "relationship": "Association",
       "source_id": "aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity",
       "target_id": "aoa.demo.model.clinical_supply.entities.cs_partner_hub.ClinicalPartnerHubCoreEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity|entity_relation|receiving_warehouse",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The warehouse that receives the shipment",
+        "field_name": "receiving_warehouse",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.clinical_supply.entities.cs_inbound_shipment_ticket.ClinicalInboundShipmentTicketCoreEntity",
+      "target_id": "aoa.demo.model.inventory.entities.inv_facility_warehouse.FacilityWarehouseCoreEntity",
       "type": "entity_relation"
     },
     {
@@ -32999,6 +33101,23 @@
       "type": "entity_relation"
     },
     {
+      "id": "aoa.demo.model.logistics_mesh.entities.facility_handoff_manifest_entity.FacilityHandoffManifestAssocEntity|entity_relation|sales_order",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The customer order the handoff carries",
+        "field_name": "sales_order",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.logistics_mesh.entities.facility_handoff_manifest_entity.FacilityHandoffManifestAssocEntity",
+      "target_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity.FreightWaypointLegCoreEntity|domain|aoa.demo.model.logistics_mesh.logistics_mesh_domain.LogisticsMeshDomain",
       "is_dag": true,
       "properties": {},
@@ -33054,6 +33173,23 @@
       "source_id": "aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity.FreightWaypointLegCoreEntity",
       "target_id": "aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity.FreightWaypointLegCoreEntity:waypoint_id",
       "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity.FreightWaypointLegCoreEntity|entity_relation|origin_warehouse",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The warehouse the leg leaves from",
+        "field_name": "origin_warehouse",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity.FreightWaypointLegCoreEntity",
+      "target_id": "aoa.demo.model.inventory.entities.inv_facility_warehouse.FacilityWarehouseCoreEntity",
+      "type": "entity_relation"
     },
     {
       "id": "aoa.demo.model.logistics_mesh.freight_network_director_role.FreightNetworkDirectorRole|application|aoa.action_machine.application.application.Application",
@@ -34012,6 +34148,23 @@
       "relationship": "Association",
       "source_id": "aoa.demo.model.messaging.entities.msg_courier_attempt_ledger.CourierAttemptLedgerCoreEntity",
       "target_id": "aoa.demo.model.messaging.entities.msg_batching_fence.BatchingFenceCoreEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.messaging.entities.msg_courier_attempt_ledger.CourierAttemptLedgerCoreEntity|entity_relation|recipient",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The person the message was sent to",
+        "field_name": "recipient",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.messaging.entities.msg_courier_attempt_ledger.CourierAttemptLedgerCoreEntity",
+      "target_id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity",
       "type": "entity_relation"
     },
     {
@@ -37816,6 +37969,23 @@
       "source_id": "aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity.ClearingInstructionRowDetailEntity",
       "target_id": "aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity.ClearingInstructionRowDetailEntity:notional_ceiling_minor",
       "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity.ClearingInstructionRowDetailEntity|entity_relation|payout_plan",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The billing payout plan the instruction settles",
+        "field_name": "payout_plan",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.settlement_desks.entities.clearing_instruction_row_entity.ClearingInstructionRowDetailEntity",
+      "target_id": "aoa.demo.model.billing.entities.billing_payout_plan.BillingPayoutPlanCoreEntity",
+      "type": "entity_relation"
     },
     {
       "id": "aoa.demo.model.settlement_desks.entities.desk_lane_exposure_marker_entity.DeskLaneExposureMarkerCoreEntity|domain|aoa.demo.model.settlement_desks.settlement_desks_domain.SettlementDesksDomain",
@@ -42105,6 +42275,23 @@
       "type": "entity_relation"
     },
     {
+      "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity|entity_relation|person",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The person who owns the account",
+        "field_name": "person",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity",
+      "target_id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity|lifecycle|aoa.demo.model.store.entities.sales_core.CustomerAccountCoreEntity:lifecycle:lifecycle",
       "is_dag": false,
       "properties": {
@@ -42799,6 +42986,23 @@
       "relationship": "Association",
       "source_id": "aoa.demo.model.store.entities.sales_core.SalesOrderLineDetailEntity",
       "target_id": "aoa.demo.model.store.entities.sales_core.SalesOrderCoreEntity",
+      "type": "entity_relation"
+    },
+    {
+      "id": "aoa.demo.model.store.entities.sales_core.SalesOrderLineDetailEntity|entity_relation|product",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The catalog product the line orders",
+        "field_name": "product",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.store.entities.sales_core.SalesOrderLineDetailEntity",
+      "target_id": "aoa.demo.model.catalog.entities.product_row.CatalogProductCoreEntity",
       "type": "entity_relation"
     },
     {
@@ -57110,6 +57314,23 @@
       "type": "entity_field"
     },
     {
+      "id": "aoa.demo.model.support.entities.support_participant_row.SupportParticipantCoreEntity|entity_relation|person",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The person taking part in the ticket",
+        "field_name": "person",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.support.entities.support_participant_row.SupportParticipantCoreEntity",
+      "target_id": "aoa.demo.model.identity.entities.identity_person_hub.IdentityPersonHubCoreEntity",
+      "type": "entity_relation"
+    },
+    {
       "id": "aoa.demo.model.support.entities.support_participant_row.SupportParticipantCoreEntity|entity_relation|ticket",
       "is_dag": false,
       "properties": {
@@ -58111,6 +58332,23 @@
       "source_id": "aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity.TelemetryIngestEnvelopeCoreEntity",
       "target_id": "aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity.TelemetryIngestEnvelopeCoreEntity:raw_payload_checksum",
       "type": "entity_field"
+    },
+    {
+      "id": "aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity.TelemetryIngestEnvelopeCoreEntity|entity_relation|source_warehouse",
+      "is_dag": false,
+      "properties": {
+        "cardinality": "one",
+        "deprecated": false,
+        "description": "The warehouse whose edge site sent the envelope",
+        "field_name": "source_warehouse",
+        "has_inverse": false,
+        "optional": false,
+        "relation_type": "association"
+      },
+      "relationship": "Association",
+      "source_id": "aoa.demo.model.telemetry_pipeline.entities.telemetry_ingest_envelope_entity.TelemetryIngestEnvelopeCoreEntity",
+      "target_id": "aoa.demo.model.inventory.entities.inv_facility_warehouse.FacilityWarehouseCoreEntity",
+      "type": "entity_relation"
     },
     {
       "id": "aoa.demo.model.telemetry_pipeline.incident_observability_director_role.IncidentObservabilityDirectorRole|application|aoa.action_machine.application.application.Application",

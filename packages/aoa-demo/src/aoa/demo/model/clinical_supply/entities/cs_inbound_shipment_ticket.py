@@ -12,6 +12,7 @@ from aoa.demo.model.clinical_supply.entities.cs_consumable_sku_row import Clinic
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_packing_anchor import ClinicalPackingAnchorCoreEntity
 from aoa.demo.model.clinical_supply.entities.cs_partner_hub import ClinicalPartnerHubCoreEntity
+from aoa.demo.model.inventory.entities.inv_facility_warehouse import FacilityWarehouseCoreEntity
 
 
 @entity(
@@ -42,6 +43,10 @@ class ClinicalInboundShipmentTicketCoreEntity(BaseCoreEntity):
         AssociationOne[ClinicalPackingAnchorCoreEntity],
         NoInverse(),
     ] = Field(description="Lot packing profile")
+    receiving_warehouse: Annotated[
+        AssociationOne[FacilityWarehouseCoreEntity],
+        NoInverse(),
+    ] = Field(description="The warehouse that receives the shipment")
 
 
 ClinicalInboundShipmentTicketCoreEntity.model_rebuild()
