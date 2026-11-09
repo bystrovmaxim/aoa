@@ -99,7 +99,7 @@ dev = [
 
 [[package]]
 name = "aoa-demo"
-version = "3.23.0"
+version = "3.24.0"
 source = { editable = "packages/aoa-demo" }
 dependencies = [
     { name = "aoa-action-machine" },

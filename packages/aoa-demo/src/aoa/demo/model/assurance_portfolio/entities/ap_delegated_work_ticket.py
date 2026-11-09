@@ -14,6 +14,7 @@ from aoa.demo.model.assurance_portfolio.entities.ap_reference_axes import (
     AssuranceCheckpointToneAxisCoreEntity,
     AssuranceDelegationIntentAxisCoreEntity,
 )
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 
 
 @entity(description="Dual-actor delegated assignment with intent + checkpoint hues", domain=AssurancePortfolioDomain)
@@ -46,6 +47,10 @@ class AssuranceDelegatedWorkTicketCoreEntity(BaseCoreEntity):
         AssociationOne[AssuranceCheckpointToneAxisCoreEntity],
         NoInverse(),
     ] = Field(description="Current checkpoint disposition")
+    assignee: Annotated[
+        AssociationOne[IdentityPersonHubCoreEntity],
+        NoInverse(),
+    ] = Field(description="The person the work is delegated to")
 
 
 AssuranceDelegatedWorkTicketCoreEntity.model_rebuild()

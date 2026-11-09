@@ -11,6 +11,7 @@ from aoa.action_machine.domain import AssociationOne, BaseAssocEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
 from aoa.demo.model.logistics_mesh.entities.freight_waypoint_leg_entity import FreightWaypointLegCoreEntity
 from aoa.demo.model.logistics_mesh.logistics_mesh_domain import LogisticsMeshDomain
+from aoa.demo.model.store.entities.sales_core import SalesOrderCoreEntity
 
 
 @entity(description="Cross-dock hand-off manifest row", domain=LogisticsMeshDomain)
@@ -21,3 +22,7 @@ class FacilityHandoffManifestAssocEntity(BaseAssocEntity):
         AssociationOne[FreightWaypointLegCoreEntity],
         NoInverse(),
     ] = Field(description="Next relay leg reserved for cargo slice")
+    sales_order: Annotated[
+        AssociationOne[SalesOrderCoreEntity],
+        NoInverse(),
+    ] = Field(description="The customer order the handoff carries")

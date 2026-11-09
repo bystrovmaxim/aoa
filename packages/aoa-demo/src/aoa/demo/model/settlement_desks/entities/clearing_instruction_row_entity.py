@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field
 
-from aoa.action_machine.domain import BaseDetailEntity
+from aoa.action_machine.domain import AssociationOne, BaseDetailEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.billing.entities.billing_payout_plan import BillingPayoutPlanCoreEntity
 from aoa.demo.model.settlement_desks.settlement_desks_domain import SettlementDesksDomain
 
 
@@ -15,3 +18,7 @@ class ClearingInstructionRowDetailEntity(BaseDetailEntity):
     instruction_key: str = Field(description="Reference into clearing charter")
     notional_ceiling_minor: int = Field(description="Maximum open notional in minor currency units", ge=0)
     allowed_venues_stub: str = Field(description="Serialized venue bitmask placeholder")
+    payout_plan: Annotated[
+        AssociationOne[BillingPayoutPlanCoreEntity],
+        NoInverse(),
+    ] = Field(description="The billing payout plan the instruction settles")

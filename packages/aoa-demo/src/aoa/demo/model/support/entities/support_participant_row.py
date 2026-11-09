@@ -7,6 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 from aoa.demo.model.support.entities.support_simple_lifecycle import SupportSparseLifecycle
 from aoa.demo.model.support.entities.support_ticket_aggregate import SupportTicketAggregateCoreEntity
 from aoa.demo.model.support.support_domain import SupportDomain
@@ -27,6 +28,10 @@ class SupportParticipantCoreEntity(BaseCoreEntity):
         AssociationOne[SupportTicketAggregateCoreEntity],
         NoInverse(),
     ] = Field(description="Parent ticket aggregate")
+    person: Annotated[
+        AssociationOne[IdentityPersonHubCoreEntity],
+        NoInverse(),
+    ] = Field(description="The person taking part in the ticket")
 
 
 SupportParticipantCoreEntity.model_rebuild()

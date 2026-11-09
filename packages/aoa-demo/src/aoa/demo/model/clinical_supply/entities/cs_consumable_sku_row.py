@@ -7,6 +7,7 @@ from pydantic import Field
 
 from aoa.action_machine.domain import AssociationOne, BaseCoreEntity, NoInverse
 from aoa.action_machine.intents.entity import entity
+from aoa.demo.model.catalog.entities.product_row import CatalogProductCoreEntity
 from aoa.demo.model.clinical_supply.domain import ClinicalSupplyDomain
 from aoa.demo.model.clinical_supply.entities.cs_lifecycle import ClinicalSupplyLifecycle
 from aoa.demo.model.clinical_supply.entities.cs_material_anchor import ClinicalMaterialAnchorCoreEntity
@@ -30,6 +31,10 @@ class ClinicalConsumableSkuCoreEntity(BaseCoreEntity):
         AssociationOne[ClinicalMaterialAnchorCoreEntity],
         NoInverse(),
     ] = Field(description="Compound / sterility anchor")
+    catalog_product: Annotated[
+        AssociationOne[CatalogProductCoreEntity],
+        NoInverse(),
+    ] = Field(description="The catalog product the consumable is sold as")
 
 
 ClinicalConsumableSkuCoreEntity.model_rebuild()

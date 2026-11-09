@@ -13,6 +13,7 @@ from aoa.demo.model.catalog_custody.catalog_custody_domain import CatalogCustody
 from aoa.demo.model.catalog_custody.entities.regulated_stock_keeping_unit_row_entity import (
     RegulatedStockKeepingUnitRowDetailEntity,
 )
+from aoa.demo.model.identity.entities.identity_person_hub import IdentityPersonHubCoreEntity
 
 
 @entity(description="Append-only custody audit artifact tied to a SKU anchor", domain=CatalogCustodyDomain)
@@ -24,3 +25,7 @@ class CustodyAuditEventCoreEntity(BaseCoreEntity):
         AssociationOne[RegulatedStockKeepingUnitRowDetailEntity],
         NoInverse(),
     ] = Field(description="Regulated SKU row this audit references")
+    actor: Annotated[
+        AssociationOne[IdentityPersonHubCoreEntity],
+        NoInverse(),
+    ] = Field(description="The person whose action the event records")
